@@ -7,6 +7,7 @@ export type Plant = {
   species: string | null;
   photo_urls: string[] | null;
   location: string | null;
+  acquired_at: string | null;
   created_at: string;
 };
 
@@ -36,6 +37,7 @@ export async function createPlant(input: {
   name: string;
   species: string;
   location: string | null;
+  acquired_at: string | null;
 }): Promise<Plant> {
   const {
     data: { user },
@@ -52,6 +54,7 @@ export async function createPlant(input: {
       name: input.name,
       species: input.species,
       location: input.location,
+      acquired_at: input.acquired_at,
     })
     .select()
     .single();

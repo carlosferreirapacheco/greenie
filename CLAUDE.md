@@ -26,13 +26,17 @@ sharing them socially with other users.
 
 ## Data model (Supabase tables)
 - `profiles` (id [= auth.users id], display_name, bio, avatar_url, created_at)
-- `plants` (id, owner_id, name, species, photo_urls[], location, created_at)
+- `plants` (id, owner_id, name, species, photo_urls[], location, acquired_at,
+  created_at)
 - `care_tasks` (id, plant_id, type [water/fertilize/repot], frequency_days,
   last_done, next_due)
-- `posts` (id, plant_id, user_id, photo_url, caption, created_at)
+- `plant_progress` (id, plant_id, user_id, height_cm, notes, photo_url,
+  created_at) — structured per-plant growth log entries ("progress
+  reports"), not generic posts; `photo_url` is nullable until photo capture
+  is built (see Backlog)
 - `follows` (follower_id, followee_id)
-- `likes` (post_id, user_id)
-- `comments` (id, post_id, user_id, content, created_at)
+- `likes` (progress_id, user_id)
+- `comments` (id, progress_id, user_id, content, created_at)
 
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
@@ -51,11 +55,30 @@ sharing them socially with other users.
   send to a friend/contact watching their plants while away
 - Plant nicknames — let a user set a nickname for a plant, separate from
   its species/common name
-- Social features — `posts`, `follows`, `likes`, `comments` already have
-  schema and RLS policies (see Data model above) but no screens yet: feed,
-  profile, post creation, follow/unfollow, likes/comments UI
+- Social features — `plant_progress`, `follows`, `likes`, `comments`
+  already have schema and RLS policies (see Data model above), and
+  progress-report creation is built (`app/log-progress.tsx`), but these
+  screens are still missing: feed (progress reports from people you
+  follow), viewing *other* users' profiles, follow/unfollow, likes/comments
+  UI
+- Plant profile screen — a per-plant detail view (nothing like this exists
+  yet; plants only ever render as list rows). First job: let the user edit
+  `acquired_at` after the fact, in case it's set wrong on Add Plant.
+  - Progress history/chrono — a timeline/graph of a plant's progress
+    reports, on its profile screen. Further down the line, after the
+    profile screen itself and the rest of social features exist.
 
 ### Technical follow-ups
+- Photo capture — add-plant, the profile avatar, and progress reports have
+  each separately deferred real photo capture so far (all currently show
+  flat-color placeholders instead). One consolidated item: needs
+  `expo-image-picker` (or `expo-camera`) plus a Supabase Storage bucket and
+  upload wiring, picked once and reused everywhere a photo is needed,
+  rather than each feature re-deciding it ad hoc
+- Date picker UI — `acquired_at` on Add Plant uses a plain `YYYY-MM-DD`
+  text input for this first pass, not a real calendar/date picker
+  component; worth revisiting once more than one date field exists in the
+  app
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
