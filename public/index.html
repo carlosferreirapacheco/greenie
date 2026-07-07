@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpequiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>greenie</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <!--
+      Page-shell theming: lib/theme.ts can't be imported into a static HTML
+      file, so colors.paper (#EFF3EA) is duplicated here. Keep in sync if
+      the palette changes. Without this, html/body/#root stay transparent
+      and fall back to the browser's default serif before/around the app.
+    -->
+    <style id="theme-reset">
+      html,
+      body,
+      #root {
+        background-color: #eff3ea;
+      }
+      body {
+        font-family: Georgia, "Times New Roman", serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
