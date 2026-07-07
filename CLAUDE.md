@@ -50,6 +50,8 @@ sharing them socially with other users.
 - Plant-sitting instructions — generate a shareable instructions file
   (per-plant care summary: watering schedule, light, notes) that a user can
   send to a friend/contact watching their plants while away
+- Plant nicknames — let a user set a nickname for a plant, separate from
+  its species/common name
 
 ## Not yet in scope
 - Payments / monetization
