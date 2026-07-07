@@ -32,3 +32,62 @@ export async function getFriends(): Promise<Profile[]> {
 
   return data;
 }
+
+export async function isFollowing(userId: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("follows")
+    .select("followee_id")
+    .eq("follower_id", user.id)
+    .eq("followee_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data !== null;
+}
+
+export async function followUser(userId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { error } = await supabase.from("follows").insert({ follower_id: user.id, followee_id: userId });
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function unfollowUser(userId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { error } = await supabase
+    .from("follows")
+    .delete()
+    .eq("follower_id", user.id)
+    .eq("followee_id", userId);
+
+  if (error) {
+    throw error;
+  }
+}

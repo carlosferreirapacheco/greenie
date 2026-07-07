@@ -1,8 +1,10 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
+import { followUser, isFollowing, unfollowUser } from "../../lib/supabase/follows";
+import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 
 export default function UserProfileScreen() {
@@ -13,14 +15,30 @@ export default function UserProfileScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [following, setFollowing] = useState(false);
+
+  const [toggleStatus, setToggleStatus] = useState<"idle" | "toggling" | "error">("idle");
+  const [toggleError, setToggleError] = useState<string | null>(null);
+
+  // Same synchronous-guard pattern as app/add-plant.tsx: state updates are
+  // async, so a ref is needed to reliably block a second rapid tap.
+  const isToggling = useRef(false);
 
   const fetchProfile = useCallback(() => {
     if (!id) {
       return;
     }
-    getProfile(id)
-      .then((data) => {
-        setProfile(data);
+
+    Promise.all([
+      getProfile(id),
+      isFollowing(id),
+      supabase.auth.getUser().then(({ data }) => data.user?.id),
+    ])
+      .then(([profileData, followingData, currentUserId]) => {
+        setProfile(profileData);
+        setFollowing(followingData);
+        setIsOwnProfile(currentUserId === id);
         setStatus("ready");
       })
       .catch((err) => {
@@ -34,6 +52,32 @@ export default function UserProfileScreen() {
       fetchProfile();
     }, [fetchProfile])
   );
+
+  async function handleToggleFollow() {
+    if (!id || isToggling.current) {
+      return;
+    }
+    isToggling.current = true;
+
+    setToggleStatus("toggling");
+    setToggleError(null);
+
+    try {
+      if (following) {
+        await unfollowUser(id);
+        setFollowing(false);
+      } else {
+        await followUser(id);
+        setFollowing(true);
+      }
+      setToggleStatus("idle");
+    } catch (err) {
+      setToggleError(err instanceof Error ? err.message : String(err));
+      setToggleStatus("error");
+    } finally {
+      isToggling.current = false;
+    }
+  }
 
   if (status === "loading") {
     return (
@@ -72,6 +116,36 @@ export default function UserProfileScreen() {
       <Text style={[styles.bio, { fontFamily: fonts.body, color: profile?.bio ? colors.ink : colors.inkSoft }]}>
         {profile?.bio ?? "No bio yet"}
       </Text>
+
+      {!isOwnProfile ? (
+        <Pressable
+          style={[
+            styles.followButton,
+            following
+              ? { backgroundColor: colors.paper, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line }
+              : { backgroundColor: colors.moss },
+          ]}
+          onPress={handleToggleFollow}
+          disabled={toggleStatus === "toggling"}
+        >
+          {toggleStatus === "toggling" ? (
+            <ActivityIndicator color={following ? colors.inkSoft : colors.paper} />
+          ) : (
+            <Text
+              style={[
+                styles.followButtonText,
+                { fontFamily: fonts.bodySemiBold, color: following ? colors.inkSoft : colors.paper },
+              ]}
+            >
+              {following ? "Unfollow" : "Follow"}
+            </Text>
+          )}
+        </Pressable>
+      ) : null}
+
+      {toggleStatus === "error" ? (
+        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{toggleError}</Text>
+      ) : null}
     </ScrollView>
   );
 }
@@ -104,5 +178,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
+  },
+  followButton: {
+    marginTop: spacing.sm,
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    minWidth: 140,
+  },
+  followButtonText: {
+    fontSize: 15,
+  },
+  errorText: {
+    fontSize: 13,
   },
 });
