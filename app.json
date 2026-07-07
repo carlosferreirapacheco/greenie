@@ -1,8 +1,9 @@
 {
   "expo": {
-    "name": "tmp-scaffold",
-    "slug": "tmp-scaffold",
+    "name": "greenie",
+    "slug": "greenie",
     "version": "1.0.0",
+    "scheme": "greenie",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -20,6 +21,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
