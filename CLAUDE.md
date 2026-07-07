@@ -47,6 +47,9 @@ sharing them socially with other users.
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
   that change scoped to light mode only)
+- Plant-sitting instructions — generate a shareable instructions file
+  (per-plant care summary: watering schedule, light, notes) that a user can
+  send to a friend/contact watching their plants while away
 
 ## Not yet in scope
 - Payments / monetization
