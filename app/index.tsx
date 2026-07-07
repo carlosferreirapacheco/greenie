@@ -89,6 +89,11 @@ export default function PlantListScreen() {
                 Friends
               </Text>
             </Pressable>
+            <Pressable onPress={() => router.push("/feed")} hitSlop={8}>
+              <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Feed
+              </Text>
+            </Pressable>
           </View>
         ),
         headerRight: () => (
