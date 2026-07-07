@@ -28,6 +28,16 @@ export async function getMyProfile(): Promise<MyProfile> {
   return { ...data, email: user.email ?? null };
 }
 
+export async function getProfile(userId: string): Promise<Profile> {
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function updateMyProfile(input: {
   display_name: string | null;
   bio: string | null;

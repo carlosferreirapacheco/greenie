@@ -56,11 +56,20 @@ sharing them socially with other users.
 - Plant nicknames — let a user set a nickname for a plant, separate from
   its species/common name
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
-  already have schema and RLS policies (see Data model above), and
-  progress-report creation is built (`app/log-progress.tsx`), but these
-  screens are still missing: feed (progress reports from people you
-  follow), viewing *other* users' profiles, follow/unfollow, likes/comments
-  UI
+  already have schema and RLS policies (see Data model above).
+  Progress-report creation (`app/log-progress.tsx`), a Friends list
+  (people you follow, `app/friends.tsx`), and viewing other users'
+  profiles (`app/user/[id].tsx`) are built. Remaining, in build order:
+  search for a user by name (how you'd find someone to follow — nothing
+  to search yet, since discovery doesn't exist) → follow/unfollow (the
+  `follows` table has zero rows anywhere until this ships) → feed
+  (progress reports from people you follow) → likes/comments UI
+  - Search friends — filter/search within your own Friends list
+  - Search users — search for any user by name, the precursor to
+    follow/unfollow above
+- Settings screen — general and security settings (e.g. notification
+  preferences, password/security options, account deletion); not yet
+  scoped in detail
 - Plant profile screen — a per-plant detail view (nothing like this exists
   yet; plants only ever render as list rows). First job: let the user edit
   `acquired_at` after the fact, in case it's set wrong on Add Plant.

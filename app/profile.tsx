@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack, useFocusEffect } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 
@@ -110,6 +110,10 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
+        <Pressable onPress={() => router.push("/friends")} hitSlop={8}>
+          <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Friends</Text>
+        </Pressable>
+
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
           <Text style={[styles.readonlyValue, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}>
@@ -189,6 +193,9 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 34,
+  },
+  friendsLink: {
+    fontSize: 14,
   },
   field: {
     width: "100%",
