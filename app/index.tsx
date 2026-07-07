@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
 import { getMyPlants, type Plant } from "../lib/supabase/plants";
 import {
   getCareTasksForPlants,
@@ -7,6 +9,7 @@ import {
   type PlantCareSummary,
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
+import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../lib/theme";
 
 function statusText(status: PlantCareStatus): string {
   switch (status) {
@@ -19,11 +22,25 @@ function statusText(status: PlantCareStatus): string {
   }
 }
 
+function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
+  const palette = statusColors[status];
+  return (
+    <View style={[styles.pill, { backgroundColor: palette.bg }]}>
+      <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
+      <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
+        {label}: {statusText(status)}
+      </Text>
+    </View>
+  );
+}
+
 export default function PlantListScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const fonts = getFonts(fontsLoaded && !fontError);
 
   useEffect(() => {
     getMyPlants()
@@ -50,54 +67,72 @@ export default function PlantListScreen() {
       });
   }, []);
 
+  const screen = <Stack.Screen options={{ title: "Plants" }} />;
+
   if (status === "loading") {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator />
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
+        <ActivityIndicator color={colors.moss} />
       </View>
     );
   }
 
   if (status === "error") {
     return (
-      <View style={styles.center}>
-        <Text>Error: {error}</Text>
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
   }
 
   if (plants.length === 0) {
     return (
-      <View style={styles.center}>
-        <Text>No plants yet</Text>
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No plants yet</Text>
       </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.list}
-      data={plants}
-      keyExtractor={(plant) => plant.id}
-      renderItem={({ item }) => {
+    <>
+      {screen}
+      <FlatList
+        style={[styles.list, { backgroundColor: colors.paper }]}
+        data={plants}
+        keyExtractor={(plant) => plant.id}
+        renderItem={({ item }) => {
         const summary = careSummaries[item.id];
         return (
-          <View style={styles.row}>
-            <Text style={styles.name}>{item.name}</Text>
-            {item.species ? <Text style={styles.species}>{item.species}</Text> : null}
-            {summary?.primary ? (
-              <Text style={styles.status}>
-                {summary.primary.type === "water" ? "watering" : summary.primary.type}:{" "}
-                {statusText(summary.primary.status)}
-              </Text>
-            ) : null}
-            {summary?.watering ? (
-              <Text style={styles.status}>watering: {statusText(summary.watering.status)}</Text>
-            ) : null}
+          <View style={[styles.row, { borderBottomColor: colors.line }]}>
+            <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+            <View style={styles.rowText}>
+              <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{item.name}</Text>
+              {item.species ? (
+                <Text style={[styles.species, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
+                  {item.species}
+                </Text>
+              ) : null}
+              <View style={styles.pillRow}>
+                {summary?.primary ? (
+                  <StatusPill
+                    label={summary.primary.type === "water" ? "watering" : summary.primary.type}
+                    status={summary.primary.status}
+                    fonts={fonts}
+                  />
+                ) : null}
+                {summary?.watering ? (
+                  <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
+                ) : null}
+              </View>
+            </View>
           </View>
         );
-      }}
-    />
+        }}
+      />
+    </>
   );
 }
 
@@ -111,21 +146,47 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   row: {
-    padding: 16,
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#ccc",
+  },
+  thumb: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.sm,
+  },
+  rowText: {
+    flex: 1,
   },
   name: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
   },
   species: {
-    fontSize: 14,
-    color: "#666",
-  },
-  status: {
-    fontSize: 13,
-    color: "#444",
+    fontSize: 13.5,
     marginTop: 2,
+    marginBottom: spacing.xs,
+  },
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+  pillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pillText: {
+    fontSize: 11,
   },
 });
