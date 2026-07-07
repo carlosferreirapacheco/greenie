@@ -43,6 +43,7 @@ export default function RootLayout() {
         headerStyle: { backgroundColor: colors.paper },
         headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
         headerTintColor: colors.moss,
+        headerTitleAlign: "center",
         contentStyle: { backgroundColor: colors.paper },
       }}
     />

@@ -85,7 +85,7 @@ export default function PlantListScreen() {
           </Pressable>
         ),
         headerRight: () => (
-          <Pressable onPress={() => router.push("/add-plant")} hitSlop={8}>
+          <Pressable onPress={() => router.push("/add-plant")} hitSlop={8} style={styles.addButtonWrap}>
             <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
           </Pressable>
         ),
@@ -171,15 +171,17 @@ export default function PlantListScreen() {
 const styles = StyleSheet.create({
   addButton: {
     fontSize: 15,
-    paddingHorizontal: 4,
+  },
+  addButtonWrap: {
+    marginRight: spacing.md,
   },
   profileButton: {
-    paddingHorizontal: 4,
+    marginLeft: spacing.md,
   },
   profileAvatar: {
     width: 28,
     height: 28,
-    borderRadius: 14,
+    borderRadius: radius.sm,
   },
   center: {
     flex: 1,
@@ -193,7 +195,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    padding: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   thumb: {
