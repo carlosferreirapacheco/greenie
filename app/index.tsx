@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyPlants, type Plant } from "../lib/supabase/plants";
 import {
   getCareTasksForPlants,
@@ -42,7 +42,7 @@ export default function PlantListScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
-  useEffect(() => {
+  const fetchPlants = useCallback(() => {
     getMyPlants()
       .then(async (data) => {
         setPlants(data);
@@ -67,7 +67,26 @@ export default function PlantListScreen() {
       });
   }, []);
 
-  const screen = <Stack.Screen options={{ title: "Plants" }} />;
+  // Refetches every time this screen gains focus (e.g. returning from
+  // add-plant), not just on first mount.
+  useFocusEffect(
+    useCallback(() => {
+      fetchPlants();
+    }, [fetchPlants])
+  );
+
+  const screen = (
+    <Stack.Screen
+      options={{
+        title: "Plants",
+        headerRight: () => (
+          <Pressable onPress={() => router.push("/add-plant")} hitSlop={8}>
+            <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
   if (status === "loading") {
     return (
@@ -137,6 +156,10 @@ export default function PlantListScreen() {
 }
 
 const styles = StyleSheet.create({
+  addButton: {
+    fontSize: 15,
+    paddingHorizontal: 4,
+  },
   center: {
     flex: 1,
     alignItems: "center",

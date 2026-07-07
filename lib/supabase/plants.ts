@@ -31,3 +31,34 @@ export async function getMyPlants(): Promise<Plant[]> {
 
   return data;
 }
+
+export async function createPlant(input: {
+  name: string;
+  species: string;
+  location: string | null;
+}): Promise<Plant> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("plants")
+    .insert({
+      owner_id: user.id,
+      name: input.name,
+      species: input.species,
+      location: input.location,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
