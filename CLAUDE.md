@@ -42,18 +42,29 @@ sharing them socially with other users.
 - Ask before making changes to the Supabase schema once it's been created —
   schema changes should be deliberate, not incidental to a feature.
 
-## Planned follow-ups
-- Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
-  just needs `useColorScheme()` wired up to switch which palette is active
-  (deliberately deferred when the design system was first applied, to keep
-  that change scoped to light mode only)
+## Backlog
+
+### Product features
 - Plant-sitting instructions — generate a shareable instructions file
   (per-plant care summary: watering schedule, light, notes) that a user can
   send to a friend/contact watching their plants while away
 - Plant nicknames — let a user set a nickname for a plant, separate from
   its species/common name
+- Social features — `posts`, `follows`, `likes`, `comments` already have
+  schema and RLS policies (see Data model above) but no screens yet: feed,
+  profile, post creation, follow/unfollow, likes/comments UI
 
-## Not yet in scope
+### Technical follow-ups
+- Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
+  just needs `useColorScheme()` wired up to switch which palette is active
+  (deliberately deferred when the design system was first applied, to keep
+  that change scoped to light mode only)
+- Real authentication — replace the hardcoded dev user
+  (`lib/supabase/session.ts`, `dev-dummy-user@greenie.local`) with real
+  sign-up/sign-in screens; every RLS policy already assumes a real
+  `auth.uid()`, so this is wiring, not a schema change
+
+### Later
 - Payments / monetization
 - Admin dashboard
 - Multi-language support
