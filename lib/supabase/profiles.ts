@@ -57,6 +57,7 @@ export async function searchProfiles(query: string): Promise<Profile[]> {
     .select("*")
     .ilike("display_name", `%${trimmed}%`)
     .neq("id", user.id)
+    .order("display_name", { ascending: true })
     .limit(20);
 
   if (error) {
