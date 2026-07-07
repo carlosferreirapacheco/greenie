@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState, type ReactNode } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useCallback, useState } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getFriends } from "../lib/supabase/follows";
-import { searchProfiles, type Profile } from "../lib/supabase/profiles";
+import { type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
@@ -23,16 +23,6 @@ export default function FriendsScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Profile[]>([]);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const [searchStatus, setSearchStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [searchError, setSearchError] = useState<string | null>(null);
-
-  // Guards against a slower earlier search response overwriting a faster
-  // later one when typing quickly.
-  const latestQuery = useRef("");
-
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
@@ -54,131 +44,72 @@ export default function FriendsScreen() {
     }, [fetchFriends])
   );
 
-  function handleSearchChange(text: string) {
-    setSearchQuery(text);
-    latestQuery.current = text;
+  const screen = (
+    <Stack.Screen
+      options={{
+        title: "Friends",
+        headerRight: () => (
+          <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
+            <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+              Search
+            </Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
-    const trimmed = text.trim();
-    if (trimmed.length === 0) {
-      setSearchStatus("idle");
-      setSearchResults([]);
-      return;
-    }
-
-    setSearchStatus("loading");
-    setSearchError(null);
-
-    searchProfiles(trimmed)
-      .then((data) => {
-        if (latestQuery.current !== text) {
-          return;
-        }
-        setSearchResults(data);
-        setSearchStatus("idle");
-      })
-      .catch((err) => {
-        if (latestQuery.current !== text) {
-          return;
-        }
-        setSearchError(err instanceof Error ? err.message : String(err));
-        setSearchStatus("error");
-      });
-  }
-
-  const isSearching = searchQuery.trim().length > 0;
-
-  let body: ReactNode;
-
-  if (isSearching) {
-    if (searchStatus === "loading") {
-      body = (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.moss} />
-        </View>
-      );
-    } else if (searchStatus === "error") {
-      body = (
-        <View style={styles.center}>
-          <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {searchError}</Text>
-        </View>
-      );
-    } else if (searchResults.length === 0) {
-      body = (
-        <View style={styles.center}>
-          <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No users found</Text>
-        </View>
-      );
-    } else {
-      body = (
-        <FlatList
-          style={styles.list}
-          data={searchResults}
-          keyExtractor={(profile) => profile.id}
-          renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
-        />
-      );
-    }
-  } else if (status === "loading") {
-    body = (
-      <View style={styles.center}>
+  if (status === "loading") {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
-  } else if (status === "error") {
-    body = (
-      <View style={styles.center}>
+  }
+
+  if (status === "error") {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
-  } else if (friends.length === 0) {
-    body = (
-      <View style={styles.center}>
+  }
+
+  if (friends.length === 0) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends yet</Text>
       </View>
-    );
-  } else {
-    body = (
-      <FlatList
-        style={styles.list}
-        data={friends}
-        keyExtractor={(friend) => friend.id}
-        renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
-      />
     );
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.paper }]}>
-      <Stack.Screen options={{ title: "Friends" }} />
-      <TextInput
-        style={[styles.searchInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-        value={searchQuery}
-        onChangeText={handleSearchChange}
-        placeholder="Search users by name"
-        placeholderTextColor={colors.inkSoft}
+    <>
+      {screen}
+      <FlatList
+        style={[styles.list, { backgroundColor: colors.paper }]}
+        data={friends}
+        keyExtractor={(friend) => friend.id}
+        renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
       />
-      {body}
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  searchInput: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.sm,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  searchButtonWrap: {
+    marginRight: spacing.md,
+  },
+  searchButton: {
+    fontSize: 15,
   },
   list: {
     flex: 1,
