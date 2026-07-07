@@ -25,6 +25,7 @@ sharing them socially with other users.
   moving to the next one
 
 ## Data model (Supabase tables)
+- `profiles` (id [= auth.users id], display_name, bio, avatar_url, created_at)
 - `plants` (id, owner_id, name, species, photo_urls[], location, created_at)
 - `care_tasks` (id, plant_id, type [water/fertilize/repot], frequency_days,
   last_done, next_due)
@@ -63,6 +64,10 @@ sharing them socially with other users.
   (`lib/supabase/session.ts`, `dev-dummy-user@greenie.local`) with real
   sign-up/sign-in screens; every RLS policy already assumes a real
   `auth.uid()`, so this is wiring, not a schema change
+  - Once sign-up exists, wire `profiles` row creation into that flow (e.g.
+    a trigger on `auth.users` insert, or a client-side call right after
+    sign-up) — the `profiles` table (see Data model) currently only has a
+    row for the one hardcoded dev user, backfilled manually
 
 ### Later
 - Payments / monetization
