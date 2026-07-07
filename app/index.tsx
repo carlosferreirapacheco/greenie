@@ -80,9 +80,16 @@ export default function PlantListScreen() {
       options={{
         title: "Plants",
         headerLeft: () => (
-          <Pressable onPress={() => router.push("/profile")} hitSlop={8} style={styles.profileButton}>
-            <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
-          </Pressable>
+          <View style={styles.headerLeftRow}>
+            <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
+              <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
+            </Pressable>
+            <Pressable onPress={() => router.push("/friends")} hitSlop={8}>
+              <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Friends
+              </Text>
+            </Pressable>
+          </View>
         ),
         headerRight: () => (
           <Pressable onPress={() => router.push("/add-plant")} hitSlop={8} style={styles.addButtonWrap}>
@@ -175,13 +182,19 @@ const styles = StyleSheet.create({
   addButtonWrap: {
     marginRight: spacing.md,
   },
-  profileButton: {
+  headerLeftRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginLeft: spacing.md,
   },
   profileAvatar: {
     width: 28,
     height: 28,
     borderRadius: radius.sm,
+  },
+  friendsLink: {
+    fontSize: 14,
   },
   center: {
     flex: 1,
