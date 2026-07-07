@@ -42,7 +42,7 @@ sharing them socially with other users.
 - Ask before making changes to the Supabase schema once it's been created —
   schema changes should be deliberate, not incidental to a feature.
 
-## Planned follow-ups
+## Backlog
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
@@ -52,8 +52,6 @@ sharing them socially with other users.
   send to a friend/contact watching their plants while away
 - Plant nicknames — let a user set a nickname for a plant, separate from
   its species/common name
-
-## Not yet in scope
 - Payments / monetization
 - Admin dashboard
 - Multi-language support
