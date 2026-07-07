@@ -42,6 +42,12 @@ sharing them socially with other users.
 - Ask before making changes to the Supabase schema once it's been created —
   schema changes should be deliberate, not incidental to a feature.
 
+## Planned follow-ups
+- Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
+  just needs `useColorScheme()` wired up to switch which palette is active
+  (deliberately deferred when the design system was first applied, to keep
+  that change scoped to light mode only)
+
 ## Not yet in scope
 - Payments / monetization
 - Admin dashboard
