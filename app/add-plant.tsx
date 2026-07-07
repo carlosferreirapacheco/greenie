@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
+import { lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -25,12 +26,15 @@ export default function AddPlantScreen() {
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
   const [location, setLocation] = useState("");
 
+  const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Ref, not just state: state updates are async, so two rapid taps can
+  // Refs, not just state: state updates are async, so two rapid taps can
   // both read the pre-update status and both fire before either commits —
   // a ref is set synchronously and closes that race.
+  const isLookingUp = useRef(false);
   const isSaving = useRef(false);
 
   const canSave =
@@ -40,6 +44,29 @@ export default function AddPlantScreen() {
     Number.isFinite(Number(wateringFrequencyDays)) &&
     Number(wateringFrequencyDays) > 0 &&
     saveStatus !== "saving";
+
+  async function handleLookup() {
+    if (name.trim().length === 0 || isLookingUp.current) {
+      return;
+    }
+    isLookingUp.current = true;
+
+    setLookupStatus("loading");
+    setLookupError(null);
+
+    try {
+      const result = await lookupPlantInfo(name.trim());
+      setName(result.name);
+      setSpecies(result.species);
+      setWateringFrequencyDays(String(result.wateringFrequencyDays));
+      setLookupStatus("idle");
+    } catch (err) {
+      setLookupError(err instanceof Error ? err.message : String(err));
+      setLookupStatus("error");
+    } finally {
+      isLookingUp.current = false;
+    }
+  }
 
   async function handleSave() {
     if (!canSave || isSaving.current) {
@@ -92,6 +119,22 @@ export default function AddPlantScreen() {
             placeholder="e.g. Pothos, or my new fiddle leaf fig"
             placeholderTextColor={colors.inkSoft}
           />
+          <Pressable
+            style={[styles.lookupButton, { backgroundColor: colors.sage }]}
+            onPress={handleLookup}
+            disabled={lookupStatus === "loading" || name.trim().length === 0}
+          >
+            {lookupStatus === "loading" ? (
+              <ActivityIndicator color={colors.mossStrong} />
+            ) : (
+              <Text style={[styles.lookupButtonText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
+                Look up with AI
+              </Text>
+            )}
+          </Pressable>
+          {lookupStatus === "error" ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{lookupError}</Text>
+          ) : null}
         </View>
 
         <View style={styles.field}>
@@ -174,6 +217,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 10,
     fontSize: 16,
+  },
+  lookupButton: {
+    marginTop: spacing.xs,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  lookupButtonText: {
+    fontSize: 14,
   },
   errorText: {
     fontSize: 13,
