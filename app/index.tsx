@@ -79,6 +79,11 @@ export default function PlantListScreen() {
     <Stack.Screen
       options={{
         title: "Plants",
+        headerLeft: () => (
+          <Pressable onPress={() => router.push("/profile")} hitSlop={8} style={styles.profileButton}>
+            <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
+          </Pressable>
+        ),
         headerRight: () => (
           <Pressable onPress={() => router.push("/add-plant")} hitSlop={8}>
             <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
@@ -159,6 +164,14 @@ const styles = StyleSheet.create({
   addButton: {
     fontSize: 15,
     paddingHorizontal: 4,
+  },
+  profileButton: {
+    paddingHorizontal: 4,
+  },
+  profileAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
   },
   center: {
     flex: 1,
