@@ -25,6 +25,7 @@ export default function AddPlantScreen() {
   const [species, setSpecies] = useState("");
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
   const [location, setLocation] = useState("");
+  const [acquiredAt, setAcquiredAt] = useState("");
 
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "error">("idle");
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -37,12 +38,15 @@ export default function AddPlantScreen() {
   const isLookingUp = useRef(false);
   const isSaving = useRef(false);
 
+  const acquiredAtIsValid = acquiredAt.trim().length === 0 || /^\d{4}-\d{2}-\d{2}$/.test(acquiredAt.trim());
+
   const canSave =
     name.trim().length > 0 &&
     species.trim().length > 0 &&
     wateringFrequencyDays.trim().length > 0 &&
     Number.isFinite(Number(wateringFrequencyDays)) &&
     Number(wateringFrequencyDays) > 0 &&
+    acquiredAtIsValid &&
     saveStatus !== "saving";
 
   async function handleLookup() {
@@ -82,6 +86,7 @@ export default function AddPlantScreen() {
         name: name.trim(),
         species: species.trim(),
         location: location.trim().length > 0 ? location.trim() : null,
+        acquired_at: acquiredAt.trim().length > 0 ? acquiredAt.trim() : null,
       });
 
       const frequencyDays = Number(wateringFrequencyDays);
@@ -176,6 +181,24 @@ export default function AddPlantScreen() {
             placeholder="e.g. Living room, east window"
             placeholderTextColor={colors.inkSoft}
           />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Acquired date (optional)
+          </Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={acquiredAt}
+            onChangeText={setAcquiredAt}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.inkSoft}
+          />
+          {!acquiredAtIsValid ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+              Use YYYY-MM-DD format
+            </Text>
+          ) : null}
         </View>
 
         {saveStatus === "error" ? (

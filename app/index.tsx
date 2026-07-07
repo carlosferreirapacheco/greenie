@@ -152,6 +152,14 @@ export default function PlantListScreen() {
                 ) : null}
               </View>
             </View>
+            <Pressable
+              onPress={() => router.push({ pathname: "/log-progress", params: { plantId: item.id } })}
+              hitSlop={8}
+            >
+              <Text style={[styles.logProgress, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Log progress
+              </Text>
+            </Pressable>
           </View>
         );
         }}
@@ -183,6 +191,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     padding: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -224,5 +233,8 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: 11,
+  },
+  logProgress: {
+    fontSize: 12,
   },
 });
