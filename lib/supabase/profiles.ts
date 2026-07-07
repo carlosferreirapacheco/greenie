@@ -38,6 +38,34 @@ export async function getProfile(userId: string): Promise<Profile> {
   return data;
 }
 
+export async function searchProfiles(query: string): Promise<Profile[]> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0) {
+    return [];
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .ilike("display_name", `%${trimmed}%`)
+    .neq("id", user.id)
+    .limit(20);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function updateMyProfile(input: {
   display_name: string | null;
   bio: string | null;
