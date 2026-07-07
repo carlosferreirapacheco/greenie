@@ -19,6 +19,8 @@ sharing them socially with other users.
 - Keep Supabase calls in a `lib/supabase/` folder behind typed functions —
   don't call `supabase.from(...)` directly inside components
 - One feature per branch, small commits with descriptive messages
+- No direct pushes to `master` — every change goes through a feature branch
+  and a pull request
 - Write a quick test or manual verification step for each feature before
   moving to the next one
 
