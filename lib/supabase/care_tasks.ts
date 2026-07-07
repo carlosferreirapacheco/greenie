@@ -28,6 +28,25 @@ export async function getCareTasksForPlants(plantIds: string[]): Promise<CareTas
   return data;
 }
 
+export async function createCareTask(input: {
+  plant_id: string;
+  type: CareTaskType;
+  frequency_days: number;
+  next_due: string;
+}): Promise<CareTask> {
+  const { data, error } = await supabase
+    .from("care_tasks")
+    .insert(input)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export type PlantCareStatus = "healthy" | "due_soon" | "overdue";
 
 const DUE_SOON_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
