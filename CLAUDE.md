@@ -42,8 +42,10 @@ sharing them socially with other users.
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
   run the app (`npx expo start`) and confirm it works before moving on.
-- Use plan mode before large or structural changes — explain the approach
-  before editing files.
+- Always present a plan before editing files — explain the approach
+  (what files change, what's added/removed, any schema or dependency
+  impact) and get it confirmed before making changes, no matter the
+  size of the change.
 - Don't install new dependencies without saying which one and why.
 - Ask before making changes to the Supabase schema once it's been created —
   schema changes should be deliberate, not incidental to a feature.
@@ -53,7 +55,12 @@ sharing them socially with other users.
 ### Product features
 - Plant-sitting instructions — generate a shareable instructions file
   (per-plant care summary: watering schedule, light, notes) that a user can
-  send to a friend/contact watching their plants while away
+  send to a friend/contact watching their plants while away. Now that
+  progress-report logging is owner-only (see Plant list on user profiles
+  below), this is also where a future delegated logging capability
+  should live — letting a sitter log progress on a plant they don't own
+  while it's explicitly shared with them, rather than reopening logging
+  to everyone
 - Plant nicknames — let a user set a nickname for a plant, separate from
   its species/common name
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
@@ -103,9 +110,19 @@ sharing them socially with other users.
   - Replace a plant's photo from Log Progress — once photo capture
     exists, let a new photo taken while logging progress optionally
     become the plant's new main photo, not just attach to that report
-- Plant list on user profiles — `app/user/[id].tsx` currently shows only
-  avatar/display name/bio; add a list of that user's plants so other
-  people can browse them from a profile
+- Plant list on user profiles — done. `app/user/[id].tsx` now fetches
+  and lists that user's plants (via new `getPlantsForUser()` in
+  `lib/supabase/plants.ts`), with the same status-pill treatment as the
+  main Plants screen; tapping a row opens `/plant/[id]` read-only. While
+  building this, found and fixed a real gap: `plant_progress`'s INSERT
+  RLS policy only checked `auth.uid() = user_id`, letting any signed-in
+  user log progress on *any* plant, not just their own. Progress logging
+  is now owner-only — the policy also requires plant ownership, and
+  `app/plant/[id].tsx`'s "Log progress" button is now gated behind its
+  existing `isOwner` check (`app/index.tsx`'s own Log progress link was
+  already implicitly owner-only, since that screen only ever lists the
+  signed-in user's own plants). Delegated non-owner logging is deferred
+  to Plant-sitting instructions above.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet

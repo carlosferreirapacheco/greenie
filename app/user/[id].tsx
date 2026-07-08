@@ -1,12 +1,42 @@
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
 import { followUser, isFollowing, unfollowUser } from "../../lib/supabase/follows";
+import { getPlantsForUser, type Plant } from "../../lib/supabase/plants";
+import {
+  getCareTasksForPlants,
+  summarizeCareTasks,
+  type PlantCareSummary,
+  type PlantCareStatus,
+} from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
-import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
 import { getErrorMessage } from "../../lib/errors";
+
+function statusText(status: PlantCareStatus): string {
+  switch (status) {
+    case "overdue":
+      return "overdue";
+    case "due_soon":
+      return "due soon";
+    case "healthy":
+      return "healthy";
+  }
+}
+
+function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
+  const palette = statusColors[status];
+  return (
+    <View style={[styles.pill, { backgroundColor: palette.bg }]}>
+      <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
+      <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
+        {label}: {statusText(status)}
+      </Text>
+    </View>
+  );
+}
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,6 +48,8 @@ export default function UserProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [following, setFollowing] = useState(false);
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
 
   const [toggleStatus, setToggleStatus] = useState<"idle" | "toggling" | "error">("idle");
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -34,12 +66,27 @@ export default function UserProfileScreen() {
     Promise.all([
       getProfile(id),
       isFollowing(id),
+      getPlantsForUser(id),
       supabase.auth.getUser().then(({ data }) => data.user?.id),
     ])
-      .then(([profileData, followingData, currentUserId]) => {
+      .then(async ([profileData, followingData, plantsData, currentUserId]) => {
         setProfile(profileData);
         setFollowing(followingData);
         setIsOwnProfile(currentUserId === id);
+        setPlants(plantsData);
+
+        const tasks = await getCareTasksForPlants(plantsData.map((plant) => plant.id));
+        const tasksByPlant: Record<string, typeof tasks> = {};
+        for (const task of tasks) {
+          (tasksByPlant[task.plant_id] ??= []).push(task);
+        }
+
+        const summaries: Record<string, PlantCareSummary> = {};
+        for (const plant of plantsData) {
+          summaries[plant.id] = summarizeCareTasks(tasksByPlant[plant.id] ?? []);
+        }
+        setCareSummaries(summaries);
+
         setStatus("ready");
       })
       .catch((err) => {
@@ -147,6 +194,49 @@ export default function UserProfileScreen() {
       {toggleStatus === "error" ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{toggleError}</Text>
       ) : null}
+
+      <View style={styles.plantsSection}>
+        <Text style={[styles.sectionLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Plants</Text>
+
+        {plants.length === 0 ? (
+          <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>No plants yet</Text>
+        ) : (
+          plants.map((plant) => {
+            const summary = careSummaries[plant.id];
+            return (
+              <Pressable
+                key={plant.id}
+                style={[styles.plantRow, { borderBottomColor: colors.line }]}
+                onPress={() => router.push(`/plant/${plant.id}`)}
+              >
+                <View style={[styles.plantThumb, { backgroundColor: colors.sage }]} />
+                <View style={styles.plantRowText}>
+                  <Text style={[styles.plantName, { fontFamily: fonts.display, color: colors.ink }]}>
+                    {plant.name}
+                  </Text>
+                  {plant.species ? (
+                    <Text style={[styles.plantSpecies, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
+                      {plant.species}
+                    </Text>
+                  ) : null}
+                  <View style={styles.pillRow}>
+                    {summary?.primary ? (
+                      <StatusPill
+                        label={summary.primary.type === "water" ? "watering" : summary.primary.type}
+                        status={summary.primary.status}
+                        fonts={fonts}
+                      />
+                    ) : null}
+                    {summary?.watering ? (
+                      <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
+                    ) : null}
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -193,5 +283,61 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
+  },
+  plantsSection: {
+    width: "100%",
+    marginTop: spacing.md,
+    gap: spacing.xs,
+  },
+  sectionLabel: {
+    fontSize: 13,
+  },
+  emptyText: {
+    fontSize: 14,
+  },
+  plantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  plantThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.sm,
+  },
+  plantRowText: {
+    flex: 1,
+  },
+  plantName: {
+    fontSize: 17,
+  },
+  plantSpecies: {
+    fontSize: 13.5,
+    marginTop: 2,
+    marginBottom: spacing.xs,
+  },
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+  pillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pillText: {
+    fontSize: 11,
   },
 });
