@@ -77,7 +77,12 @@ sharing them socially with other users.
   `markCareTaskDone`, `updateCareTaskFrequency`, `deleteCareTask`
   alongside the existing `createCareTask`; no schema/RLS change was
   needed since `care_tasks` already had owner-scoped INSERT/UPDATE/DELETE
-  policies via the `plants.owner_id` join.
+  policies via the `plants.owner_id` join. Marking done on or before the
+  due date always counts the new `next_due` from the moment marked done;
+  marking an overdue task done prompts the owner to choose whether
+  `next_due` should count from the original due date (task was actually
+  done on time, just logged late) or from today (task was genuinely done
+  late) — `markCareTaskDone`'s optional `nextDueAnchor` param drives this.
   - Update care task badges on the Plants screen — done as part of the
     above. Status pills update instantly from local state on mark-done
     (no refetch needed), and the Plants list picks up the change on

@@ -70,6 +70,8 @@ export default function PlantProfileScreen() {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  const [markDonePromptId, setMarkDonePromptId] = useState<string | null>(null);
+
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskType, setNewTaskType] = useState<CareTaskType | null>(null);
   const [newTaskFrequency, setNewTaskFrequency] = useState("");
@@ -129,7 +131,7 @@ export default function PlantProfileScreen() {
     }
   }
 
-  async function handleMarkDone(task: CareTask) {
+  async function executeMarkDone(task: CareTask, nextDueAnchor?: Date) {
     if (busyTaskRef.current) {
       return;
     }
@@ -138,8 +140,9 @@ export default function PlantProfileScreen() {
     setTasksError(null);
 
     try {
-      const updated = await markCareTaskDone(task);
+      const updated = await markCareTaskDone(task, nextDueAnchor);
       setCareTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setMarkDonePromptId(null);
     } catch (err) {
       setTasksError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -148,10 +151,30 @@ export default function PlantProfileScreen() {
     }
   }
 
+  function handleMarkDonePress(task: CareTask) {
+    const isOverdue = task.next_due !== null && new Date(task.next_due).getTime() < Date.now();
+    if (isOverdue) {
+      setMarkDonePromptId(task.id);
+      setEditingTaskId(null);
+      setConfirmDeleteId(null);
+      setTasksError(null);
+      return;
+    }
+    executeMarkDone(task);
+  }
+
   function handleStartEditFrequency(task: CareTask) {
     setEditingTaskId(task.id);
     setEditFrequencyInput(String(task.frequency_days));
     setConfirmDeleteId(null);
+    setMarkDonePromptId(null);
+    setTasksError(null);
+  }
+
+  function handleStartDelete(task: CareTask) {
+    setConfirmDeleteId(task.id);
+    setEditingTaskId(null);
+    setMarkDonePromptId(null);
     setTasksError(null);
   }
 
@@ -408,9 +431,37 @@ export default function PlantProfileScreen() {
                       </Text>
                     </Pressable>
                   </View>
+                ) : markDonePromptId === task.id ? (
+                  <View style={styles.taskPromptWrap}>
+                    <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                      This task is overdue. Count the next due date from:
+                    </Text>
+                    <View style={styles.taskActionsRow}>
+                      <Pressable
+                        onPress={() => executeMarkDone(task, task.next_due ? new Date(task.next_due) : undefined)}
+                        hitSlop={8}
+                        disabled={isBusy}
+                      >
+                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                          Original due date
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => executeMarkDone(task)} hitSlop={8} disabled={isBusy}>
+                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                          Today
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => setMarkDonePromptId(null)} hitSlop={8} disabled={isBusy}>
+                        <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                          Cancel
+                        </Text>
+                      </Pressable>
+                      {isBusy ? <ActivityIndicator color={colors.moss} /> : null}
+                    </View>
+                  </View>
                 ) : (
                   <View style={styles.taskActionsRow}>
-                    <Pressable onPress={() => handleMarkDone(task)} hitSlop={8} disabled={isBusy}>
+                    <Pressable onPress={() => handleMarkDonePress(task)} hitSlop={8} disabled={isBusy}>
                       {isBusy ? (
                         <ActivityIndicator color={colors.moss} />
                       ) : (
@@ -424,7 +475,7 @@ export default function PlantProfileScreen() {
                         Edit
                       </Text>
                     </Pressable>
-                    <Pressable onPress={() => setConfirmDeleteId(task.id)} hitSlop={8} disabled={isBusy}>
+                    <Pressable onPress={() => handleStartDelete(task)} hitSlop={8} disabled={isBusy}>
                       <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
                         Delete
                       </Text>
@@ -616,6 +667,9 @@ const styles = StyleSheet.create({
   },
   logProgressText: {
     fontSize: 15,
+  },
+  taskPromptWrap: {
+    gap: 6,
   },
   taskRow: {
     width: "100%",
