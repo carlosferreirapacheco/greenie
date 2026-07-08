@@ -28,13 +28,30 @@ describe("supabase client bootstrap", () => {
     expect(() => require("./client")).toThrow(/Missing EXPO_PUBLIC_SUPABASE_URL/);
   });
 
-  it("constructs a client when both env vars are present", () => {
+  it("calls createClient with the configured url, key, and auth options", () => {
+    // The real createClient() also spins up a Realtime WebSocket client,
+    // whose availability depends on the runtime's WebSocket global -- not
+    // something this test should depend on. Mocking createClient itself
+    // keeps this test about *our* wiring (which url/key/options we pass),
+    // not the SDK's own environment requirements.
+    jest.doMock("@supabase/supabase-js", () => ({ createClient: jest.fn(() => ({ mocked: true })) }));
     process.env.EXPO_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "test-publishable-key";
 
+    const { createClient } = require("@supabase/supabase-js");
     const { supabase } = require("./client");
-    expect(supabase).toBeDefined();
-    expect(typeof supabase.from).toBe("function");
-    expect(typeof supabase.auth.getUser).toBe("function");
+
+    expect(createClient).toHaveBeenCalledWith(
+      "https://example.supabase.co",
+      "test-publishable-key",
+      expect.objectContaining({
+        auth: expect.objectContaining({
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: false,
+        }),
+      })
+    );
+    expect(supabase).toEqual({ mocked: true });
   });
 });
