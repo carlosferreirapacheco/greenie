@@ -73,12 +73,26 @@ sharing them socially with other users.
   views can show a followed user's data). Scoping visibility to
   followers-only is deliberately deferred; would mean RLS policies that
   reference the `follows` table instead of `using (true)`.
-- Plant profile screen — a per-plant detail view (nothing like this exists
-  yet; plants only ever render as list rows). First job: let the user edit
-  `acquired_at` after the fact, in case it's set wrong on Add Plant.
+- Plant profile screen — a per-plant detail view (`app/plant/[id].tsx`)
+  is built: name/species/location, per-task care status pills, a Log
+  Progress link, and the originally-scoped first job — editing
+  `acquired_at` after the fact — all done.
+  - Link to plant profile from Feed — the feed's plant name text should
+    navigate to `/plant/[id]`, same as the author name already does for
+    `/user/[id]`. Next thing to pick up now that the route exists.
   - Progress history/chrono — a timeline/graph of a plant's progress
-    reports, on its profile screen. Further down the line, after the
-    profile screen itself and the rest of social features exist.
+    reports, on its profile screen. Further down the line.
+  - Adding a new photo — ties into the consolidated Photo capture item
+    below; the plant profile screen is one of the places that'll need it
+  - Replace a plant's photo from Log Progress — once photo capture
+    exists, let a new photo taken while logging progress optionally
+    become the plant's new main photo, not just attach to that report
+- Plant list on user profiles — `app/user/[id].tsx` currently shows only
+  avatar/display name/bio; add a list of that user's plants so other
+  people can browse them from a profile
+- Review feed behavior on multiple progress reports — audit how the feed
+  reads when a plant has several reports (ordering, whether they should
+  ever be grouped/collapsed under one plant); not a concrete feature yet
 
 ### Technical follow-ups
 - Lazy-load feed items — `getFeed()` (`lib/supabase/plant_progress.ts`)
