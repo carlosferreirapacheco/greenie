@@ -143,27 +143,29 @@ export default function PlantListScreen() {
         const summary = careSummaries[item.id];
         return (
           <View style={[styles.row, { borderBottomColor: colors.line }]}>
-            <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
-            <View style={styles.rowText}>
-              <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{item.name}</Text>
-              {item.species ? (
-                <Text style={[styles.species, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
-                  {item.species}
-                </Text>
-              ) : null}
-              <View style={styles.pillRow}>
-                {summary?.primary ? (
-                  <StatusPill
-                    label={summary.primary.type === "water" ? "watering" : summary.primary.type}
-                    status={summary.primary.status}
-                    fonts={fonts}
-                  />
+            <Pressable style={styles.plantLink} onPress={() => router.push(`/plant/${item.id}`)}>
+              <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+              <View style={styles.rowText}>
+                <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{item.name}</Text>
+                {item.species ? (
+                  <Text style={[styles.species, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
+                    {item.species}
+                  </Text>
                 ) : null}
-                {summary?.watering ? (
-                  <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
-                ) : null}
+                <View style={styles.pillRow}>
+                  {summary?.primary ? (
+                    <StatusPill
+                      label={summary.primary.type === "water" ? "watering" : summary.primary.type}
+                      status={summary.primary.status}
+                      fonts={fonts}
+                    />
+                  ) : null}
+                  {summary?.watering ? (
+                    <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
+                  ) : null}
+                </View>
               </View>
-            </View>
+            </Pressable>
             <Pressable
               onPress={() => router.push({ pathname: "/log-progress", params: { plantId: item.id } })}
               hitSlop={8}
@@ -216,6 +218,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  plantLink: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
   },
   thumb: {
     width: 56,
