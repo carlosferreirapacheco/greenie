@@ -47,6 +47,53 @@ export async function createCareTask(input: {
   return data;
 }
 
+export async function updateCareTaskFrequency(id: string, frequency_days: number): Promise<CareTask> {
+  const { data, error } = await supabase
+    .from("care_tasks")
+    .update({ frequency_days })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deleteCareTask(id: string): Promise<void> {
+  const { error } = await supabase.from("care_tasks").delete().eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+// nextDueAnchor is the point in time frequency_days is added to, to get
+// the new next_due. Defaults to now (the common case: marking a task
+// done on or before its due date). For a task marked done after its due
+// date, the caller may instead pass the task's original next_due as the
+// anchor, keeping the schedule on its original cadence rather than
+// restarting it from today.
+export async function markCareTaskDone(task: CareTask, nextDueAnchor: Date = new Date()): Promise<CareTask> {
+  const now = new Date();
+  const nextDue = new Date(nextDueAnchor.getTime() + task.frequency_days * 24 * 60 * 60 * 1000);
+
+  const { data, error } = await supabase
+    .from("care_tasks")
+    .update({ last_done: now.toISOString(), next_due: nextDue.toISOString() })
+    .eq("id", task.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export type PlantCareStatus = "healthy" | "due_soon" | "overdue";
 
 const DUE_SOON_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;

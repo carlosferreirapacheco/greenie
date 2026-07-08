@@ -69,15 +69,24 @@ sharing them socially with other users.
   general and security settings (e.g. notification preferences,
   password/security options, account deletion); not yet scoped in detail
 - Add EU GDPR mandatory settings — not yet scoped in detail
-- Manage plant care tasks — there's no UI to add, edit, or delete care
-  tasks beyond the single watering task created at Add Plant time
-  (`lib/supabase/care_tasks.ts` has `createCareTask` but no update/delete);
-  also no way to mark a task done, which is what should move `last_done`/
-  `next_due` forward
-  - Update care task badges on the Plants screen — once tasks can be
-    marked done, the status pills (`app/index.tsx`, `app/plant/[id].tsx`)
-    should reflect that immediately rather than only ever decaying from
-    healthy toward overdue as time passes with no way to reset
+- Manage plant care tasks — done. The plant profile screen
+  (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
+  task done (advances `last_done`/`next_due`), edit its frequency, delete
+  it, and add a task for any of the three types (water/fertilize/repot)
+  not yet present on that plant. `lib/supabase/care_tasks.ts` gained
+  `markCareTaskDone`, `updateCareTaskFrequency`, `deleteCareTask`
+  alongside the existing `createCareTask`; no schema/RLS change was
+  needed since `care_tasks` already had owner-scoped INSERT/UPDATE/DELETE
+  policies via the `plants.owner_id` join. Marking done on or before the
+  due date always counts the new `next_due` from the moment marked done;
+  marking an overdue task done prompts the owner to choose whether
+  `next_due` should count from the original due date (task was actually
+  done on time, just logged late) or from today (task was genuinely done
+  late) — `markCareTaskDone`'s optional `nextDueAnchor` param drives this.
+  - Update care task badges on the Plants screen — done as part of the
+    above. Status pills update instantly from local state on mark-done
+    (no refetch needed), and the Plants list picks up the change on
+    return via its existing `useFocusEffect` refetch.
 - Content visibility scoping — `plants` and `profiles` are currently
   fully public to any signed-in user (needed so the feed and profile
   views can show a followed user's data). Scoping visibility to
@@ -165,6 +174,10 @@ sharing them socially with other users.
 - Payments / monetization
 - Admin dashboard
 - Multi-language support
+- Revisit prompt design and other UX/UI improvements — a general pass
+  over interaction patterns accumulated feature-by-feature (e.g. the
+  inline two-tap confirm/prompt style used for delete and the overdue
+  mark-done choice), not tied to one specific screen
 
 ## Environment
 - Supabase URL and anon key go in `.env` (never commit this file)

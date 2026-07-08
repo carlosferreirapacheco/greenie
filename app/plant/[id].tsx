@@ -11,9 +11,20 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getPlant, updatePlantAcquiredAt, type Plant } from "../../lib/supabase/plants";
-import { getCareTasksForPlants, getPlantCareStatus, type CareTask } from "../../lib/supabase/care_tasks";
+import {
+  createCareTask,
+  deleteCareTask,
+  getCareTasksForPlants,
+  getPlantCareStatus,
+  markCareTaskDone,
+  updateCareTaskFrequency,
+  type CareTask,
+  type CareTaskType,
+} from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
+
+const ALL_TASK_TYPES: CareTaskType[] = ["water", "fertilize", "repot"];
 
 function careTaskLabel(type: CareTask["type"]): string {
   switch (type) {
@@ -24,6 +35,13 @@ function careTaskLabel(type: CareTask["type"]): string {
     case "repot":
       return "repot";
   }
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) {
+    return "Never";
+  }
+  return new Date(iso).toISOString().slice(0, 10);
 }
 
 export default function PlantProfileScreen() {
@@ -42,6 +60,21 @@ export default function PlantProfileScreen() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const isSaving = useRef(false);
+
+  const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
+  const busyTaskRef = useRef<string | null>(null);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editFrequencyInput, setEditFrequencyInput] = useState("");
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const [markDonePromptId, setMarkDonePromptId] = useState<string | null>(null);
+
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [newTaskType, setNewTaskType] = useState<CareTaskType | null>(null);
+  const [newTaskFrequency, setNewTaskFrequency] = useState("");
 
   const fetchData = useCallback(() => {
     if (!id) {
@@ -95,6 +128,133 @@ export default function PlantProfileScreen() {
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
+    }
+  }
+
+  async function executeMarkDone(task: CareTask, nextDueAnchor?: Date) {
+    if (busyTaskRef.current) {
+      return;
+    }
+    busyTaskRef.current = task.id;
+    setBusyTaskId(task.id);
+    setTasksError(null);
+
+    try {
+      const updated = await markCareTaskDone(task, nextDueAnchor);
+      setCareTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setMarkDonePromptId(null);
+    } catch (err) {
+      setTasksError(err instanceof Error ? err.message : String(err));
+    } finally {
+      busyTaskRef.current = null;
+      setBusyTaskId(null);
+    }
+  }
+
+  function handleMarkDonePress(task: CareTask) {
+    const isOverdue = task.next_due !== null && new Date(task.next_due).getTime() < Date.now();
+    if (isOverdue) {
+      setMarkDonePromptId(task.id);
+      setEditingTaskId(null);
+      setConfirmDeleteId(null);
+      setTasksError(null);
+      return;
+    }
+    executeMarkDone(task);
+  }
+
+  function handleStartEditFrequency(task: CareTask) {
+    setEditingTaskId(task.id);
+    setEditFrequencyInput(String(task.frequency_days));
+    setConfirmDeleteId(null);
+    setMarkDonePromptId(null);
+    setTasksError(null);
+  }
+
+  function handleStartDelete(task: CareTask) {
+    setConfirmDeleteId(task.id);
+    setEditingTaskId(null);
+    setMarkDonePromptId(null);
+    setTasksError(null);
+  }
+
+  const editFrequencyIsValid =
+    Number.isFinite(Number(editFrequencyInput)) && Number(editFrequencyInput) > 0;
+
+  async function handleSaveFrequency(task: CareTask) {
+    if (!editFrequencyIsValid || busyTaskRef.current) {
+      return;
+    }
+    busyTaskRef.current = task.id;
+    setBusyTaskId(task.id);
+    setTasksError(null);
+
+    try {
+      const updated = await updateCareTaskFrequency(task.id, Number(editFrequencyInput));
+      setCareTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setEditingTaskId(null);
+    } catch (err) {
+      setTasksError(err instanceof Error ? err.message : String(err));
+    } finally {
+      busyTaskRef.current = null;
+      setBusyTaskId(null);
+    }
+  }
+
+  async function handleConfirmDelete(task: CareTask) {
+    if (busyTaskRef.current) {
+      return;
+    }
+    busyTaskRef.current = task.id;
+    setBusyTaskId(task.id);
+    setTasksError(null);
+
+    try {
+      await deleteCareTask(task.id);
+      setCareTasks((prev) => prev.filter((t) => t.id !== task.id));
+      setConfirmDeleteId(null);
+    } catch (err) {
+      setTasksError(err instanceof Error ? err.message : String(err));
+    } finally {
+      busyTaskRef.current = null;
+      setBusyTaskId(null);
+    }
+  }
+
+  function handleStartAddTask() {
+    setIsAddingTask(true);
+    setNewTaskType(null);
+    setNewTaskFrequency("");
+    setTasksError(null);
+  }
+
+  const newTaskFrequencyIsValid =
+    Number.isFinite(Number(newTaskFrequency)) && Number(newTaskFrequency) > 0;
+
+  async function handleSaveNewTask() {
+    if (!id || !newTaskType || !newTaskFrequencyIsValid || busyTaskRef.current) {
+      return;
+    }
+    busyTaskRef.current = "new";
+    setBusyTaskId("new");
+    setTasksError(null);
+
+    try {
+      const frequencyDays = Number(newTaskFrequency);
+      const nextDue = new Date(Date.now() + frequencyDays * 24 * 60 * 60 * 1000).toISOString();
+      const created = await createCareTask({
+        plant_id: id,
+        type: newTaskType,
+        frequency_days: frequencyDays,
+        next_due: nextDue,
+      });
+      setCareTasks((prev) => [...prev, created]);
+      setIsAddingTask(false);
+    } catch (err) {
+      setTasksError(err instanceof Error ? err.message : String(err));
+    } finally {
+      busyTaskRef.current = null;
+      setBusyTaskId(null);
     }
   }
 
@@ -204,6 +364,190 @@ export default function PlantProfileScreen() {
                 </View>
               );
             })}
+        </View>
+      ) : null}
+
+      {isOwner ? (
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Care tasks</Text>
+
+          {tasksError ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{tasksError}</Text>
+          ) : null}
+
+          {careTasks.map((task) => {
+            const isBusy = busyTaskId === task.id;
+            return (
+              <View key={task.id} style={[styles.taskRow, { borderColor: colors.line }]}>
+                <View style={styles.taskRowMain}>
+                  <Text style={[styles.taskType, { fontFamily: fonts.bodySemiBold, color: colors.ink }]}>
+                    {careTaskLabel(task.type)}
+                  </Text>
+                  <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                    Every {task.frequency_days} day{task.frequency_days === 1 ? "" : "s"} · Last done:{" "}
+                    {formatDate(task.last_done)} · Next due: {formatDate(task.next_due)}
+                  </Text>
+                </View>
+
+                {editingTaskId === task.id ? (
+                  <View style={styles.taskEditRow}>
+                    <TextInput
+                      style={[styles.taskFrequencyInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                      value={editFrequencyInput}
+                      onChangeText={setEditFrequencyInput}
+                      keyboardType="number-pad"
+                      placeholder="days"
+                      placeholderTextColor={colors.inkSoft}
+                    />
+                    <Pressable onPress={() => setEditingTaskId(null)} hitSlop={8}>
+                      <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleSaveFrequency(task)} hitSlop={8} disabled={!editFrequencyIsValid || isBusy}>
+                      <Text
+                        style={[
+                          styles.taskActionLink,
+                          { fontFamily: fonts.bodyMedium, color: editFrequencyIsValid ? colors.moss : colors.inkSoft },
+                        ]}
+                      >
+                        Save
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : confirmDeleteId === task.id ? (
+                  <View style={styles.taskEditRow}>
+                    <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                      Delete this task?
+                    </Text>
+                    <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
+                      <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                        Cancel
+                      </Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleConfirmDelete(task)} hitSlop={8} disabled={isBusy}>
+                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+                        Confirm
+                      </Text>
+                    </Pressable>
+                  </View>
+                ) : markDonePromptId === task.id ? (
+                  <View style={styles.taskPromptWrap}>
+                    <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                      This task is overdue. Count the next due date from:
+                    </Text>
+                    <View style={styles.taskActionsRow}>
+                      <Pressable
+                        onPress={() => executeMarkDone(task, task.next_due ? new Date(task.next_due) : undefined)}
+                        hitSlop={8}
+                        disabled={isBusy}
+                      >
+                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                          Original due date
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => executeMarkDone(task)} hitSlop={8} disabled={isBusy}>
+                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                          Today
+                        </Text>
+                      </Pressable>
+                      <Pressable onPress={() => setMarkDonePromptId(null)} hitSlop={8} disabled={isBusy}>
+                        <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                          Cancel
+                        </Text>
+                      </Pressable>
+                      {isBusy ? <ActivityIndicator color={colors.moss} /> : null}
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.taskActionsRow}>
+                    <Pressable onPress={() => handleMarkDonePress(task)} hitSlop={8} disabled={isBusy}>
+                      {isBusy ? (
+                        <ActivityIndicator color={colors.moss} />
+                      ) : (
+                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                          Mark done
+                        </Text>
+                      )}
+                    </Pressable>
+                    <Pressable onPress={() => handleStartEditFrequency(task)} hitSlop={8} disabled={isBusy}>
+                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                        Edit
+                      </Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleStartDelete(task)} hitSlop={8} disabled={isBusy}>
+                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+                        Delete
+                      </Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+
+          {isAddingTask ? (
+            <View style={[styles.taskRow, { borderColor: colors.line }]}>
+              <View style={styles.taskTypeRow}>
+                {ALL_TASK_TYPES.filter((t) => !careTasks.some((task) => task.type === t)).map((t) => (
+                  <Pressable
+                    key={t}
+                    style={[
+                      styles.taskTypeChoice,
+                      { borderColor: colors.line, backgroundColor: newTaskType === t ? colors.sage : "transparent" },
+                    ]}
+                    onPress={() => setNewTaskType(t)}
+                  >
+                    <Text style={[styles.taskMeta, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                      {careTaskLabel(t)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.taskEditRow}>
+                <TextInput
+                  style={[styles.taskFrequencyInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                  value={newTaskFrequency}
+                  onChangeText={setNewTaskFrequency}
+                  keyboardType="number-pad"
+                  placeholder="days"
+                  placeholderTextColor={colors.inkSoft}
+                />
+                <Pressable onPress={() => setIsAddingTask(false)} hitSlop={8}>
+                  <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSaveNewTask}
+                  hitSlop={8}
+                  disabled={!newTaskType || !newTaskFrequencyIsValid || busyTaskId === "new"}
+                >
+                  {busyTaskId === "new" ? (
+                    <ActivityIndicator color={colors.moss} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.taskActionLink,
+                        {
+                          fontFamily: fonts.bodyMedium,
+                          color: newTaskType && newTaskFrequencyIsValid ? colors.moss : colors.inkSoft,
+                        },
+                      ]}
+                    >
+                      Save
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          ) : ALL_TASK_TYPES.some((t) => !careTasks.some((task) => task.type === t)) ? (
+            <Pressable onPress={handleStartAddTask} hitSlop={8} style={styles.addTaskLink}>
+              <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                + Add task
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -323,5 +667,59 @@ const styles = StyleSheet.create({
   },
   logProgressText: {
     fontSize: 15,
+  },
+  taskPromptWrap: {
+    gap: 6,
+  },
+  taskRow: {
+    width: "100%",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    gap: 6,
+  },
+  taskRowMain: {
+    gap: 2,
+  },
+  taskType: {
+    fontSize: 14,
+    textTransform: "capitalize",
+  },
+  taskMeta: {
+    fontSize: 12,
+  },
+  taskActionsRow: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  taskActionLink: {
+    fontSize: 13,
+  },
+  taskEditRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  taskFrequencyInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    fontSize: 14,
+    width: 70,
+  },
+  taskTypeRow: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  taskTypeChoice: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  addTaskLink: {
+    alignSelf: "flex-start",
+    marginTop: 4,
   },
 });
