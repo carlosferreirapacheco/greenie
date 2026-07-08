@@ -13,6 +13,7 @@ import {
 import { useFonts } from "expo-font";
 import { Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
+import { signOut } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 
 export default function ProfileScreen() {
@@ -32,6 +33,9 @@ export default function ProfileScreen() {
   // Same synchronous-guard pattern as app/add-plant.tsx: state updates are
   // async, so a ref is needed to reliably block a second rapid tap.
   const isSaving = useRef(false);
+  const isSigningOut = useRef(false);
+  const [signOutStatus, setSignOutStatus] = useState<"idle" | "signing-out" | "error">("idle");
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(() => {
     getMyProfile()
@@ -74,6 +78,26 @@ export default function ProfileScreen() {
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
+    }
+  }
+
+  async function handleSignOut() {
+    if (isSigningOut.current) {
+      return;
+    }
+    isSigningOut.current = true;
+
+    setSignOutStatus("signing-out");
+    setSignOutError(null);
+
+    try {
+      await signOut();
+      // No navigation needed -- app/_layout.tsx's onAuthStateChange
+      // listener swaps back to the sign-in stack once the session clears.
+    } catch (err) {
+      setSignOutError(err instanceof Error ? err.message : String(err));
+      setSignOutStatus("error");
+      isSigningOut.current = false;
     }
   }
 
@@ -164,6 +188,24 @@ export default function ProfileScreen() {
             </Text>
           )}
         </Pressable>
+
+        {signOutStatus === "error" ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{signOutError}</Text>
+        ) : null}
+
+        <Pressable
+          style={[styles.signOutButton, { borderColor: colors.line }]}
+          onPress={handleSignOut}
+          disabled={signOutStatus === "signing-out"}
+        >
+          {signOutStatus === "signing-out" ? (
+            <ActivityIndicator color={colors.inkSoft} />
+          ) : (
+            <Text style={[styles.signOutButtonText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+              Sign out
+            </Text>
+          )}
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -230,5 +272,15 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
+  },
+  signOutButton: {
+    width: "100%",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  signOutButtonText: {
+    fontSize: 15,
   },
 });
