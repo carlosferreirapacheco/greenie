@@ -15,6 +15,7 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router
 import { getProgressReport, type FeedItem } from "../../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../../lib/supabase/comments";
+import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
 import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { getErrorMessage } from "../../lib/errors";
 
@@ -130,12 +131,15 @@ export default function ProgressDetailScreen() {
     );
   }
 
+  const plantPrimary = plantPrimaryName({ name: report.plant_name, nickname: report.plant_nickname });
+  const plantCommonName = plantCommonNameSubtitle({ name: report.plant_name, nickname: report.plant_nickname });
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: report.plant_name }} />
+      <Stack.Screen options={{ title: plantPrimary }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.author}>
           <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${report.user_id}`)} hitSlop={4}>
@@ -156,9 +160,19 @@ export default function ProgressDetailScreen() {
 
         <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           Logged progress on{" "}
-          <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{report.plant_name}</Text>
-          {report.plant_species ? (
-            <Text style={{ fontFamily: fonts.displayItalic }}> ({report.plant_species})</Text>
+          <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{plantPrimary}</Text>
+          {plantCommonName || report.plant_species ? (
+            <Text>
+              {" ("}
+              {plantCommonName ? (
+                <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>{plantCommonName}</Text>
+              ) : null}
+              {plantCommonName && report.plant_species ? ", " : ""}
+              {report.plant_species ? (
+                <Text style={{ fontFamily: fonts.displayItalic }}>{report.plant_species}</Text>
+              ) : null}
+              {")"}
+            </Text>
           ) : null}
         </Text>
 

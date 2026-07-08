@@ -16,6 +16,7 @@ export type ProgressReport = {
 export type FeedItem = ProgressReport & {
   author_display_name: string | null;
   plant_name: string;
+  plant_nickname: string | null;
   plant_species: string | null;
   like_count: number;
   liked_by_me: boolean;
@@ -42,7 +43,7 @@ async function hydrateReports(
   const plantIds = [...new Set(reports.map((report) => report.plant_id))];
   const { data: plants, error: plantsError } = await supabase
     .from("plants")
-    .select("id, name, species")
+    .select("id, name, species, nickname")
     .in("id", plantIds);
 
   if (plantsError) {
@@ -83,6 +84,7 @@ async function hydrateReports(
       ...report,
       author_display_name: authorNamesById.get(report.user_id) ?? null,
       plant_name: plant?.name ?? "Unknown plant",
+      plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
       like_count: likeCountsById.get(report.id) ?? 0,
       liked_by_me: likedByMeIds.has(report.id),

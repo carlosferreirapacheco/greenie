@@ -9,7 +9,22 @@ export type Plant = {
   location: string | null;
   acquired_at: string | null;
   created_at: string;
+  nickname: string | null;
 };
+
+// Nickname takes the primary display slot when set; otherwise falls
+// back to the common name (plants.name).
+export function plantPrimaryName(plant: Pick<Plant, "name" | "nickname">): string {
+  const nickname = plant.nickname?.trim();
+  return nickname ? nickname : plant.name;
+}
+
+// The common name, but only when a nickname is occupying the primary
+// slot above -- so callers can show it as a secondary line without ever
+// duplicating the common name when there's no nickname.
+export function plantCommonNameSubtitle(plant: Pick<Plant, "name" | "nickname">): string | null {
+  return plant.nickname?.trim() ? plant.name : null;
+}
 
 export async function getMyPlants(): Promise<Plant[]> {
   const {
@@ -72,11 +87,27 @@ export async function updatePlantAcquiredAt(id: string, acquiredAt: string | nul
   return data;
 }
 
+export async function updatePlantNickname(id: string, nickname: string | null): Promise<Plant> {
+  const { data, error } = await supabase
+    .from("plants")
+    .update({ nickname })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function createPlant(input: {
   name: string;
   species: string;
   location: string | null;
   acquired_at: string | null;
+  nickname: string | null;
 }): Promise<Plant> {
   const {
     data: { user },
@@ -94,6 +125,7 @@ export async function createPlant(input: {
       species: input.species,
       location: input.location,
       acquired_at: input.acquired_at,
+      nickname: input.nickname,
     })
     .select()
     .single();

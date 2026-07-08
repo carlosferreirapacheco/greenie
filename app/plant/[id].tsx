@@ -10,7 +10,14 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getPlant, updatePlantAcquiredAt, type Plant } from "../../lib/supabase/plants";
+import {
+  getPlant,
+  plantCommonNameSubtitle,
+  plantPrimaryName,
+  updatePlantAcquiredAt,
+  updatePlantNickname,
+  type Plant,
+} from "../../lib/supabase/plants";
 import {
   createCareTask,
   deleteCareTask,
@@ -61,6 +68,12 @@ export default function PlantProfileScreen() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const isSaving = useRef(false);
+
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
+  const [nicknameSaveStatus, setNicknameSaveStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [nicknameSaveError, setNicknameSaveError] = useState<string | null>(null);
+  const isSavingNickname = useRef(false);
 
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const busyTaskRef = useRef<string | null>(null);
@@ -129,6 +142,35 @@ export default function PlantProfileScreen() {
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
+    }
+  }
+
+  function handleStartEditNickname() {
+    setNicknameInput(plant?.nickname ?? "");
+    setNicknameSaveError(null);
+    setIsEditingNickname(true);
+  }
+
+  async function handleSaveNickname() {
+    if (!id || isSavingNickname.current) {
+      return;
+    }
+    isSavingNickname.current = true;
+
+    setNicknameSaveStatus("saving");
+    setNicknameSaveError(null);
+
+    try {
+      const trimmed = nicknameInput.trim();
+      const updated = await updatePlantNickname(id, trimmed.length > 0 ? trimmed : null);
+      setPlant(updated);
+      setIsEditingNickname(false);
+      setNicknameSaveStatus("idle");
+    } catch (err) {
+      setNicknameSaveError(err instanceof Error ? err.message : String(err));
+      setNicknameSaveStatus("error");
+    } finally {
+      isSavingNickname.current = false;
     }
   }
 
@@ -279,10 +321,15 @@ export default function PlantProfileScreen() {
 
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: plant.name }} />
+      <Stack.Screen options={{ title: plantPrimaryName(plant) }} />
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
 
-      <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{plant.name}</Text>
+      <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{plantPrimaryName(plant)}</Text>
+      {plantCommonNameSubtitle(plant) ? (
+        <Text style={[styles.commonName, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {plantCommonNameSubtitle(plant)}
+        </Text>
+      ) : null}
       {plant.species ? (
         <Text style={[styles.species, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
           {plant.species}
@@ -291,6 +338,57 @@ export default function PlantProfileScreen() {
       {plant.location ? (
         <Text style={[styles.location, { fontFamily: fonts.body, color: colors.inkSoft }]}>{plant.location}</Text>
       ) : null}
+
+      <View style={styles.field}>
+        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Nickname</Text>
+        {isEditingNickname ? (
+          <>
+            <TextInput
+              style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+              value={nicknameInput}
+              onChangeText={setNicknameInput}
+              placeholder="e.g. Big Fred"
+              placeholderTextColor={colors.inkSoft}
+            />
+            {nicknameSaveStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {nicknameSaveError}
+              </Text>
+            ) : null}
+            <View style={styles.editActions}>
+              <Pressable onPress={() => setIsEditingNickname(false)} hitSlop={8}>
+                <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.saveButton, { backgroundColor: colors.moss }]}
+                onPress={handleSaveNickname}
+                disabled={nicknameSaveStatus === "saving"}
+              >
+                {nicknameSaveStatus === "saving" ? (
+                  <ActivityIndicator color={colors.paper} />
+                ) : (
+                  <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                    Save
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        ) : (
+          <View style={styles.dateRow}>
+            <Text style={[styles.dateValue, { fontFamily: fonts.body, color: plant.nickname ? colors.ink : colors.inkSoft }]}>
+              {plant.nickname ?? "Not set"}
+            </Text>
+            {isOwner ? (
+              <Pressable onPress={handleStartEditNickname} hitSlop={8}>
+                <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Edit</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
+      </View>
 
       <View style={styles.field}>
         <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Acquired date</Text>
@@ -584,6 +682,9 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 20,
+  },
+  commonName: {
+    fontSize: 14,
   },
   species: {
     fontSize: 15,

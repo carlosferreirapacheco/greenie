@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { getMyPlants, type Plant } from "../lib/supabase/plants";
+import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../lib/supabase/plants";
 import {
   getCareTasksForPlants,
   summarizeCareTasks,
@@ -147,7 +147,14 @@ export default function PlantListScreen() {
             <Pressable style={styles.plantLink} onPress={() => router.push(`/plant/${item.id}`)}>
               <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
               <View style={styles.rowText}>
-                <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{item.name}</Text>
+                <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+                  {plantPrimaryName(item)}
+                </Text>
+                {plantCommonNameSubtitle(item) ? (
+                  <Text style={[styles.commonName, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                    {plantCommonNameSubtitle(item)}
+                  </Text>
+                ) : null}
                 {item.species ? (
                   <Text style={[styles.species, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
                     {item.species}
@@ -236,6 +243,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 17,
+  },
+  commonName: {
+    fontSize: 13,
+    marginTop: 2,
   },
   species: {
     fontSize: 13.5,

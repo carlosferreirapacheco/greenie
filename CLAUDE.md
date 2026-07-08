@@ -61,8 +61,19 @@ sharing them socially with other users.
   should live — letting a sitter log progress on a plant they don't own
   while it's explicitly shared with them, rather than reopening logging
   to everyone
-- Plant nicknames — let a user set a nickname for a plant, separate from
-  its species/common name
+- Plant nicknames — done. Owners can set a personal `nickname` on a
+  plant (new nullable column on `plants`, no RLS change needed), separate
+  from its common name (`plants.name`, e.g. "Pothos") and Latin species.
+  Wherever a plant's name is shown, the nickname takes the primary slot
+  (falling back to the common name if unset); the common name only shows
+  as a secondary, smaller-font line when a nickname is actually set
+  (never duplicated). Species stays exactly as it always has, unchanged.
+  Two shared helpers in `lib/supabase/plants.ts` — `plantPrimaryName()`
+  and `plantCommonNameSubtitle()` — drive this everywhere: Add Plant's
+  new "Nickname (optional)" field, the plant profile screen's inline
+  nickname editor (owner-only, same pattern as Acquired date), the
+  Plants list and user-profile plant list rows, and the feed row /
+  progress detail screen's "Logged progress on ..." sentence
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
   Progress-report creation (`app/log-progress.tsx`), a Friends list with
