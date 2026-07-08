@@ -23,6 +23,7 @@ import {
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
+import { getErrorMessage } from "../../lib/errors";
 
 const ALL_TASK_TYPES: CareTaskType[] = ["water", "fertilize", "repot"];
 
@@ -88,7 +89,7 @@ export default function PlantProfileScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, [id]);
@@ -124,7 +125,7 @@ export default function PlantProfileScreen() {
       setIsEditingDate(false);
       setSaveStatus("idle");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
+      setSaveError(getErrorMessage(err));
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
@@ -144,7 +145,7 @@ export default function PlantProfileScreen() {
       setCareTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       setMarkDonePromptId(null);
     } catch (err) {
-      setTasksError(err instanceof Error ? err.message : String(err));
+      setTasksError(getErrorMessage(err));
     } finally {
       busyTaskRef.current = null;
       setBusyTaskId(null);
@@ -194,7 +195,7 @@ export default function PlantProfileScreen() {
       setCareTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       setEditingTaskId(null);
     } catch (err) {
-      setTasksError(err instanceof Error ? err.message : String(err));
+      setTasksError(getErrorMessage(err));
     } finally {
       busyTaskRef.current = null;
       setBusyTaskId(null);
@@ -214,7 +215,7 @@ export default function PlantProfileScreen() {
       setCareTasks((prev) => prev.filter((t) => t.id !== task.id));
       setConfirmDeleteId(null);
     } catch (err) {
-      setTasksError(err instanceof Error ? err.message : String(err));
+      setTasksError(getErrorMessage(err));
     } finally {
       busyTaskRef.current = null;
       setBusyTaskId(null);
@@ -251,7 +252,7 @@ export default function PlantProfileScreen() {
       setCareTasks((prev) => [...prev, created]);
       setIsAddingTask(false);
     } catch (err) {
-      setTasksError(err instanceof Error ? err.message : String(err));
+      setTasksError(getErrorMessage(err));
     } finally {
       busyTaskRef.current = null;
       setBusyTaskId(null);

@@ -5,6 +5,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
@@ -141,7 +142,7 @@ export default function FeedScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, []);

@@ -14,6 +14,7 @@ import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { signInWithEmail } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 export default function SignInScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -44,7 +45,7 @@ export default function SignInScreen() {
       // No navigation needed -- app/_layout.tsx's onAuthStateChange
       // listener swaps to the main app Stack once the session lands.
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(getErrorMessage(err));
       setStatus("error");
     } finally {
       isSubmitting.current = false;

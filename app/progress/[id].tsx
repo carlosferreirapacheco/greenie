@@ -16,6 +16,7 @@ import { getProgressReport, type FeedItem } from "../../lib/supabase/plant_progr
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../../lib/supabase/comments";
 import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { getErrorMessage } from "../../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
@@ -52,7 +53,7 @@ export default function ProgressDetailScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, [id]);
@@ -104,7 +105,7 @@ export default function ProgressDetailScreen() {
       setCommentText("");
       setPostStatus("idle");
     } catch (err) {
-      setPostError(err instanceof Error ? err.message : String(err));
+      setPostError(getErrorMessage(err));
       setPostStatus("error");
     } finally {
       isPosting.current = false;

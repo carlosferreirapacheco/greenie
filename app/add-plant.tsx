@@ -16,6 +16,7 @@ import { lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 export default function AddPlantScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -65,7 +66,7 @@ export default function AddPlantScreen() {
       setWateringFrequencyDays(String(result.wateringFrequencyDays));
       setLookupStatus("idle");
     } catch (err) {
-      setLookupError(err instanceof Error ? err.message : String(err));
+      setLookupError(getErrorMessage(err));
       setLookupStatus("error");
     } finally {
       isLookingUp.current = false;
@@ -101,7 +102,7 @@ export default function AddPlantScreen() {
 
       router.back();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
+      setSaveError(getErrorMessage(err));
       setSaveStatus("error");
     } finally {
       isSaving.current = false;

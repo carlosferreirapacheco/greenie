@@ -6,6 +6,7 @@ import { getProfile, type Profile } from "../../lib/supabase/profiles";
 import { followUser, isFollowing, unfollowUser } from "../../lib/supabase/follows";
 import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { getErrorMessage } from "../../lib/errors";
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,7 +43,7 @@ export default function UserProfileScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, [id]);
@@ -72,7 +73,7 @@ export default function UserProfileScreen() {
       }
       setToggleStatus("idle");
     } catch (err) {
-      setToggleError(err instanceof Error ? err.message : String(err));
+      setToggleError(getErrorMessage(err));
       setToggleStatus("error");
     } finally {
       isToggling.current = false;
