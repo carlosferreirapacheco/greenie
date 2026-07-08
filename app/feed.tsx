@@ -63,9 +63,20 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
 
       <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
         Logged progress on{" "}
-        <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{item.plant_name}</Text>
+        <Text
+          onPress={() => router.push(`/plant/${item.plant_id}`)}
+          style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
+        >
+          {item.plant_name}
+        </Text>
         {item.plant_species ? (
-          <Text style={{ fontFamily: fonts.displayItalic }}> ({item.plant_species})</Text>
+          <Text
+            onPress={() => router.push(`/plant/${item.plant_id}`)}
+            style={{ fontFamily: fonts.displayItalic, color: colors.inkSoft }}
+          >
+            {" "}
+            ({item.plant_species})
+          </Text>
         ) : null}
       </Text>
 
