@@ -10,6 +10,7 @@ import {
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 function statusText(status: PlantCareStatus): string {
   switch (status) {
@@ -62,7 +63,7 @@ export default function PlantListScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, []);

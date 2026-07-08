@@ -5,6 +5,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { getFriends } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
   return (
@@ -34,7 +35,7 @@ export default function FriendsScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, []);

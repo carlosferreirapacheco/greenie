@@ -13,6 +13,7 @@ import {
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
+import { getErrorMessage } from "../../lib/errors";
 
 function statusText(status: PlantCareStatus): string {
   switch (status) {
@@ -89,7 +90,7 @@ export default function UserProfileScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, [id]);
@@ -119,7 +120,7 @@ export default function UserProfileScreen() {
       }
       setToggleStatus("idle");
     } catch (err) {
-      setToggleError(err instanceof Error ? err.message : String(err));
+      setToggleError(getErrorMessage(err));
       setToggleStatus("error");
     } finally {
       isToggling.current = false;

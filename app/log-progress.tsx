@@ -14,6 +14,7 @@ import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { createProgressReport } from "../lib/supabase/plant_progress";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 export default function LogProgressScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
@@ -50,7 +51,7 @@ export default function LogProgressScreen() {
 
       router.back();
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
+      setSaveError(getErrorMessage(err));
       setSaveStatus("error");
     } finally {
       isSaving.current = false;

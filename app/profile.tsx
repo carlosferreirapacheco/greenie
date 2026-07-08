@@ -15,6 +15,7 @@ import { Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
 import { signOut } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 export default function ProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -46,7 +47,7 @@ export default function ProfileScreen() {
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(getErrorMessage(err));
         setStatus("error");
       });
   }, []);
@@ -74,7 +75,7 @@ export default function ProfileScreen() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
       setSaveStatus("saved");
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err));
+      setSaveError(getErrorMessage(err));
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
@@ -95,7 +96,7 @@ export default function ProfileScreen() {
       // No navigation needed -- app/_layout.tsx's onAuthStateChange
       // listener swaps back to the sign-in stack once the session clears.
     } catch (err) {
-      setSignOutError(err instanceof Error ? err.message : String(err));
+      setSignOutError(getErrorMessage(err));
       setSignOutStatus("error");
       isSigningOut.current = false;
     }

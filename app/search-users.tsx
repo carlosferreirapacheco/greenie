@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { searchProfiles, type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { getErrorMessage } from "../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
   return (
@@ -57,7 +58,7 @@ export default function SearchUsersScreen() {
         if (latestQuery.current !== text) {
           return;
         }
-        setSearchError(err instanceof Error ? err.message : String(err));
+        setSearchError(getErrorMessage(err));
         setSearchStatus("error");
       });
   }
