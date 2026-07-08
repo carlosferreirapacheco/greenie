@@ -58,15 +58,13 @@ sharing them socially with other users.
   its species/common name
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
-  Progress-report creation (`app/log-progress.tsx`), a Friends list
-  (people you follow, `app/friends.tsx`), search for a user by name
+  Progress-report creation (`app/log-progress.tsx`), a Friends list with
+  in-list search (`app/friends.tsx`), search for any user by name
   (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), a
   feed of progress reports from people you follow (`app/feed.tsx`), and
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
   built. Social features are now feature-complete against the original
   backlog scope.
-  - Search friends — filter/search within your own Friends list
-    (distinct from search-users, which finds anyone)
 - Settings screen — general and security settings (e.g. notification
   preferences, password/security options, account deletion); not yet
   scoped in detail

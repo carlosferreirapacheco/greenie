@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState, type ReactNode } from "react";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getFriends } from "../lib/supabase/follows";
@@ -23,6 +23,7 @@ export default function FriendsScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Profile[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
@@ -86,20 +87,49 @@ export default function FriendsScreen() {
     );
   }
 
-  return (
-    <>
-      {screen}
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const filteredFriends =
+    trimmedQuery.length === 0
+      ? friends
+      : friends.filter((friend) => (friend.display_name ?? "").toLowerCase().includes(trimmedQuery));
+
+  let body: ReactNode;
+  if (filteredFriends.length === 0) {
+    body = (
+      <View style={styles.center}>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends match "{searchQuery.trim()}"</Text>
+      </View>
+    );
+  } else {
+    body = (
       <FlatList
-        style={[styles.list, { backgroundColor: colors.paper }]}
-        data={friends}
+        style={styles.list}
+        data={filteredFriends}
         keyExtractor={(friend) => friend.id}
         renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
       />
-    </>
+    );
+  }
+
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.paper }]}>
+      {screen}
+      <TextInput
+        style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Search your friends"
+        placeholderTextColor={colors.inkSoft}
+      />
+      {body}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   center: {
     flex: 1,
     alignItems: "center",
@@ -110,6 +140,15 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     fontSize: 15,
+  },
+  filterInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+    fontSize: 16,
   },
   list: {
     flex: 1,
