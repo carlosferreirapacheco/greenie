@@ -1,13 +1,47 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
+import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof getFonts> }) {
+  const [liked, setLiked] = useState(item.liked_by_me);
+  const [likeCount, setLikeCount] = useState(item.like_count);
+  const [isToggling, setIsToggling] = useState(false);
+
+  // Same synchronous-guard pattern as the Follow button (app/user/[id].tsx).
+  const toggling = useRef(false);
+
+  async function handleToggleLike() {
+    if (toggling.current) {
+      return;
+    }
+    toggling.current = true;
+    setIsToggling(true);
+
+    try {
+      if (liked) {
+        await unlikeProgress(item.id);
+        setLiked(false);
+        setLikeCount((count) => count - 1);
+      } else {
+        await likeProgress(item.id);
+        setLiked(true);
+        setLikeCount((count) => count + 1);
+      }
+    } catch {
+      // Feed likes are low-stakes; a failed toggle just leaves the
+      // button in its previous state for the user to retry.
+    } finally {
+      toggling.current = false;
+      setIsToggling(false);
+    }
+  }
+
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.author} onPress={() => router.push(`/user/${item.user_id}`)}>
@@ -40,6 +74,35 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
       {item.height_cm !== null ? (
         <Text style={[styles.height, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
           {item.height_cm} cm
+        </Text>
+      ) : null}
+
+      <View style={styles.actions}>
+        <Pressable onPress={handleToggleLike} disabled={isToggling} hitSlop={8}>
+          <Text style={[styles.likeButton, { fontFamily: fonts.bodyMedium, color: liked ? colors.coral : colors.inkSoft }]}>
+            {liked ? "♥ Liked" : "♡ Like"}
+            {likeCount > 0 ? ` (${likeCount})` : ""}
+          </Text>
+        </Pressable>
+        <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
+          <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {item.comment_count > 0
+              ? `${item.comment_count} comment${item.comment_count === 1 ? "" : "s"}`
+              : "Add a comment"}
+          </Text>
+        </Pressable>
+      </View>
+
+      {item.latest_comment ? (
+        <Text
+          style={[styles.commentPreview, { fontFamily: fonts.body, color: colors.inkSoft }]}
+          numberOfLines={1}
+        >
+          <Text style={{ fontFamily: fonts.bodyMedium }}>
+            {item.latest_comment.author_display_name ?? "No display name yet"}
+          </Text>
+          {": "}
+          {item.latest_comment.content}
         </Text>
       ) : null}
     </View>
@@ -154,5 +217,21 @@ const styles = StyleSheet.create({
   },
   height: {
     fontSize: 13,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  likeButton: {
+    fontSize: 13,
+  },
+  commentsLink: {
+    fontSize: 13,
+  },
+  commentPreview: {
+    fontSize: 13,
+    marginTop: 2,
   },
 });

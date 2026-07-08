@@ -60,9 +60,11 @@ sharing them socially with other users.
   already have schema and RLS policies (see Data model above).
   Progress-report creation (`app/log-progress.tsx`), a Friends list
   (people you follow, `app/friends.tsx`), search for a user by name
-  (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), and
-  a feed of progress reports from people you follow (`app/feed.tsx`) are
-  all built. Only likes/comments UI remains.
+  (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), a
+  feed of progress reports from people you follow (`app/feed.tsx`), and
+  likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
+  built. Social features are now feature-complete against the original
+  backlog scope.
   - Search friends — filter/search within your own Friends list
     (distinct from search-users, which finds anyone)
 - Settings screen — general and security settings (e.g. notification
@@ -81,6 +83,16 @@ sharing them socially with other users.
     profile screen itself and the rest of social features exist.
 
 ### Technical follow-ups
+- Lazy-load feed items — `getFeed()` (`lib/supabase/plant_progress.ts`)
+  fetches a flat `.limit(50)` with no pagination/infinite scroll; fine at
+  current data volumes, worth revisiting once feeds get long
+- Show email (or future username) for authors without a display name —
+  comments and every other author display in the app fall back to "No
+  display name yet" today. Showing email instead would need a schema
+  change (`profiles` doesn't store email; `auth.users` email isn't
+  readable for anyone but the signed-in user) — deferred rather than a
+  partial schema change for one screen; revisit alongside real
+  usernames/auth
 - Photo capture — add-plant, the profile avatar, and progress reports have
   each separately deferred real photo capture so far (all currently show
   flat-color placeholders instead). One consolidated item: needs
