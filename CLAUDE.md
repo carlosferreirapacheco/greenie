@@ -140,7 +140,11 @@ sharing them socially with other users.
   - Lookup free SMTP services — the built-in Supabase email sender's rate
     limit is too low for real usage. Research free/cheap SMTP providers
     (Resend, Postmark, SendGrid free tiers, etc.) usable via Supabase's
-    custom SMTP setting, then re-enable "Confirm email" once configured.
+    custom SMTP setting.
+  - Re-enable "Confirm email" in the Supabase Auth dashboard once a real
+    SMTP provider is set up (see above) — it's off right now purely as a
+    development workaround for the built-in sender's rate limit, and
+    leaving it off lets anyone sign up with an email they don't own.
   - Google OAuth (and other social providers later) — next slice.
     Needs external setup only the account owner can do first: a Google
     Cloud OAuth client (Web application type), and enabling + configuring
