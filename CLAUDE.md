@@ -77,9 +77,6 @@ sharing them socially with other users.
   is built: name/species/location, per-task care status pills, a Log
   Progress link, and the originally-scoped first job — editing
   `acquired_at` after the fact — all done.
-  - Link to plant profile from Feed — the feed's plant name text should
-    navigate to `/plant/[id]`, same as the author name already does for
-    `/user/[id]`. Next thing to pick up now that the route exists.
   - Progress history/chrono — a timeline/graph of a plant's progress
     reports, on its profile screen. Further down the line.
   - Adding a new photo — ties into the consolidated Photo capture item
@@ -111,10 +108,11 @@ sharing them socially with other users.
   `expo-image-picker` (or `expo-camera`) plus a Supabase Storage bucket and
   upload wiring, picked once and reused everywhere a photo is needed,
   rather than each feature re-deciding it ad hoc
-- Date picker UI — `acquired_at` on Add Plant uses a plain `YYYY-MM-DD`
-  text input for this first pass, not a real calendar/date picker
-  component; worth revisiting once more than one date field exists in the
-  app
+- Date picker UI — change all date-related inputs from plain text boxes
+  to a real calendar/date picker component. Currently a plain
+  `YYYY-MM-DD` text input on both `app/add-plant.tsx` and the acquired-date
+  editor on `app/plant/[id].tsx`; apply to any future date field too, not
+  just these two
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
