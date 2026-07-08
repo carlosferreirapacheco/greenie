@@ -27,7 +27,8 @@ sharing them socially with other users.
 ## Data model (Supabase tables)
 - `profiles` (id [= auth.users id], display_name, bio, avatar_url, created_at)
 - `plants` (id, owner_id, name, species, photo_urls[], location, acquired_at,
-  created_at)
+  created_at) — publicly readable (like every other social table below),
+  write access owner-only
 - `care_tasks` (id, plant_id, type [water/fertilize/repot], frequency_days,
   last_done, next_due)
 - `plant_progress` (id, plant_id, user_id, height_cm, notes, photo_url,
@@ -58,18 +59,20 @@ sharing them socially with other users.
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
   Progress-report creation (`app/log-progress.tsx`), a Friends list
-  (people you follow, `app/friends.tsx`), and viewing other users'
-  profiles (`app/user/[id].tsx`) are built. Remaining, in build order:
-  search for a user by name (how you'd find someone to follow — nothing
-  to search yet, since discovery doesn't exist) → follow/unfollow (the
-  `follows` table has zero rows anywhere until this ships) → feed
-  (progress reports from people you follow) → likes/comments UI
+  (people you follow, `app/friends.tsx`), search for a user by name
+  (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), and
+  a feed of progress reports from people you follow (`app/feed.tsx`) are
+  all built. Only likes/comments UI remains.
   - Search friends — filter/search within your own Friends list
-  - Search users — search for any user by name, the precursor to
-    follow/unfollow above
+    (distinct from search-users, which finds anyone)
 - Settings screen — general and security settings (e.g. notification
   preferences, password/security options, account deletion); not yet
   scoped in detail
+- Content visibility scoping — `plants` and `profiles` are currently
+  fully public to any signed-in user (needed so the feed and profile
+  views can show a followed user's data). Scoping visibility to
+  followers-only is deliberately deferred; would mean RLS policies that
+  reference the `follows` table instead of `using (true)`.
 - Plant profile screen — a per-plant detail view (nothing like this exists
   yet; plants only ever render as list rows). First job: let the user edit
   `acquired_at` after the fact, in case it's set wrong on Add Plant.
