@@ -22,6 +22,7 @@ export default function AddPlantScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
 
   const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [species, setSpecies] = useState("");
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
   const [location, setLocation] = useState("");
@@ -87,6 +88,7 @@ export default function AddPlantScreen() {
         species: species.trim(),
         location: location.trim().length > 0 ? location.trim() : null,
         acquired_at: acquiredAt.trim().length > 0 ? acquiredAt.trim() : null,
+        nickname: nickname.trim().length > 0 ? nickname.trim() : null,
       });
 
       const frequencyDays = Number(wateringFrequencyDays);
@@ -140,6 +142,19 @@ export default function AddPlantScreen() {
           {lookupStatus === "error" ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{lookupError}</Text>
           ) : null}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Nickname (optional)
+          </Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={nickname}
+            onChangeText={setNickname}
+            placeholder="e.g. Big Fred"
+            placeholderTextColor={colors.inkSoft}
+          />
         </View>
 
         <View style={styles.field}>

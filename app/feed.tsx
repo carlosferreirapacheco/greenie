@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
+import { plantCommonNameSubtitle, plantPrimaryName } from "../lib/supabase/plants";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
@@ -15,6 +16,9 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
 
   // Same synchronous-guard pattern as the Follow button (app/user/[id].tsx).
   const toggling = useRef(false);
+
+  const plantPrimary = plantPrimaryName({ name: item.plant_name, nickname: item.plant_nickname });
+  const plantCommonName = plantCommonNameSubtitle({ name: item.plant_name, nickname: item.plant_nickname });
 
   async function handleToggleLike() {
     if (toggling.current) {
@@ -67,15 +71,19 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
           onPress={() => router.push(`/plant/${item.plant_id}`)}
           style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
         >
-          {item.plant_name}
+          {plantPrimary}
         </Text>
-        {item.plant_species ? (
-          <Text
-            onPress={() => router.push(`/plant/${item.plant_id}`)}
-            style={{ fontFamily: fonts.displayItalic, color: colors.inkSoft }}
-          >
-            {" "}
-            ({item.plant_species})
+        {plantCommonName || item.plant_species ? (
+          <Text onPress={() => router.push(`/plant/${item.plant_id}`)}>
+            {" ("}
+            {plantCommonName ? (
+              <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>{plantCommonName}</Text>
+            ) : null}
+            {plantCommonName && item.plant_species ? ", " : ""}
+            {item.plant_species ? (
+              <Text style={{ fontFamily: fonts.displayItalic, color: colors.inkSoft }}>{item.plant_species}</Text>
+            ) : null}
+            {")"}
           </Text>
         ) : null}
       </Text>

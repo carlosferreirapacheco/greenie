@@ -4,7 +4,7 @@ import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
 import { followUser, isFollowing, unfollowUser } from "../../lib/supabase/follows";
-import { getPlantsForUser, type Plant } from "../../lib/supabase/plants";
+import { getPlantsForUser, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../../lib/supabase/plants";
 import {
   getCareTasksForPlants,
   summarizeCareTasks,
@@ -211,8 +211,13 @@ export default function UserProfileScreen() {
                 <View style={[styles.plantThumb, { backgroundColor: colors.sage }]} />
                 <View style={styles.plantRowText}>
                   <Text style={[styles.plantName, { fontFamily: fonts.display, color: colors.ink }]}>
-                    {plant.name}
+                    {plantPrimaryName(plant)}
                   </Text>
+                  {plantCommonNameSubtitle(plant) ? (
+                    <Text style={[styles.plantCommonName, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                      {plantCommonNameSubtitle(plant)}
+                    </Text>
+                  ) : null}
                   {plant.species ? (
                     <Text style={[styles.plantSpecies, { fontFamily: fonts.displayItalic, color: colors.inkSoft }]}>
                       {plant.species}
@@ -311,6 +316,10 @@ const styles = StyleSheet.create({
   },
   plantName: {
     fontSize: 17,
+  },
+  plantCommonName: {
+    fontSize: 13,
+    marginTop: 2,
   },
   plantSpecies: {
     fontSize: 13.5,
