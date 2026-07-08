@@ -69,15 +69,19 @@ sharing them socially with other users.
   general and security settings (e.g. notification preferences,
   password/security options, account deletion); not yet scoped in detail
 - Add EU GDPR mandatory settings — not yet scoped in detail
-- Manage plant care tasks — there's no UI to add, edit, or delete care
-  tasks beyond the single watering task created at Add Plant time
-  (`lib/supabase/care_tasks.ts` has `createCareTask` but no update/delete);
-  also no way to mark a task done, which is what should move `last_done`/
-  `next_due` forward
-  - Update care task badges on the Plants screen — once tasks can be
-    marked done, the status pills (`app/index.tsx`, `app/plant/[id].tsx`)
-    should reflect that immediately rather than only ever decaying from
-    healthy toward overdue as time passes with no way to reset
+- Manage plant care tasks — done. The plant profile screen
+  (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
+  task done (advances `last_done`/`next_due`), edit its frequency, delete
+  it, and add a task for any of the three types (water/fertilize/repot)
+  not yet present on that plant. `lib/supabase/care_tasks.ts` gained
+  `markCareTaskDone`, `updateCareTaskFrequency`, `deleteCareTask`
+  alongside the existing `createCareTask`; no schema/RLS change was
+  needed since `care_tasks` already had owner-scoped INSERT/UPDATE/DELETE
+  policies via the `plants.owner_id` join.
+  - Update care task badges on the Plants screen — done as part of the
+    above. Status pills update instantly from local state on mark-done
+    (no refetch needed), and the Plants list picks up the change on
+    return via its existing `useFocusEffect` refetch.
 - Content visibility scoping — `plants` and `profiles` are currently
   fully public to any signed-in user (needed so the feed and profile
   views can show a followed user's data). Scoping visibility to
