@@ -68,6 +68,7 @@ sharing them socially with other users.
 - Account settings and configuration — a Settings screen covering both
   general and security settings (e.g. notification preferences,
   password/security options, account deletion); not yet scoped in detail
+- Add EU GDPR mandatory settings — not yet scoped in detail
 - Manage plant care tasks — there's no UI to add, edit, or delete care
   tasks beyond the single watering task created at Add Plant time
   (`lib/supabase/care_tasks.ts` has `createCareTask` but no update/delete);
@@ -126,14 +127,35 @@ sharing them socially with other users.
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
   that change scoped to light mode only)
-- Real authentication — replace the hardcoded dev user
-  (`lib/supabase/session.ts`, `dev-dummy-user@greenie.local`) with real
-  sign-up/sign-in screens; every RLS policy already assumes a real
-  `auth.uid()`, so this is wiring, not a schema change
-  - Once sign-up exists, wire `profiles` row creation into that flow (e.g.
-    a trigger on `auth.users` insert, or a client-side call right after
-    sign-up) — the `profiles` table (see Data model) currently only has a
-    row for the one hardcoded dev user, backfilled manually
+- Real authentication — email/password sign-up (`app/sign-up.tsx`),
+  sign-in (`app/sign-in.tsx`), and sign-out (on `app/profile.tsx`) are
+  built, replacing the old hardcoded dev-user auto-login. A
+  `handle_new_user()` trigger on `auth.users` now auto-creates a blank
+  `profiles` row for every new signup, so this is no longer a gap.
+  "Confirm email" was temporarily disabled in the Supabase Auth dashboard
+  during development (built-in email sender's rate limit is a couple
+  sends/hour, too low to test signup repeatedly) — needs to be revisited
+  before real users sign up, since a permanently-disabled confirmation
+  step lets anyone sign up with an email they don't own.
+  - Lookup free SMTP services — the built-in Supabase email sender's rate
+    limit is too low for real usage. Research free/cheap SMTP providers
+    (Resend, Postmark, SendGrid free tiers, etc.) usable via Supabase's
+    custom SMTP setting, then re-enable "Confirm email" once configured.
+  - Google OAuth (and other social providers later) — next slice.
+    Needs external setup only the account owner can do first: a Google
+    Cloud OAuth client (Web application type), and enabling + configuring
+    the Google provider in the Supabase Auth dashboard with that client's
+    ID/secret. Client side needs `expo-web-browser` (+ likely
+    `expo-auth-session` for the redirect URI helper — confirm exact
+    current Supabase-recommended approach from their docs before
+    implementing, not from memory) and a custom URL scheme in `app.json`
+    for the OAuth redirect to return to the app.
+    - Post-Google-signup review screen — first sign-in via Google should
+      let the user review/edit what Google auto-populated (display name)
+      before landing in the app proper, same as any signup should be
+      confirmable. Email is never editable. Avatar is deliberately out of
+      scope here — handle it once real photo/image upload exists, not as
+      a one-off raw-URL text field.
 
 ### Later
 - Payments / monetization
