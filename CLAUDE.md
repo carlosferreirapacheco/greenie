@@ -174,6 +174,10 @@ sharing them socially with other users.
 - Payments / monetization
 - Admin dashboard
 - Multi-language support
+- Revisit prompt design and other UX/UI improvements — a general pass
+  over interaction patterns accumulated feature-by-feature (e.g. the
+  inline two-tap confirm/prompt style used for delete and the overdue
+  mark-done choice), not tied to one specific screen
 
 ## Environment
 - Supabase URL and anon key go in `.env` (never commit this file)
