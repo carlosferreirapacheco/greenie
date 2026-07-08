@@ -18,6 +18,14 @@ sharing them socially with other users.
 - File-based routing via `expo-router`
 - Keep Supabase calls in a `lib/supabase/` folder behind typed functions —
   don't call `supabase.from(...)` directly inside components
+- **Testing:** Jest + the `jest-expo` preset (`jest.config.js`). Tests are
+  colocated as `*.test.ts` next to the file they cover. Coverage today is
+  the `lib/` layer — pure logic (e.g. `care_tasks.ts`'s status/summary
+  math) tested directly, and the Supabase call layer
+  (`lib/supabase/*.ts`) tested with `./client` mocked via the shared
+  `lib/supabase/testUtils/mockClient.ts` helper (asserts our query
+  construction/error handling, not Supabase's own behavior). Screens
+  aren't covered yet — see Backlog.
 - One feature per branch, small commits with descriptive messages
 - No direct pushes to `master` — every change goes through a feature branch
   and a pull request
@@ -46,6 +54,15 @@ sharing them socially with other users.
   (what files change, what's added/removed, any schema or dependency
   impact) and get it confirmed before making changes, no matter the
   size of the change.
+- Run `npm test` alongside `tsc --noEmit` before finishing or opening a
+  PR for any feature — same habit already applied to type-checking, now
+  covering test regressions too. CI (`.github/workflows/ci.yml`) runs
+  both automatically on every push/PR as a backstop.
+- Every new feature must add/extend `*.test.ts` coverage for any
+  testable logic it introduces (`lib/` — pure logic and the Supabase
+  call layer), not just retroactively — so coverage keeps pace with new
+  code instead of drifting back out of date the moment the next feature
+  ships.
 - Don't install new dependencies without saying which one and why.
 - Ask before making changes to the Supabase schema once it's been created —
   schema changes should be deliberate, not incidental to a feature.
@@ -153,6 +170,13 @@ sharing them socially with other users.
   ever be grouped/collapsed under one plant); not a concrete feature yet
 
 ### Technical follow-ups
+- Screen/component-level tests — unit testing (Jest + `jest-expo`) now
+  covers the `lib/` layer (pure logic + Supabase call layer, see
+  Conventions), but no screens under `app/` are tested yet. Deferred
+  given the setup cost of mocking `expo-router`/`expo-font`/native
+  modules for ~20 screens; CI already runs `npm test` so it'll pick up
+  new component tests automatically once this is built, no workflow
+  changes needed.
 - Lazy-load feed items — `getFeed()` (`lib/supabase/plant_progress.ts`)
   fetches a flat `.limit(50)` with no pagination/infinite scroll; fine at
   current data volumes, worth revisiting once feeds get long
