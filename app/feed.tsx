@@ -90,7 +90,12 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
           <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
             {item.comment_count > 0
               ? `${item.comment_count} comment${item.comment_count === 1 ? "" : "s"}`
-              : "Add a comment"}
+              : "No comments yet"}
+          </Text>
+        </Pressable>
+        <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
+          <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            Add comment
           </Text>
         </Pressable>
       </View>

@@ -136,20 +136,22 @@ export default function ProgressDetailScreen() {
     >
       <Stack.Screen options={{ title: report.plant_name }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable style={styles.author} onPress={() => router.push(`/user/${report.user_id}`)}>
-          <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
-          <Text
-            style={[
-              styles.authorName,
-              { fontFamily: fonts.bodyMedium, color: report.author_display_name ? colors.ink : colors.inkSoft },
-            ]}
-          >
-            {report.author_display_name ?? "No display name yet"}
-          </Text>
+        <View style={styles.author}>
+          <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${report.user_id}`)} hitSlop={4}>
+            <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
+            <Text
+              style={[
+                styles.authorName,
+                { fontFamily: fonts.bodyMedium, color: report.author_display_name ? colors.ink : colors.inkSoft },
+              ]}
+            >
+              {report.author_display_name ?? "No display name yet"}
+            </Text>
+          </Pressable>
           <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
             {dateFormatter.format(new Date(report.created_at))}
           </Text>
-        </Pressable>
+        </View>
 
         <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           Logged progress on{" "}
@@ -256,8 +258,13 @@ const styles = StyleSheet.create({
   author: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.xs,
+    justifyContent: "space-between",
     marginBottom: 2,
+  },
+  authorLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   avatar: {
     width: 28,
@@ -266,7 +273,6 @@ const styles = StyleSheet.create({
   },
   authorName: {
     fontSize: 14,
-    flex: 1,
   },
   timestamp: {
     fontSize: 12,
