@@ -65,9 +65,18 @@ sharing them socially with other users.
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
   built. Social features are now feature-complete against the original
   backlog scope.
-- Settings screen — general and security settings (e.g. notification
-  preferences, password/security options, account deletion); not yet
-  scoped in detail
+- Account settings and configuration — a Settings screen covering both
+  general and security settings (e.g. notification preferences,
+  password/security options, account deletion); not yet scoped in detail
+- Manage plant care tasks — there's no UI to add, edit, or delete care
+  tasks beyond the single watering task created at Add Plant time
+  (`lib/supabase/care_tasks.ts` has `createCareTask` but no update/delete);
+  also no way to mark a task done, which is what should move `last_done`/
+  `next_due` forward
+  - Update care task badges on the Plants screen — once tasks can be
+    marked done, the status pills (`app/index.tsx`, `app/plant/[id].tsx`)
+    should reflect that immediately rather than only ever decaying from
+    healthy toward overdue as time passes with no way to reset
 - Content visibility scoping — `plants` and `profiles` are currently
   fully public to any signed-in user (needed so the feed and profile
   views can show a followed user's data). Scoping visibility to
