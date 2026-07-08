@@ -83,9 +83,23 @@ sharing them socially with other users.
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
   built. Social features are now feature-complete against the original
   backlog scope.
-- Account settings and configuration — a Settings screen covering both
-  general and security settings (e.g. notification preferences,
-  password/security options, account deletion); not yet scoped in detail
+- Account settings and configuration — scoped and split into slices.
+  Slice 1 (change password) is done: `app/settings.tsx` (new screen,
+  linked from a "Settings" link in `app/profile.tsx`'s header) lets a
+  signed-in user change their password, re-authenticating with their
+  current password first via `updatePasswordWithReauth()` in
+  `lib/supabase/auth.ts` before calling `supabase.auth.updateUser()` —
+  deliberate, since `updateUser()` alone never asks for the current
+  password and would let anyone with an unlocked session change it with
+  no verification. Sign out stays on Profile, unmoved.
+  - Notification preferences — deferred. No notification system exists
+    in the app yet (`expo-notifications` is only listed as future stack
+    work); nothing for a toggle to control until that's built.
+  - Account deletion — deferred. Actually deleting a Supabase Auth user
+    needs elevated (service-role) privileges the client never has —
+    needs either a new Edge Function or a `security definer` Postgres
+    function, plus thinking through the EU GDPR item below, not
+    something to bolt on as a button.
 - Add EU GDPR mandatory settings — not yet scoped in detail
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a

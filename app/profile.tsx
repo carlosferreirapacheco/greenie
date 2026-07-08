@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack, useFocusEffect } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
 import { signOut } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -107,7 +107,18 @@ export default function ProfileScreen() {
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Profile" }} />
+        <Stack.Screen
+          options={{
+            title: "Profile",
+            headerRight: () => (
+              <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
+                <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  Settings
+                </Text>
+              </Pressable>
+            ),
+          }}
+        />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -116,7 +127,18 @@ export default function ProfileScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Profile" }} />
+        <Stack.Screen
+          options={{
+            title: "Profile",
+            headerRight: () => (
+              <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
+                <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  Settings
+                </Text>
+              </Pressable>
+            ),
+          }}
+        />
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
@@ -282,6 +304,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signOutButtonText: {
+    fontSize: 15,
+  },
+  settingsLinkWrap: {
+    marginRight: spacing.md,
+  },
+  settingsLink: {
     fontSize: 15,
   },
 });
