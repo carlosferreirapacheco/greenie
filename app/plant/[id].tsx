@@ -551,14 +551,16 @@ export default function PlantProfileScreen() {
         </View>
       ) : null}
 
-      <Pressable
-        style={[styles.logProgressButton, { backgroundColor: colors.sage }]}
-        onPress={() => router.push({ pathname: "/log-progress", params: { plantId: plant.id } })}
-      >
-        <Text style={[styles.logProgressText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-          Log progress
-        </Text>
-      </Pressable>
+      {isOwner ? (
+        <Pressable
+          style={[styles.logProgressButton, { backgroundColor: colors.sage }]}
+          onPress={() => router.push({ pathname: "/log-progress", params: { plantId: plant.id } })}
+        >
+          <Text style={[styles.logProgressText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
+            Log progress
+          </Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }

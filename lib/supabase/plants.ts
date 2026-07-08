@@ -33,6 +33,20 @@ export async function getMyPlants(): Promise<Plant[]> {
   return data;
 }
 
+export async function getPlantsForUser(ownerId: string): Promise<Plant[]> {
+  const { data, error } = await supabase
+    .from("plants")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getPlant(id: string): Promise<Plant> {
   const { data, error } = await supabase.from("plants").select("*").eq("id", id).single();
 
