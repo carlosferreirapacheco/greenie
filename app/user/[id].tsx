@@ -148,20 +148,23 @@ export default function UserProfileScreen() {
   }
 
   const displayName = profile?.display_name;
-  const initial = (displayName ?? "?").charAt(0).toUpperCase();
+  const atUsername = `@${profile?.username}`;
+  const initial = (displayName ?? profile?.username ?? "?").charAt(0).toUpperCase();
 
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: displayName ?? "Profile" }} />
+      <Stack.Screen options={{ title: displayName ?? atUsername }} />
       <View style={[styles.avatar, { backgroundColor: colors.sage }]}>
         <Text style={[styles.avatarText, { fontFamily: fonts.display, color: colors.mossStrong }]}>{initial}</Text>
       </View>
 
-      <Text
-        style={[styles.name, { fontFamily: fonts.display, color: displayName ? colors.ink : colors.inkSoft }]}
-      >
-        {displayName ?? "No display name yet"}
+      <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+        {displayName ?? atUsername}
       </Text>
+
+      {displayName ? (
+        <Text style={[styles.username, { fontFamily: fonts.body, color: colors.inkSoft }]}>{atUsername}</Text>
+      ) : null}
 
       <Text style={[styles.bio, { fontFamily: fonts.body, color: profile?.bio ? colors.ink : colors.inkSoft }]}>
         {profile?.bio ?? "No bio yet"}
@@ -275,6 +278,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 20,
+  },
+  username: {
+    fontSize: 13,
+    marginTop: -spacing.xs,
   },
   bio: {
     fontSize: 14,

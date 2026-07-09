@@ -162,13 +162,8 @@ export default function ProgressDetailScreen() {
         <View style={styles.author}>
           <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${report.user_id}`)} hitSlop={4}>
             <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
-            <Text
-              style={[
-                styles.authorName,
-                { fontFamily: fonts.bodyMedium, color: report.author_display_name ? colors.ink : colors.inkSoft },
-              ]}
-            >
-              {report.author_display_name ?? "No display name yet"}
+            <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+              {report.author_display_name ?? `@${report.author_username}`}
             </Text>
           </Pressable>
           <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
@@ -222,13 +217,8 @@ export default function ProgressDetailScreen() {
         {comments.map((comment) => (
           <View key={comment.id} style={styles.comment}>
             <Pressable onPress={() => router.push(`/user/${comment.user_id}`)}>
-              <Text
-                style={[
-                  styles.commentAuthor,
-                  { fontFamily: fonts.bodyMedium, color: comment.author_display_name ? colors.ink : colors.inkSoft },
-                ]}
-              >
-                {comment.author_display_name ?? "No display name yet"}
+              <Text style={[styles.commentAuthor, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                {comment.author_display_name ?? `@${comment.author_username}`}
               </Text>
             </Pressable>
             <Text style={[styles.commentContent, { fontFamily: fonts.body, color: colors.ink }]}>

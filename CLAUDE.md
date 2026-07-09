@@ -35,7 +35,14 @@ sharing them socially with other users.
   moving to the next one
 
 ## Data model (Supabase tables)
-- `profiles` (id [= auth.users id], display_name, bio, avatar_url, created_at)
+- `profiles` (id [= auth.users id], username [mandatory + unique, chosen
+  at signup, changeable on a cooldown], username_changed_at,
+  display_name, bio, avatar_url, created_at, plus the four privacy
+  columns from migration 0008: profile_visibility, follow_policy,
+  progress_visibility, comment_policy)
+- `app_config` (key, value) — app-level settings readable by signed-in
+  users, written only via migrations; currently just
+  `username_change_cooldown_days`
 - `plants` (id, owner_id, name, species, photo_urls[], location, acquired_at,
   created_at) — publicly readable (like every other social table below),
   write access owner-only
@@ -45,7 +52,8 @@ sharing them socially with other users.
   created_at) — structured per-plant growth log entries ("progress
   reports"), not generic posts; `photo_url` is nullable until photo capture
   is built (see Backlog)
-- `follows` (follower_id, followee_id)
+- `follows` (follower_id, followee_id, status [pending/accepted,
+  server-computed from the target's follow_policy])
 - `likes` (progress_id, user_id)
 - `comments` (id, progress_id, user_id, content, created_at)
 
@@ -119,6 +127,28 @@ sharing them socially with other users.
     needs either a new Edge Function or a `security definer` Postgres
     function, plus thinking through the EU GDPR item below, not
     something to bolt on as a button.
+- Usernames — done. Every profile has a mandatory, unique `username`
+  (migration `0009_usernames.sql`): lowercase letters/digits/dot/
+  underscore, starts with a letter, ends with a letter or digit, 3–20
+  chars, separators never doubled or adjacent (`..`/`__`/`._`/`_.` all
+  rejected) — enforced by a DB check constraint mirrored by
+  `validateUsername()` in `lib/supabase/usernames.ts`. Chosen on the
+  sign-up form (never inferred from email; availability pre-checked via
+  a `security definer` RPC `username_available()` since the anon role
+  can't read profiles) and editable on the Profile page behind an
+  inline confirm, with a change cooldown (one change per N days, N in
+  `app_config.username_change_cooldown_days` — currently 5, one source
+  of truth) enforced by a `before update` trigger that also stamps
+  `username_changed_at`; the first customization is always free.
+  `handle_new_user()` falls back to a generated `user_<id-prefix>`
+  username when signup metadata is missing/invalid/taken, so signup
+  never fails over a username and future OAuth signups (no username
+  field) keep working. Shown as `@username` under the display name on
+  user profiles (visible in both public and private modes — it's
+  identity, like display name), as a second line in Search Users rows,
+  and User search matches username as well as display name. Also
+  replaced every "No display name yet" fallback app-wide with
+  `@username`.
 - Add EU GDPR mandatory settings — not yet scoped in detail
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
@@ -222,12 +252,10 @@ sharing them socially with other users.
   fetches a flat `.limit(50)` with no pagination/infinite scroll; fine at
   current data volumes, worth revisiting once feeds get long
 - Show email (or future username) for authors without a display name —
-  comments and every other author display in the app fall back to "No
-  display name yet" today. Showing email instead would need a schema
-  change (`profiles` doesn't store email; `auth.users` email isn't
-  readable for anyone but the signed-in user) — deferred rather than a
-  partial schema change for one screen; revisit alongside real
-  usernames/auth
+  done, resolved by the Usernames feature (see Product features):
+  every former "No display name yet" fallback now shows `@username`
+  instead (feed rows, comment previews, progress detail, friends list,
+  follow requests, user search, user profiles)
 - Photo capture — add-plant, the profile avatar, and progress reports have
   each separately deferred real photo capture so far (all currently show
   flat-color placeholders instead). One consolidated item: needs
@@ -273,9 +301,12 @@ sharing them socially with other users.
     - Post-Google-signup review screen — first sign-in via Google should
       let the user review/edit what Google auto-populated (display name)
       before landing in the app proper, same as any signup should be
-      confirmable. Email is never editable. Avatar is deliberately out of
-      scope here — handle it once real photo/image upload exists, not as
-      a one-off raw-URL text field.
+      confirmable. This is also where OAuth users should customize the
+      generated `user_<id-prefix>` username they land with (the
+      `handle_new_user()` fallback, see Usernames above) — their first
+      change is cooldown-free by design. Email is never editable.
+      Avatar is deliberately out of scope here — handle it once real
+      photo/image upload exists, not as a one-off raw-URL text field.
 
 ### Later
 - Payments / monetization

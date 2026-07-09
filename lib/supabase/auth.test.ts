@@ -15,19 +15,23 @@ beforeEach(() => {
 });
 
 describe("signUpWithEmail", () => {
-  it("returns the session on success", async () => {
+  it("returns the session and passes the username as auth metadata for handle_new_user()", async () => {
     mockSupabase.auth.signUp.mockResolvedValue({ data: { session: { access_token: "t" } }, error: null });
 
-    const result = await signUpWithEmail("a@b.com", "pw123456");
+    const result = await signUpWithEmail("a@b.com", "pw123456", "carlos");
 
-    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({ email: "a@b.com", password: "pw123456" });
+    expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
+      email: "a@b.com",
+      password: "pw123456",
+      options: { data: { username: "carlos" } },
+    });
     expect(result).toEqual({ session: { access_token: "t" } });
   });
 
   it("returns a null session when email confirmation is required", async () => {
     mockSupabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
 
-    const result = await signUpWithEmail("a@b.com", "pw123456");
+    const result = await signUpWithEmail("a@b.com", "pw123456", "carlos");
 
     expect(result).toEqual({ session: null });
   });
@@ -36,7 +40,7 @@ describe("signUpWithEmail", () => {
     const err = { message: "Email already registered" };
     mockSupabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: err });
 
-    await expect(signUpWithEmail("a@b.com", "pw123456")).rejects.toBe(err);
+    await expect(signUpWithEmail("a@b.com", "pw123456", "carlos")).rejects.toBe(err);
   });
 });
 

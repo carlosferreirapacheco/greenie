@@ -23,10 +23,8 @@ function RequestRow({
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
-      <Text
-        style={[styles.name, { fontFamily: fonts.display, color: profile.display_name ? colors.ink : colors.inkSoft }]}
-      >
-        {profile.display_name ?? "No display name yet"}
+      <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+        {profile.display_name ?? `@${profile.username}`}
       </Text>
       <View style={styles.actions}>
         <Pressable onPress={onAccept} disabled={busy} hitSlop={8}>

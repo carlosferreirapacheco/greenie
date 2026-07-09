@@ -1,8 +1,18 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./client";
 
-export async function signUpWithEmail(email: string, password: string): Promise<{ session: Session | null }> {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  username: string
+): Promise<{ session: Session | null }> {
+  // The username rides along as auth metadata; the handle_new_user()
+  // trigger (migration 0009) reads it when creating the profiles row.
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { username } },
+  });
 
   if (error) {
     throw error;

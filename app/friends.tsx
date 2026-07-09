@@ -11,10 +11,8 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${profile.id}`)}>
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
-      <Text
-        style={[styles.name, { fontFamily: fonts.display, color: profile.display_name ? colors.ink : colors.inkSoft }]}
-      >
-        {profile.display_name ?? "No display name yet"}
+      <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+        {profile.display_name ?? `@${profile.username}`}
       </Text>
     </Pressable>
   );

@@ -52,13 +52,8 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
       <View style={styles.author}>
         <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${item.user_id}`)} hitSlop={4}>
           <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
-          <Text
-            style={[
-              styles.authorName,
-              { fontFamily: fonts.bodyMedium, color: item.author_display_name ? colors.ink : colors.inkSoft },
-            ]}
-          >
-            {item.author_display_name ?? "No display name yet"}
+          <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+            {item.author_display_name ?? `@${item.author_username}`}
           </Text>
         </Pressable>
         <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
@@ -126,7 +121,7 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
           numberOfLines={1}
         >
           <Text style={{ fontFamily: fonts.bodyMedium }}>
-            {item.latest_comment.author_display_name ?? "No display name yet"}
+            {item.latest_comment.author_display_name ?? `@${item.latest_comment.author_username}`}
           </Text>
           {": "}
           {item.latest_comment.content}
