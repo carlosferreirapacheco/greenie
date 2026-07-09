@@ -16,6 +16,8 @@ import { getProgressReport, type FeedItem } from "../../lib/supabase/plant_progr
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../../lib/supabase/comments";
 import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
+import { getFollowStatus } from "../../lib/supabase/follows";
+import { supabase } from "../../lib/supabase/client";
 import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { getErrorMessage } from "../../lib/errors";
 
@@ -36,6 +38,8 @@ export default function ProgressDetailScreen() {
   const [isToggling, setIsToggling] = useState(false);
   const toggling = useRef(false);
 
+  const [canComment, setCanComment] = useState(false);
+
   const [commentText, setCommentText] = useState("");
   const [postStatus, setPostStatus] = useState<"idle" | "posting" | "error">("idle");
   const [postError, setPostError] = useState<string | null>(null);
@@ -45,12 +49,26 @@ export default function ProgressDetailScreen() {
     if (!id) {
       return;
     }
-    Promise.all([getProgressReport(id), getCommentsForProgress(id)])
-      .then(([reportData, commentsData]) => {
+    Promise.all([
+      getProgressReport(id),
+      getCommentsForProgress(id),
+      supabase.auth.getUser().then(({ data }) => data.user?.id),
+    ])
+      .then(async ([reportData, commentsData, currentUserId]) => {
         setReport(reportData);
         setLiked(reportData.liked_by_me);
         setLikeCount(reportData.like_count);
         setComments(commentsData);
+
+        if (reportData.user_id === currentUserId) {
+          setCanComment(true);
+        } else if (reportData.author_comment_policy === "public") {
+          setCanComment(true);
+        } else {
+          const followStatus = await getFollowStatus(reportData.user_id);
+          setCanComment(followStatus === "accepted");
+        }
+
         setStatus("ready");
       })
       .catch((err) => {
@@ -222,39 +240,45 @@ export default function ProgressDetailScreen() {
           </View>
         ))}
 
-        <View style={styles.field}>
-          <TextInput
-            style={[
-              styles.input,
-              styles.commentInput,
-              { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line },
-            ]}
-            value={commentText}
-            onChangeText={setCommentText}
-            placeholder="Add a comment"
-            placeholderTextColor={colors.inkSoft}
-            multiline
-          />
-          {postStatus === "error" ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{postError}</Text>
-          ) : null}
-          <Pressable
-            style={[
-              styles.postButton,
-              { backgroundColor: commentText.trim().length > 0 ? colors.moss : colors.line },
-            ]}
-            onPress={handlePostComment}
-            disabled={commentText.trim().length === 0}
-          >
-            {postStatus === "posting" ? (
-              <ActivityIndicator color={colors.paper} />
-            ) : (
-              <Text style={[styles.postButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                Post
-              </Text>
-            )}
-          </Pressable>
-        </View>
+        {canComment ? (
+          <View style={styles.field}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.commentInput,
+                { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line },
+              ]}
+              value={commentText}
+              onChangeText={setCommentText}
+              placeholder="Add a comment"
+              placeholderTextColor={colors.inkSoft}
+              multiline
+            />
+            {postStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{postError}</Text>
+            ) : null}
+            <Pressable
+              style={[
+                styles.postButton,
+                { backgroundColor: commentText.trim().length > 0 ? colors.moss : colors.line },
+              ]}
+              onPress={handlePostComment}
+              disabled={commentText.trim().length === 0}
+            >
+              {postStatus === "posting" ? (
+                <ActivityIndicator color={colors.paper} />
+              ) : (
+                <Text style={[styles.postButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                  Post
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        ) : (
+          <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            Only followers can comment on this
+          </Text>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -354,5 +378,9 @@ const styles = StyleSheet.create({
   },
   postButtonText: {
     fontSize: 15,
+  },
+  commentsClosedText: {
+    fontSize: 13,
+    marginTop: spacing.sm,
   },
 });

@@ -9,6 +9,7 @@ import {
   type PlantCareSummary,
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
+import { getPendingFollowRequests } from "../lib/supabase/follows";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -40,6 +41,7 @@ export default function PlantListScreen() {
   const [error, setError] = useState<string | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
@@ -66,6 +68,11 @@ export default function PlantListScreen() {
         setError(getErrorMessage(err));
         setStatus("error");
       });
+    getPendingFollowRequests()
+      .then((requests) => setHasPendingRequests(requests.length > 0))
+      .catch(() => {
+        // Non-critical -- the badge just won't show if this fails.
+      });
   }, []);
 
   // Refetches every time this screen gains focus (e.g. returning from
@@ -85,10 +92,11 @@ export default function PlantListScreen() {
             <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
               <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
             </Pressable>
-            <Pressable onPress={() => router.push("/friends")} hitSlop={8}>
+            <Pressable onPress={() => router.push("/friends")} hitSlop={8} style={styles.badgeWrap}>
               <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 Friends
               </Text>
+              {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
             </Pressable>
             <Pressable onPress={() => router.push("/feed")} hitSlop={8}>
               <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
@@ -210,6 +218,18 @@ const styles = StyleSheet.create({
   },
   friendsLink: {
     fontSize: 14,
+  },
+  badgeWrap: {
+    position: "relative",
+    paddingRight: 8,
+  },
+  badgeDot: {
+    position: "absolute",
+    top: -2,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   center: {
     flex: 1,

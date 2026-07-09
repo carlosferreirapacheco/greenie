@@ -136,11 +136,42 @@ sharing them socially with other users.
     above. Status pills update instantly from local state on mark-done
     (no refetch needed), and the Plants list picks up the change on
     return via its existing `useFocusEffect` refetch.
-- Content visibility scoping — `plants` and `profiles` are currently
-  fully public to any signed-in user (needed so the feed and profile
-  views can show a followed user's data). Scoping visibility to
-  followers-only is deliberately deferred; would mean RLS policies that
-  reference the `follows` table instead of `using (true)`.
+- Content visibility scoping — done. Settings gained a "Privacy"
+  section with four account-wide controls, each a new `profiles` column
+  enforced at the RLS level (not just client filtering):
+  `profile_visibility` (private hides your plant list from
+  non-followers; name/avatar/bio stay visible), `follow_policy`
+  (`request` makes new follows land as pending requests — a `before
+  insert` trigger on `follows` server-computes the new `status` column
+  from the target's policy, so clients can't self-assign accepted),
+  `progress_visibility` (private = followers only, closing the old
+  fetch-any-report-by-id gap), and `comment_policy`
+  (public/followers-only; the composer on `app/progress/[id].tsx` is
+  hidden client-side too). Likes/comments SELECT + INSERT policies
+  follow the parent report's visibility, `follows` rows are only
+  visible to the two parties, and a reusable `security definer` helper
+  `is_accepted_follower()` drives all follower checks (migration
+  `0008_content_visibility.sql`). New follower-request flow:
+  `app/follow-requests.tsx` (Accept/Decline, linked from a "Requests"
+  header link on Friends), tri-state Follow/Requested/Unfollow button
+  on `app/user/[id].tsx` (tapping Requested cancels), a "This account
+  is private" state on private profiles, and a red-dot badge on the
+  Plants screen's Friends link and the Friends screen's Requests link
+  while requests are pending. Known coherent side effect: a *public*
+  progress report by a *private* profile shows "Unknown plant" to
+  non-followers, since the plant row itself is profile content.
+  - Disable comments entirely — a third `comment_policy` option
+    (`disabled`), deliberately left out of this slice's UI and column
+    constraint per user decision. Needs deciding what happens to
+    *existing* comments (hidden vs. kept visible) plus hiding the
+    composer entirely, not just gating new posts.
+  - Remove follower UI — the `follows_delete_by_followee` RLS policy
+    already lets a user delete a follow row targeting them (that's how
+    Decline works); no screen exposes removing an *accepted* follower
+    yet.
+  - Per-item visibility overrides — this slice is account-wide defaults
+    only; overriding a single progress report's visibility independent
+    of the account default is a future enhancement.
 - Plant profile screen — a per-plant detail view (`app/plant/[id].tsx`)
   is built: name/species/location, per-task care status pills, a Log
   Progress link, and the originally-scoped first job — editing

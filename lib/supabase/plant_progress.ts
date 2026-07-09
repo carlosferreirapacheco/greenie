@@ -2,6 +2,7 @@ import { supabase } from "./client";
 import { getFriends } from "./follows";
 import { getLikesForProgress } from "./likes";
 import { getCommentsForProgressIds, type CommentWithAuthor } from "./comments";
+import type { CommentPolicy } from "./profiles";
 
 export type ProgressReport = {
   id: string;
@@ -15,6 +16,7 @@ export type ProgressReport = {
 
 export type FeedItem = ProgressReport & {
   author_display_name: string | null;
+  author_comment_policy: CommentPolicy | null;
   plant_name: string;
   plant_nickname: string | null;
   plant_species: string | null;
@@ -24,14 +26,13 @@ export type FeedItem = ProgressReport & {
   latest_comment: CommentWithAuthor | null;
 };
 
-// Shared by getFeed (many reports, author names already known from the
-// friends list) and getProgressReport (a single report, author name
+type AuthorInfo = { display_name: string | null; comment_policy: CommentPolicy };
+
+// Shared by getFeed (many reports, author info already known from the
+// friends list) and getProgressReport (a single report, author info
 // looked up fresh) -- everything else (plants, likes, comments) is
 // batch-fetched and combined client-side the same way either way.
-async function hydrateReports(
-  reports: ProgressReport[],
-  authorNamesById: Map<string, string | null>
-): Promise<FeedItem[]> {
+async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<string, AuthorInfo>): Promise<FeedItem[]> {
   if (reports.length === 0) {
     return [];
   }
@@ -80,9 +81,11 @@ async function hydrateReports(
 
   return reports.map((report) => {
     const plant = plantsById.get(report.plant_id);
+    const authorInfo = authorInfoById.get(report.user_id);
     return {
       ...report,
-      author_display_name: authorNamesById.get(report.user_id) ?? null,
+      author_display_name: authorInfo?.display_name ?? null,
+      author_comment_policy: authorInfo?.comment_policy ?? null,
       plant_name: plant?.name ?? "Unknown plant",
       plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
@@ -100,7 +103,9 @@ export async function getFeed(): Promise<FeedItem[]> {
     return [];
   }
 
-  const authorNamesById = new Map(friends.map((friend) => [friend.id, friend.display_name]));
+  const authorInfoById = new Map<string, AuthorInfo>(
+    friends.map((friend) => [friend.id, { display_name: friend.display_name, comment_policy: friend.comment_policy }])
+  );
 
   const { data: reports, error: reportsError } = await supabase
     .from("plant_progress")
@@ -116,7 +121,7 @@ export async function getFeed(): Promise<FeedItem[]> {
     throw reportsError;
   }
 
-  return hydrateReports(reports, authorNamesById);
+  return hydrateReports(reports, authorInfoById);
 }
 
 export async function getProgressReport(id: string): Promise<FeedItem> {
@@ -132,7 +137,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
 
   const { data: author, error: authorError } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, comment_policy")
     .eq("id", report.user_id)
     .single();
 
@@ -140,7 +145,10 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
     throw authorError;
   }
 
-  const [item] = await hydrateReports([report], new Map([[report.user_id, author.display_name]]));
+  const authorInfoById = new Map<string, AuthorInfo>([
+    [report.user_id, { display_name: author.display_name, comment_policy: author.comment_policy }],
+  ]);
+  const [item] = await hydrateReports([report], authorInfoById);
   return item;
 }
 

@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { getFriends } from "../lib/supabase/follows";
+import { getFriends, getPendingFollowRequests } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
@@ -25,6 +25,7 @@ export default function FriendsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [friends, setFriends] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
@@ -37,6 +38,11 @@ export default function FriendsScreen() {
       .catch((err) => {
         setError(getErrorMessage(err));
         setStatus("error");
+      });
+    getPendingFollowRequests()
+      .then((requests) => setHasPendingRequests(requests.length > 0))
+      .catch(() => {
+        // Non-critical -- the badge just won't show if this fails.
       });
   }, []);
 
@@ -51,11 +57,19 @@ export default function FriendsScreen() {
       options={{
         title: "Friends",
         headerRight: () => (
-          <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
-            <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-              Search
-            </Text>
-          </Pressable>
+          <View style={styles.headerRightRow}>
+            <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
+              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+                Requests
+              </Text>
+              {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
+            </Pressable>
+            <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
+              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+                Search
+              </Text>
+            </Pressable>
+          </View>
         ),
       }}
     />
@@ -136,8 +150,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  searchButtonWrap: {
+  headerRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     marginRight: spacing.md,
+  },
+  searchButtonWrap: {},
+  badgeWrap: {
+    position: "relative",
+    paddingRight: 8,
+  },
+  badgeDot: {
+    position: "absolute",
+    top: -2,
+    right: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   searchButton: {
     fontSize: 15,

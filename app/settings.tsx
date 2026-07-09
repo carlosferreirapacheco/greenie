@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,10 +11,54 @@ import {
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import { updatePasswordWithReauth } from "../lib/supabase/auth";
+import {
+  getMyProfile,
+  updatePrivacySettings,
+  type CommentPolicy,
+  type FollowPolicy,
+  type ProfileVisibility,
+  type ProgressVisibility,
+} from "../lib/supabase/profiles";
 import { getErrorMessage } from "../lib/errors";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+
+function ChipGroup<T extends string>({
+  options,
+  value,
+  onChange,
+  fonts,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  fonts: ReturnType<typeof getFonts>;
+}) {
+  return (
+    <View style={styles.chipRow}>
+      {options.map((option) => (
+        <Pressable
+          key={option.value}
+          style={[
+            styles.chip,
+            { borderColor: colors.line, backgroundColor: value === option.value ? colors.sage : "transparent" },
+          ]}
+          onPress={() => onChange(option.value)}
+        >
+          <Text
+            style={[
+              styles.chipText,
+              { fontFamily: fonts.bodyMedium, color: value === option.value ? colors.mossStrong : colors.ink },
+            ]}
+          >
+            {option.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -59,6 +103,62 @@ export default function SettingsScreen() {
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
+    }
+  }
+
+  const [privacyStatus, setPrivacyStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
+  const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility>("public");
+  const [followPolicy, setFollowPolicy] = useState<FollowPolicy>("open");
+  const [progressVisibility, setProgressVisibility] = useState<ProgressVisibility>("public");
+  const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
+  const [privacySaveStatus, setPrivacySaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [privacySaveError, setPrivacySaveError] = useState<string | null>(null);
+  const isSavingPrivacy = useRef(false);
+
+  const fetchPrivacySettings = useCallback(() => {
+    getMyProfile()
+      .then((profile) => {
+        setProfileVisibility(profile.profile_visibility);
+        setFollowPolicy(profile.follow_policy);
+        setProgressVisibility(profile.progress_visibility);
+        setCommentPolicy(profile.comment_policy);
+        setPrivacyStatus("ready");
+      })
+      .catch((err) => {
+        setPrivacyError(getErrorMessage(err));
+        setPrivacyStatus("error");
+      });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPrivacySettings();
+    }, [fetchPrivacySettings])
+  );
+
+  async function handleSavePrivacy() {
+    if (isSavingPrivacy.current) {
+      return;
+    }
+    isSavingPrivacy.current = true;
+
+    setPrivacySaveStatus("saving");
+    setPrivacySaveError(null);
+
+    try {
+      await updatePrivacySettings({
+        profile_visibility: profileVisibility,
+        follow_policy: followPolicy,
+        progress_visibility: progressVisibility,
+        comment_policy: commentPolicy,
+      });
+      setPrivacySaveStatus("saved");
+    } catch (err) {
+      setPrivacySaveError(getErrorMessage(err));
+      setPrivacySaveStatus("error");
+    } finally {
+      isSavingPrivacy.current = false;
     }
   }
 
@@ -142,6 +242,102 @@ export default function SettingsScreen() {
             </Text>
           )}
         </Pressable>
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          Privacy
+        </Text>
+
+        {privacyStatus === "loading" ? (
+          <ActivityIndicator color={colors.moss} />
+        ) : privacyStatus === "error" ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{privacyError}</Text>
+        ) : (
+          <>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Profile</Text>
+              <ChipGroup
+                fonts={fonts}
+                value={profileVisibility}
+                onChange={setProfileVisibility}
+                options={[
+                  { value: "public", label: "Public" },
+                  { value: "private", label: "Private" },
+                ]}
+              />
+              <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                Private shows only your name, avatar, and bio to people who don't follow you.
+              </Text>
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Follow requests
+              </Text>
+              <ChipGroup
+                fonts={fonts}
+                value={followPolicy}
+                onChange={setFollowPolicy}
+                options={[
+                  { value: "open", label: "Anyone can follow" },
+                  { value: "request", label: "Require approval" },
+                ]}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Progress reports
+              </Text>
+              <ChipGroup
+                fonts={fonts}
+                value={progressVisibility}
+                onChange={setProgressVisibility}
+                options={[
+                  { value: "public", label: "Public" },
+                  { value: "private", label: "Followers only" },
+                ]}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Comments</Text>
+              <ChipGroup
+                fonts={fonts}
+                value={commentPolicy}
+                onChange={setCommentPolicy}
+                options={[
+                  { value: "public", label: "Anyone can comment" },
+                  { value: "followers", label: "Followers only" },
+                ]}
+              />
+            </View>
+
+            {privacySaveStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {privacySaveError}
+              </Text>
+            ) : null}
+            {privacySaveStatus === "saved" ? (
+              <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Privacy settings saved
+              </Text>
+            ) : null}
+
+            <Pressable
+              style={[styles.saveButton, { backgroundColor: colors.moss }]}
+              onPress={handleSavePrivacy}
+              disabled={privacySaveStatus === "saving"}
+            >
+              {privacySaveStatus === "saving" ? (
+                <ActivityIndicator color={colors.paper} />
+              ) : (
+                <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                  Save privacy settings
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -155,11 +351,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
   },
+  privacySectionTitle: {
+    marginTop: spacing.md,
+  },
   field: {
     gap: spacing.xs,
   },
   label: {
     fontSize: 13,
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -182,5 +385,19 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+  },
+  chip: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+  },
+  chipText: {
+    fontSize: 13,
   },
 });

@@ -31,7 +31,9 @@ describe("getProgressReport", () => {
     // -> plants -> likes -> comments -> comment-authors.
     mockSupabase.from
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
-      .mockReturnValueOnce(createChainableQueryMock({ data: { display_name: "Carlos" }, error: null }))
+      .mockReturnValueOnce(
+        createChainableQueryMock({ data: { display_name: "Carlos", comment_policy: "followers" }, error: null })
+      )
       .mockReturnValueOnce(
         createChainableQueryMock({
           data: [{ id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: "Big Fred" }],
@@ -74,6 +76,7 @@ describe("getProgressReport", () => {
     expect(result.plant_nickname).toBe("Big Fred");
     expect(result.plant_species).toBe("Epipremnum aureum");
     expect(result.author_display_name).toBe("Carlos");
+    expect(result.author_comment_policy).toBe("followers");
     expect(result.like_count).toBe(2);
     expect(result.liked_by_me).toBe(true);
     expect(result.comment_count).toBe(2);
