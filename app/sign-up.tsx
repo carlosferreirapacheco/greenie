@@ -24,6 +24,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,7 @@ export default function SignUpScreen() {
     normalizedUsername.length > 0 &&
     usernameError === null &&
     password.length >= 6 &&
+    privacyAccepted &&
     status !== "submitting";
 
   async function handleSignUp() {
@@ -60,7 +62,7 @@ export default function SignUpScreen() {
         return;
       }
 
-      const { session } = await signUpWithEmail(email.trim(), password, normalizedUsername);
+      const { session } = await signUpWithEmail(email.trim(), password, normalizedUsername, privacyAccepted);
       if (!session) {
         // Project has email confirmation on -- no session until the user
         // clicks the link in their inbox.
@@ -141,6 +143,30 @@ export default function SignUpScreen() {
             secureTextEntry
           />
         </View>
+
+        <Pressable style={styles.consentRow} onPress={() => setPrivacyAccepted((prev) => !prev)} hitSlop={4}>
+          <View
+            style={[
+              styles.consentBox,
+              privacyAccepted
+                ? { backgroundColor: colors.moss, borderColor: colors.moss }
+                : { backgroundColor: colors.paper, borderColor: colors.line },
+            ]}
+          >
+            {privacyAccepted ? (
+              <Text style={[styles.consentCheck, { color: colors.paper }]}>✓</Text>
+            ) : null}
+          </View>
+          <Text style={[styles.consentText, { fontFamily: fonts.body, color: colors.ink }]}>
+            I have read and agree to the{" "}
+            <Text
+              style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
+              onPress={() => router.push("/privacy-policy")}
+            >
+              Privacy Policy
+            </Text>
+          </Text>
+        </Pressable>
 
         {status === "error" ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{error}</Text>
@@ -223,5 +249,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 22,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  consentBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  consentCheck: {
+    fontSize: 13,
+    lineHeight: 15,
+    fontWeight: "700",
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 19,
   },
 });

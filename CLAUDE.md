@@ -37,9 +37,10 @@ sharing them socially with other users.
 ## Data model (Supabase tables)
 - `profiles` (id [= auth.users id], username [mandatory + unique, chosen
   at signup, changeable on a cooldown], username_changed_at,
-  display_name, bio, avatar_url, created_at, plus the four privacy
-  columns from migration 0008: profile_visibility, follow_policy,
-  progress_visibility, comment_policy)
+  accepted_privacy_at [GDPR consent stamp], display_name, bio,
+  avatar_url, created_at, plus the four privacy columns from migration
+  0008: profile_visibility, follow_policy, progress_visibility,
+  comment_policy)
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently just
   `username_change_cooldown_days`
@@ -122,11 +123,22 @@ sharing them socially with other users.
   - Notification preferences — deferred. No notification system exists
     in the app yet (`expo-notifications` is only listed as future stack
     work); nothing for a toggle to control until that's built.
-  - Account deletion — deferred. Actually deleting a Supabase Auth user
-    needs elevated (service-role) privileges the client never has —
-    needs either a new Edge Function or a `security definer` Postgres
-    function, plus thinking through the EU GDPR item below, not
-    something to bolt on as a button.
+  - Account deletion — done (see the GDPR item below for the full
+    slice). A `delete-account` Edge Function holds the service-role
+    key and deletes only the authenticated caller; every user-owned
+    table cascades from `auth.users`, so one delete erases the whole
+    account. Confirming a deletion requires BOTH the current password
+    and a one-time code emailed to the account address (password alone
+    is not enough if credentials are compromised) — Settings' "Danger
+    zone" drives the two-step flow behind an inline confirm.
+    - OAuth-user deletion re-auth — the password step assumes an
+      email/password account; when Google OAuth lands, its users need
+      a different second factor for deletion (part of the OAuth slice).
+    - Owner dashboard TODO: the default Magic Link email template only
+      contains a link — add `{{ .Token }}` to it (Auth → Email
+      Templates → Magic Link) so real deletion emails carry the
+      6-digit code. Pairs with the SMTP setup item under Real
+      authentication.
 - Usernames — done. Every profile has a mandatory, unique `username`
   (migration `0009_usernames.sql`): lowercase letters/digits/dot/
   underscore, starts with a letter, ends with a letter or digit, 3–20
@@ -149,7 +161,26 @@ sharing them socially with other users.
   and User search matches username as well as display name. Also
   replaced every "No display name yet" fallback app-wide with
   `@username`.
-- Add EU GDPR mandatory settings — not yet scoped in detail
+- Add EU GDPR mandatory settings — done (first pass covering the three
+  core rights; migration `0010_gdpr_consent.sql`). **Erasure**: account
+  deletion, see Account settings above. **Portability**: Settings →
+  "Your data" downloads everything the app stores about the user
+  (account, plants, care schedules, progress reports, comments, likes,
+  follows) as JSON via `collectMyData()` in `lib/supabase/gdpr.ts` —
+  web-only download for now. **Transparency/consent**:
+  `app/privacy-policy.tsx` is a plain-English draft policy (marked
+  "requires review before public launch"), linked from sign-up and
+  Settings; sign-up requires a consent checkbox and the acceptance time
+  is stamped to `profiles.accepted_privacy_at` by `handle_new_user()`
+  (3rd revision) via signup metadata.
+  - Consent for pre-existing users — accounts created before this
+    slice have `accepted_privacy_at = null` and nothing prompts them
+    yet; needs an in-app consent prompt, plus re-consent whenever the
+    policy materially changes.
+  - Native data export — the JSON download uses a web Blob + anchor;
+    native needs `expo-file-system`/share-sheet wiring (fold into the
+    photo-capture/native pass).
+  - Legal review of the privacy policy draft before any public launch.
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete

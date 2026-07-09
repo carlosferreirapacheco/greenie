@@ -46,8 +46,11 @@ export default function RootLayout() {
   };
 
   const inAuthGroup = segments[0] === "sign-in" || segments[0] === "sign-up";
+  // Readable signed-out too: the sign-up form asks for consent to this
+  // policy, so it can't sit behind the session gate.
+  const inPublicGroup = segments[0] === "privacy-policy";
 
-  if (!session && !inAuthGroup) {
+  if (!session && !inAuthGroup && !inPublicGroup) {
     return <Redirect href="/sign-in" />;
   }
 

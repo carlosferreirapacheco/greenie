@@ -4,14 +4,16 @@ import { supabase } from "./client";
 export async function signUpWithEmail(
   email: string,
   password: string,
-  username: string
+  username: string,
+  privacyAccepted: boolean
 ): Promise<{ session: Session | null }> {
-  // The username rides along as auth metadata; the handle_new_user()
-  // trigger (migration 0009) reads it when creating the profiles row.
+  // The username and consent flag ride along as auth metadata; the
+  // handle_new_user() trigger (migrations 0009/0010) reads them when
+  // creating the profiles row.
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username } },
+    options: { data: { username, privacy_accepted: privacyAccepted } },
   });
 
   if (error) {
@@ -37,6 +39,72 @@ export async function signOut(): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+// Emails a one-time confirmation code to the account's own address --
+// the first half of account deletion's proof of mailbox control.
+export async function requestAccountDeletionCode(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email: user.email,
+    options: { shouldCreateUser: false },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
+// Deleting an account requires BOTH the current password and the emailed
+// code: a password alone isn't enough if the credentials are compromised
+// (the attacker would have it), and an unlocked session alone isn't
+// enough either. The actual deletion runs in the delete-account Edge
+// Function, which holds the service-role key and only ever deletes the
+// authenticated caller.
+export async function confirmAccountDeletion(currentPassword: string, code: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  const { error: reauthError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (reauthError) {
+    throw reauthError;
+  }
+
+  const { error: otpError } = await supabase.auth.verifyOtp({
+    email: user.email,
+    token: code.trim(),
+    type: "email",
+  });
+
+  if (otpError) {
+    throw otpError;
+  }
+
+  const { error: fnError } = await supabase.functions.invoke("delete-account");
+
+  if (fnError) {
+    throw fnError;
+  }
+
+  // The auth user (and every server-side session) is already gone; only
+  // the locally stored session state is left to clear.
+  await supabase.auth.signOut({ scope: "local" });
 }
 
 // Re-authenticates with the current password before changing it --

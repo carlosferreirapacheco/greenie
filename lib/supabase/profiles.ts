@@ -9,6 +9,7 @@ export type Profile = {
   id: string;
   username: string;
   username_changed_at: string | null;
+  accepted_privacy_at: string | null;
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
