@@ -1,11 +1,20 @@
 import { supabase } from "./client";
 
+export type ProfileVisibility = "public" | "private";
+export type FollowPolicy = "open" | "request";
+export type ProgressVisibility = "public" | "private";
+export type CommentPolicy = "public" | "followers";
+
 export type Profile = {
   id: string;
   display_name: string | null;
   bio: string | null;
   avatar_url: string | null;
   created_at: string;
+  profile_visibility: ProfileVisibility;
+  follow_policy: FollowPolicy;
+  progress_visibility: ProgressVisibility;
+  comment_policy: CommentPolicy;
 };
 
 export type MyProfile = Profile & { email: string | null };
@@ -85,6 +94,34 @@ export async function updateMyProfile(input: {
       display_name: input.display_name,
       bio: input.bio,
     })
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updatePrivacySettings(input: {
+  profile_visibility: ProfileVisibility;
+  follow_policy: FollowPolicy;
+  progress_visibility: ProgressVisibility;
+  comment_policy: CommentPolicy;
+}): Promise<Profile> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(input)
     .eq("id", user.id)
     .select()
     .single();

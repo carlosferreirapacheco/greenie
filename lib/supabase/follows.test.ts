@@ -5,7 +5,15 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getFriends, isFollowing, followUser, unfollowUser } from "./follows";
+import {
+  getFriends,
+  getFollowStatus,
+  followUser,
+  unfollowUser,
+  getPendingFollowRequests,
+  acceptFollowRequest,
+  declineFollowRequest,
+} from "./follows";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -32,7 +40,7 @@ describe("getFriends", () => {
     expect(mockSupabase.from).toHaveBeenCalledTimes(1);
   });
 
-  it("resolves followee ids to profile rows", async () => {
+  it("only counts accepted follows, not pending outgoing requests", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const followChain = createChainableQueryMock({ data: [{ followee_id: "u2" }, { followee_id: "u3" }], error: null });
     const profilesChain = createChainableQueryMock({ data: [{ id: "u2" }, { id: "u3" }], error: null });
@@ -40,37 +48,49 @@ describe("getFriends", () => {
 
     const result = await getFriends();
 
-    expect(followChain.eq).toHaveBeenCalledWith("follower_id", "u1");
+    expect(followChain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u1");
+    expect(followChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
     expect(profilesChain.in).toHaveBeenCalledWith("id", ["u2", "u3"]);
     expect(result).toEqual([{ id: "u2" }, { id: "u3" }]);
   });
 });
 
-describe("isFollowing", () => {
-  it("returns true when a follow row exists", async () => {
+describe("getFollowStatus", () => {
+  it("returns 'accepted' when an accepted follow row exists", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
-    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: { followee_id: "u2" }, error: null }));
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: { status: "accepted" }, error: null }));
 
-    await expect(isFollowing("u2")).resolves.toBe(true);
+    await expect(getFollowStatus("u2")).resolves.toBe("accepted");
   });
 
-  it("returns false when no follow row exists", async () => {
+  it("returns 'pending' when a pending follow row exists", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: { status: "pending" }, error: null }));
+
+    await expect(getFollowStatus("u2")).resolves.toBe("pending");
+  });
+
+  it("returns 'none' when no follow row exists", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: null }));
 
-    await expect(isFollowing("u2")).resolves.toBe(false);
+    await expect(getFollowStatus("u2")).resolves.toBe("none");
   });
 });
 
 describe("followUser", () => {
-  it("inserts a follow row for the signed-in user", async () => {
+  it("inserts a follow row for the signed-in user and returns the server-assigned status", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
-    const chain = createChainableQueryMock({ data: null, error: null });
+    // status isn't supplied by the client -- a DB trigger assigns it based
+    // on the target's follow_policy, so the mock simulates that by
+    // returning it on the inserted row regardless of what was sent.
+    const chain = createChainableQueryMock({ data: { status: "pending" }, error: null });
     mockSupabase.from.mockReturnValue(chain);
 
-    await followUser("u2");
+    const result = await followUser("u2");
 
     expect(chain.insert).toHaveBeenCalledWith({ follower_id: "u1", followee_id: "u2" });
+    expect(result).toEqual({ status: "pending" });
   });
 });
 
@@ -85,5 +105,65 @@ describe("unfollowUser", () => {
     expect(chain.delete).toHaveBeenCalled();
     expect(chain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u1");
     expect(chain.eq).toHaveBeenNthCalledWith(2, "followee_id", "u2");
+  });
+});
+
+describe("getPendingFollowRequests", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(getPendingFollowRequests()).rejects.toThrow("Not signed in");
+  });
+
+  it("returns an empty array without a second query when there are no pending requests", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    const result = await getPendingFollowRequests();
+
+    expect(result).toEqual([]);
+    expect(mockSupabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves pending requesters to profile rows", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const pendingChain = createChainableQueryMock({ data: [{ follower_id: "u2" }], error: null });
+    const profilesChain = createChainableQueryMock({ data: [{ id: "u2", display_name: "Sammy" }], error: null });
+    mockSupabase.from.mockReturnValueOnce(pendingChain).mockReturnValueOnce(profilesChain);
+
+    const result = await getPendingFollowRequests();
+
+    expect(pendingChain.eq).toHaveBeenNthCalledWith(1, "followee_id", "u1");
+    expect(pendingChain.eq).toHaveBeenNthCalledWith(2, "status", "pending");
+    expect(profilesChain.in).toHaveBeenCalledWith("id", ["u2"]);
+    expect(result).toEqual([{ id: "u2", display_name: "Sammy" }]);
+  });
+});
+
+describe("acceptFollowRequest", () => {
+  it("updates the matching row to accepted", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await acceptFollowRequest("u2");
+
+    expect(chain.update).toHaveBeenCalledWith({ status: "accepted" });
+    expect(chain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u2");
+    expect(chain.eq).toHaveBeenNthCalledWith(2, "followee_id", "u1");
+  });
+});
+
+describe("declineFollowRequest", () => {
+  it("deletes the matching pending row", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await declineFollowRequest("u2");
+
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u2");
+    expect(chain.eq).toHaveBeenNthCalledWith(2, "followee_id", "u1");
   });
 });

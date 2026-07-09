@@ -5,7 +5,7 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getMyProfile, getProfile, searchProfiles, updateMyProfile } from "./profiles";
+import { getMyProfile, getProfile, searchProfiles, updateMyProfile, updatePrivacySettings } from "./profiles";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -98,6 +98,38 @@ describe("updateMyProfile", () => {
     await updateMyProfile({ display_name: "Carlos", bio: "Hi" });
 
     expect(chain.update).toHaveBeenCalledWith({ display_name: "Carlos", bio: "Hi" });
+    expect(chain.eq).toHaveBeenCalledWith("id", "u1");
+  });
+});
+
+describe("updatePrivacySettings", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(
+      updatePrivacySettings({
+        profile_visibility: "private",
+        follow_policy: "request",
+        progress_visibility: "private",
+        comment_policy: "followers",
+      })
+    ).rejects.toThrow("Not signed in");
+  });
+
+  it("updates all four privacy fields for the signed-in user", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const settings = {
+      profile_visibility: "private" as const,
+      follow_policy: "request" as const,
+      progress_visibility: "private" as const,
+      comment_policy: "followers" as const,
+    };
+    const chain = createChainableQueryMock({ data: { id: "u1", ...settings }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await updatePrivacySettings(settings);
+
+    expect(chain.update).toHaveBeenCalledWith(settings);
     expect(chain.eq).toHaveBeenCalledWith("id", "u1");
   });
 });

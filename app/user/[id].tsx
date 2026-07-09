@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
-import { followUser, isFollowing, unfollowUser } from "../../lib/supabase/follows";
+import { followUser, getFollowStatus, unfollowUser, type FollowStatus } from "../../lib/supabase/follows";
 import { getPlantsForUser, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../../lib/supabase/plants";
 import {
   getCareTasksForPlants,
@@ -47,7 +47,7 @@ export default function UserProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-  const [following, setFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState<FollowStatus>("none");
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
 
@@ -65,13 +65,13 @@ export default function UserProfileScreen() {
 
     Promise.all([
       getProfile(id),
-      isFollowing(id),
+      getFollowStatus(id),
       getPlantsForUser(id),
       supabase.auth.getUser().then(({ data }) => data.user?.id),
     ])
-      .then(async ([profileData, followingData, plantsData, currentUserId]) => {
+      .then(async ([profileData, followStatusData, plantsData, currentUserId]) => {
         setProfile(profileData);
-        setFollowing(followingData);
+        setFollowStatus(followStatusData);
         setIsOwnProfile(currentUserId === id);
         setPlants(plantsData);
 
@@ -111,12 +111,14 @@ export default function UserProfileScreen() {
     setToggleError(null);
 
     try {
-      if (following) {
-        await unfollowUser(id);
-        setFollowing(false);
+      if (followStatus === "none") {
+        const { status } = await followUser(id);
+        setFollowStatus(status);
       } else {
-        await followUser(id);
-        setFollowing(true);
+        // Covers both unfollowing an accepted follow and cancelling a
+        // pending request -- both are just "remove my outgoing follow row".
+        await unfollowUser(id);
+        setFollowStatus("none");
       }
       setToggleStatus("idle");
     } catch (err) {
@@ -169,23 +171,23 @@ export default function UserProfileScreen() {
         <Pressable
           style={[
             styles.followButton,
-            following
-              ? { backgroundColor: colors.paper, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line }
-              : { backgroundColor: colors.moss },
+            followStatus === "none"
+              ? { backgroundColor: colors.moss }
+              : { backgroundColor: colors.paper, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
           ]}
           onPress={handleToggleFollow}
           disabled={toggleStatus === "toggling"}
         >
           {toggleStatus === "toggling" ? (
-            <ActivityIndicator color={following ? colors.inkSoft : colors.paper} />
+            <ActivityIndicator color={followStatus === "none" ? colors.paper : colors.inkSoft} />
           ) : (
             <Text
               style={[
                 styles.followButtonText,
-                { fontFamily: fonts.bodySemiBold, color: following ? colors.inkSoft : colors.paper },
+                { fontFamily: fonts.bodySemiBold, color: followStatus === "none" ? colors.paper : colors.inkSoft },
               ]}
             >
-              {following ? "Unfollow" : "Follow"}
+              {followStatus === "none" ? "Follow" : followStatus === "pending" ? "Requested" : "Unfollow"}
             </Text>
           )}
         </Pressable>
@@ -198,7 +200,11 @@ export default function UserProfileScreen() {
       <View style={styles.plantsSection}>
         <Text style={[styles.sectionLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Plants</Text>
 
-        {plants.length === 0 ? (
+        {!isOwnProfile && profile?.profile_visibility === "private" && followStatus !== "accepted" ? (
+          <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            This account is private
+          </Text>
+        ) : plants.length === 0 ? (
           <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>No plants yet</Text>
         ) : (
           plants.map((plant) => {
