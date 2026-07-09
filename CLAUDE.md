@@ -29,6 +29,8 @@ sharing them socially with other users.
 - One feature per branch, small commits with descriptive messages
 - No direct pushes to `master` — every change goes through a feature branch
   and a pull request
+- Delete the feature branch (local and remote) once its PR is merged and
+  closed — merged branches don't linger
 - Write a quick test or manual verification step for each feature before
   moving to the next one
 
