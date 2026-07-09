@@ -173,10 +173,11 @@ sharing them socially with other users.
   Settings; sign-up requires a consent checkbox and the acceptance time
   is stamped to `profiles.accepted_privacy_at` by `handle_new_user()`
   (3rd revision) via signup metadata.
-  - Consent for pre-existing users — accounts created before this
-    slice have `accepted_privacy_at = null` and nothing prompts them
-    yet; needs an in-app consent prompt, plus re-consent whenever the
-    policy materially changes.
+  - Consent for pre-existing users — done via the welcome screen from
+    the Google OAuth slice (`app/welcome.tsx`): any account with a null
+    consent stamp is routed there once to review profile basics and
+    accept the policy. Re-consent on material policy changes remains
+    open.
   - Native data export — the JSON download uses a web Blob + anchor;
     native needs `expo-file-system`/share-sheet wiring (fold into the
     photo-capture/native pass).
@@ -344,24 +345,31 @@ sharing them socially with other users.
     SMTP provider is set up (see above) — it's off right now purely as a
     development workaround for the built-in sender's rate limit, and
     leaving it off lets anyone sign up with an email they don't own.
-  - Google OAuth (and other social providers later) — next slice.
-    Needs external setup only the account owner can do first: a Google
-    Cloud OAuth client (Web application type), and enabling + configuring
-    the Google provider in the Supabase Auth dashboard with that client's
-    ID/secret. Client side needs `expo-web-browser` (+ likely
-    `expo-auth-session` for the redirect URI helper — confirm exact
-    current Supabase-recommended approach from their docs before
-    implementing, not from memory) and a custom URL scheme in `app.json`
-    for the OAuth redirect to return to the app.
-    - Post-Google-signup review screen — first sign-in via Google should
-      let the user review/edit what Google auto-populated (display name)
-      before landing in the app proper, same as any signup should be
-      confirmable. This is also where OAuth users should customize the
-      generated `user_<id-prefix>` username they land with (the
-      `handle_new_user()` fallback, see Usernames above) — their first
-      change is cooldown-free by design. Email is never editable.
-      Avatar is deliberately out of scope here — handle it once real
-      photo/image upload exists, not as a one-off raw-URL text field.
+  - Google OAuth — done for web (the platform the app is developed,
+    verified, and demoed on). "Continue with Google" on sign-in/sign-up
+    uses `signInWithOAuth` (full-page redirect through Supabase to
+    Google and back); `lib/supabase/client.ts` enables
+    `detectSessionInUrl` on web only so the returning session is picked
+    up. `handle_new_user()` (4th revision, migration
+    `0011_oauth_display_name.sql`) seeds `display_name` from Google's
+    `full_name` metadata. Owner runbook in `docs/google-oauth.md`
+    (Google Cloud OAuth client + Supabase provider + redirect URL
+    allowlist) — setup pending; until then the button bounces back with
+    Supabase's "provider is not enabled" (verified wiring).
+    - Native OAuth — needs `expo-web-browser`/`expo-auth-session` + a
+      custom URL scheme; deferred until the app targets devices.
+    - Other social providers (Apple etc.) — later.
+    - OAuth-user deletion re-auth — see Account settings above.
+    - Post-Google-signup review screen — done as `app/welcome.tsx`:
+      shown once to any account with `accepted_privacy_at = null`
+      (fresh OAuth signups AND accounts predating consent tracking —
+      this also resolved the GDPR "consent for pre-existing users"
+      item). Review display name, customize the generated username
+      (cooldown-free first change), accept the privacy policy; the
+      root layout gates all routes on it and the screen signals the
+      layout via `lib/consentEvents.ts` to avoid a refetch race.
+      Email is never editable; avatar stays out of scope until real
+      photo upload exists.
 
 ### Later
 - Payments / monetization

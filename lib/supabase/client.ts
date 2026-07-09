@@ -1,4 +1,5 @@
 import "react-native-url-polyfill/auto";
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,6 +17,8 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // On web the OAuth flow returns to the app with the session in the
+    // URL, which supabase-js must pick up; native has no URL to read.
+    detectSessionInUrl: Platform.OS === "web",
   },
 });

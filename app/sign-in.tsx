@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
-import { signInWithEmail } from "../lib/supabase/auth";
+import { signInWithEmail, signInWithGoogle } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -44,6 +44,26 @@ export default function SignInScreen() {
       await signInWithEmail(email.trim(), password);
       // No navigation needed -- app/_layout.tsx's onAuthStateChange
       // listener swaps to the main app Stack once the session lands.
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setStatus("error");
+    } finally {
+      isSubmitting.current = false;
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (isSubmitting.current) {
+      return;
+    }
+    isSubmitting.current = true;
+
+    setError(null);
+
+    try {
+      // Full-page redirect through Supabase to Google -- the page
+      // unloads on success, so there's no post-call state to manage.
+      await signInWithGoogle();
     } catch (err) {
       setError(getErrorMessage(err));
       setStatus("error");
@@ -104,6 +124,25 @@ export default function SignInScreen() {
           )}
         </Pressable>
 
+        {Platform.OS === "web" ? (
+          <>
+            <View style={styles.dividerRow}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
+              <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
+            </View>
+
+            <Pressable
+              style={[styles.googleButton, { borderColor: colors.line, backgroundColor: colors.paper }]}
+              onPress={handleGoogleSignIn}
+            >
+              <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                Continue with Google
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+
         <Pressable onPress={() => router.push("/sign-up")} hitSlop={8}>
           <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Create account</Text>
         </Pressable>
@@ -153,5 +192,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: spacing.xs,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  dividerText: {
+    fontSize: 12,
+  },
+  googleButton: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  googleButtonText: {
+    fontSize: 15,
   },
 });

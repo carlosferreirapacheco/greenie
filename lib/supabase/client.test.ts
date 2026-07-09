@@ -39,6 +39,7 @@ describe("supabase client bootstrap", () => {
     process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "test-publishable-key";
 
     const { createClient } = require("@supabase/supabase-js");
+    const { Platform } = require("react-native");
     const { supabase } = require("./client");
 
     expect(createClient).toHaveBeenCalledWith(
@@ -48,7 +49,10 @@ describe("supabase client bootstrap", () => {
         auth: expect.objectContaining({
           autoRefreshToken: true,
           persistSession: true,
-          detectSessionInUrl: false,
+          // Web needs to pick the OAuth session out of the return URL;
+          // native has no URL to read. jest-expo runs as iOS, so this
+          // asserts the platform-conditional wiring, not a constant.
+          detectSessionInUrl: Platform.OS === "web",
         }),
       })
     );
