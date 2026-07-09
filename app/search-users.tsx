@@ -10,11 +10,16 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${profile.id}`)}>
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
-      <Text
-        style={[styles.name, { fontFamily: fonts.display, color: profile.display_name ? colors.ink : colors.inkSoft }]}
-      >
-        {profile.display_name ?? "No display name yet"}
-      </Text>
+      <View style={styles.nameColumn}>
+        <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+          {profile.display_name ?? `@${profile.username}`}
+        </Text>
+        {profile.display_name ? (
+          <Text style={[styles.username, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            @{profile.username}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -80,7 +85,7 @@ export default function SearchUsersScreen() {
   } else if (searchQuery.trim().length === 0) {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Type a name to search</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Type a name or username to search</Text>
       </View>
     );
   } else if (searchResults.length === 0) {
@@ -107,7 +112,7 @@ export default function SearchUsersScreen() {
         style={[styles.searchInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
         value={searchQuery}
         onChangeText={handleSearchChange}
-        placeholder="Search users by name"
+        placeholder="Search users by name or username"
         placeholderTextColor={colors.inkSoft}
         autoFocus
       />
@@ -150,7 +155,13 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: radius.sm,
   },
+  nameColumn: {
+    gap: 1,
+  },
   name: {
     fontSize: 16,
+  },
+  username: {
+    fontSize: 12,
   },
 });

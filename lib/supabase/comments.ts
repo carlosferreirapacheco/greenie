@@ -10,6 +10,7 @@ export type Comment = {
 
 export type CommentWithAuthor = Comment & {
   author_display_name: string | null;
+  author_username: string | null;
 };
 
 async function hydrateAuthors(comments: Comment[]): Promise<CommentWithAuthor[]> {
@@ -18,18 +19,25 @@ async function hydrateAuthors(comments: Comment[]): Promise<CommentWithAuthor[]>
   }
 
   const userIds = [...new Set(comments.map((comment) => comment.user_id))];
-  const { data: authors, error } = await supabase.from("profiles").select("id, display_name").in("id", userIds);
+  const { data: authors, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, username")
+    .in("id", userIds);
 
   if (error) {
     throw error;
   }
 
-  const authorsById = new Map(authors.map((author) => [author.id, author.display_name]));
+  const authorsById = new Map(authors.map((author) => [author.id, author]));
 
-  return comments.map((comment) => ({
-    ...comment,
-    author_display_name: authorsById.get(comment.user_id) ?? null,
-  }));
+  return comments.map((comment) => {
+    const author = authorsById.get(comment.user_id);
+    return {
+      ...comment,
+      author_display_name: author?.display_name ?? null,
+      author_username: author?.username ?? null,
+    };
+  });
 }
 
 export async function getCommentsForProgress(progressId: string): Promise<CommentWithAuthor[]> {

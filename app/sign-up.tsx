@@ -13,6 +13,7 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { signUpWithEmail } from "../lib/supabase/auth";
+import { isUsernameAvailable, normalizeUsername, validateUsername } from "../lib/supabase/usernames";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -21,6 +22,7 @@ export default function SignUpScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
 
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "error">("idle");
@@ -29,7 +31,15 @@ export default function SignUpScreen() {
   // Same synchronous-guard pattern as every other submit flow in this app.
   const isSubmitting = useRef(false);
 
-  const canSubmit = email.trim().length > 0 && password.length >= 6 && status !== "submitting";
+  const normalizedUsername = normalizeUsername(username);
+  const usernameError = normalizedUsername.length > 0 ? validateUsername(normalizedUsername) : null;
+
+  const canSubmit =
+    email.trim().length > 0 &&
+    normalizedUsername.length > 0 &&
+    usernameError === null &&
+    password.length >= 6 &&
+    status !== "submitting";
 
   async function handleSignUp() {
     if (!canSubmit || isSubmitting.current) {
@@ -41,7 +51,16 @@ export default function SignUpScreen() {
     setError(null);
 
     try {
-      const { session } = await signUpWithEmail(email.trim(), password);
+      // Pre-check so a taken username gets a friendly message instead of
+      // the signup silently falling back to a generated username (the
+      // handle_new_user trigger never fails signups over usernames).
+      if (!(await isUsernameAvailable(normalizedUsername))) {
+        setError("That username is already taken");
+        setStatus("error");
+        return;
+      }
+
+      const { session } = await signUpWithEmail(email.trim(), password, normalizedUsername);
       if (!session) {
         // Project has email confirmation on -- no session until the user
         // clicks the link in their inbox.
@@ -91,6 +110,22 @@ export default function SignUpScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
           />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="e.g. plant.parent_42"
+            placeholderTextColor={colors.inkSoft}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {usernameError ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{usernameError}</Text>
+          ) : null}
         </View>
 
         <View style={styles.field}>

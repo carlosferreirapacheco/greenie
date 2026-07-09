@@ -13,9 +13,21 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
+import {
+  getUsernameChangeCooldownDays,
+  nextUsernameChangeDate,
+  normalizeUsername,
+  validateUsername,
+} from "../lib/supabase/usernames";
 import { signOut } from "../lib/supabase/auth";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
+
+const cooldownDateFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
 
 export default function ProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -25,8 +37,12 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<MyProfile | null>(null);
 
+  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
+
+  const [cooldownDays, setCooldownDays] = useState(5);
+  const [confirmingUsername, setConfirmingUsername] = useState(false);
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -42,6 +58,7 @@ export default function ProfileScreen() {
     getMyProfile()
       .then((data) => {
         setProfile(data);
+        setUsername(data.username);
         setDisplayName(data.display_name ?? "");
         setBio(data.bio ?? "");
         setStatus("ready");
@@ -50,6 +67,13 @@ export default function ProfileScreen() {
         setError(getErrorMessage(err));
         setStatus("error");
       });
+
+    // Drives the confirmation copy and the cooldown hint; the trigger
+    // enforces the real value server-side, so a failed fetch just means
+    // the UI shows the default.
+    getUsernameChangeCooldownDays()
+      .then(setCooldownDays)
+      .catch(() => {});
   }, []);
 
   useFocusEffect(
@@ -58,21 +82,31 @@ export default function ProfileScreen() {
     }, [fetchProfile])
   );
 
-  async function handleSave() {
+  const normalizedUsername = normalizeUsername(username);
+  const usernameChanged = profile !== null && normalizedUsername !== profile.username;
+  const usernameError = usernameChanged ? validateUsername(normalizedUsername) : null;
+  const nextChange = nextUsernameChangeDate(profile?.username_changed_at ?? null, cooldownDays);
+
+  async function doSave() {
     if (isSaving.current) {
       return;
     }
     isSaving.current = true;
 
+    setConfirmingUsername(false);
     setSaveStatus("saving");
     setSaveError(null);
 
     try {
       const updated = await updateMyProfile({
+        // Unchanged usernames re-send the saved value, which the cooldown
+        // trigger ignores (only actual changes count).
+        username: usernameChanged ? normalizedUsername : (profile?.username ?? normalizedUsername),
         display_name: displayName.trim().length > 0 ? displayName.trim() : null,
         bio: bio.trim().length > 0 ? bio.trim() : null,
       });
       setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
+      setUsername(updated.username);
       setSaveStatus("saved");
     } catch (err) {
       setSaveError(getErrorMessage(err));
@@ -80,6 +114,34 @@ export default function ProfileScreen() {
     } finally {
       isSaving.current = false;
     }
+  }
+
+  async function handleSave() {
+    if (isSaving.current) {
+      return;
+    }
+
+    if (usernameChanged) {
+      if (usernameError) {
+        setSaveError(usernameError);
+        setSaveStatus("error");
+        return;
+      }
+      if (nextChange) {
+        setSaveError(`You can change your username again on ${cooldownDateFormatter.format(nextChange)}`);
+        setSaveStatus("error");
+        return;
+      }
+      // Changing the username starts the cooldown -- make sure that's
+      // understood before committing (inline confirm; RN Alert is a
+      // no-op on web).
+      setSaveStatus("idle");
+      setSaveError(null);
+      setConfirmingUsername(true);
+      return;
+    }
+
+    await doSave();
   }
 
   async function handleSignOut() {
@@ -165,6 +227,30 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={username}
+            onChangeText={(text) => {
+              setUsername(text);
+              setConfirmingUsername(false);
+            }}
+            placeholder="e.g. plant.parent_42"
+            placeholderTextColor={colors.inkSoft}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {usernameChanged && usernameError ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{usernameError}</Text>
+          ) : null}
+          {nextChange ? (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              You can change your username again on {cooldownDateFormatter.format(nextChange)}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Display name</Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -198,19 +284,39 @@ export default function ProfileScreen() {
           <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Saved</Text>
         ) : null}
 
-        <Pressable
-          style={[styles.saveButton, { backgroundColor: colors.moss }]}
-          onPress={handleSave}
-          disabled={saveStatus === "saving"}
-        >
-          {saveStatus === "saving" ? (
-            <ActivityIndicator color={colors.paper} />
-          ) : (
-            <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Save
+        {confirmingUsername ? (
+          <View style={[styles.confirmBox, { borderColor: colors.line, backgroundColor: colors.sage }]}>
+            <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
+              Usernames can only be changed once every {cooldownDays} days. Change it to @{normalizedUsername}?
             </Text>
-          )}
-        </Pressable>
+            <View style={styles.confirmActions}>
+              <Pressable onPress={doSave} hitSlop={8}>
+                <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.mossStrong }]}>
+                  Change username
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setConfirmingUsername(false)} hitSlop={8}>
+                <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                  Cancel
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={[styles.saveButton, { backgroundColor: colors.moss }]}
+            onPress={handleSave}
+            disabled={saveStatus === "saving"}
+          >
+            {saveStatus === "saving" ? (
+              <ActivityIndicator color={colors.paper} />
+            ) : (
+              <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                Save
+              </Text>
+            )}
+          </Pressable>
+        )}
 
         {signOutStatus === "error" ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{signOutError}</Text>
@@ -311,5 +417,26 @@ const styles = StyleSheet.create({
   },
   settingsLink: {
     fontSize: 15,
+  },
+  hint: {
+    fontSize: 12,
+  },
+  confirmBox: {
+    width: "100%",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  confirmText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  confirmActions: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  confirmAction: {
+    fontSize: 14,
   },
 });

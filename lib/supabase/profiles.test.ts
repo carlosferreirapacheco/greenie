@@ -70,16 +70,26 @@ describe("searchProfiles", () => {
     await expect(searchProfiles("sam")).rejects.toThrow("Not signed in");
   });
 
-  it("searches by display_name, excluding the signed-in user", async () => {
+  it("searches display_name and username together, excluding the signed-in user", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const chain = createChainableQueryMock({ data: [{ id: "u2", display_name: "Sammy" }], error: null });
     mockSupabase.from.mockReturnValue(chain);
 
     const result = await searchProfiles("  sam  ");
 
-    expect(chain.ilike).toHaveBeenCalledWith("display_name", "%sam%");
+    expect(chain.or).toHaveBeenCalledWith("display_name.ilike.%sam%,username.ilike.%sam%");
     expect(chain.neq).toHaveBeenCalledWith("id", "u1");
     expect(result).toEqual([{ id: "u2", display_name: "Sammy" }]);
+  });
+
+  it("strips PostgREST or() syntax characters from the query", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await searchProfiles("sam,username.eq.(x)");
+
+    expect(chain.or).toHaveBeenCalledWith("display_name.ilike.%samusername.eq.x%,username.ilike.%samusername.eq.x%");
   });
 });
 
@@ -87,18 +97,33 @@ describe("updateMyProfile", () => {
   it("throws Not signed in when there's no session", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
 
-    await expect(updateMyProfile({ display_name: "Carlos", bio: null })).rejects.toThrow("Not signed in");
+    await expect(updateMyProfile({ username: "carlos", display_name: "Carlos", bio: null })).rejects.toThrow(
+      "Not signed in"
+    );
   });
 
-  it("updates display_name and bio for the signed-in user", async () => {
+  it("updates username, display_name, and bio for the signed-in user", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
-    const chain = createChainableQueryMock({ data: { id: "u1", display_name: "Carlos", bio: "Hi" }, error: null });
+    const chain = createChainableQueryMock({
+      data: { id: "u1", username: "carlos", display_name: "Carlos", bio: "Hi" },
+      error: null,
+    });
     mockSupabase.from.mockReturnValue(chain);
 
-    await updateMyProfile({ display_name: "Carlos", bio: "Hi" });
+    await updateMyProfile({ username: "carlos", display_name: "Carlos", bio: "Hi" });
 
-    expect(chain.update).toHaveBeenCalledWith({ display_name: "Carlos", bio: "Hi" });
+    expect(chain.update).toHaveBeenCalledWith({ username: "carlos", display_name: "Carlos", bio: "Hi" });
     expect(chain.eq).toHaveBeenCalledWith("id", "u1");
+  });
+
+  it("maps a unique violation to a friendly taken-username error", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: null, error: { code: "23505", message: "duplicate key" } });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await expect(updateMyProfile({ username: "taken", display_name: null, bio: null })).rejects.toThrow(
+      "That username is already taken"
+    );
   });
 });
 

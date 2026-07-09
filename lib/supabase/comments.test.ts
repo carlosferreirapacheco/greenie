@@ -21,14 +21,25 @@ describe("getCommentsForProgress", () => {
       data: [{ id: "c1", progress_id: "p1", user_id: "u1", content: "Nice!", created_at: "2026-01-01" }],
       error: null,
     });
-    const authorsChain = createChainableQueryMock({ data: [{ id: "u1", display_name: "Sammy" }], error: null });
+    const authorsChain = createChainableQueryMock({
+      data: [{ id: "u1", display_name: "Sammy", username: "sammy" }],
+      error: null,
+    });
     mockSupabase.from.mockReturnValueOnce(commentsChain).mockReturnValueOnce(authorsChain);
 
     const result = await getCommentsForProgress("p1");
 
     expect(commentsChain.eq).toHaveBeenCalledWith("progress_id", "p1");
     expect(result).toEqual([
-      { id: "c1", progress_id: "p1", user_id: "u1", content: "Nice!", created_at: "2026-01-01", author_display_name: "Sammy" },
+      {
+        id: "c1",
+        progress_id: "p1",
+        user_id: "u1",
+        content: "Nice!",
+        created_at: "2026-01-01",
+        author_display_name: "Sammy",
+        author_username: "sammy",
+      },
     ]);
   });
 
@@ -92,12 +103,16 @@ describe("addComment", () => {
       data: { id: "c1", progress_id: "p1", user_id: "u1", content: "hi", created_at: "2026-01-01" },
       error: null,
     });
-    const authorsChain = createChainableQueryMock({ data: [{ id: "u1", display_name: "Carlos" }], error: null });
+    const authorsChain = createChainableQueryMock({
+      data: [{ id: "u1", display_name: "Carlos", username: "carlos" }],
+      error: null,
+    });
     mockSupabase.from.mockReturnValueOnce(insertChain).mockReturnValueOnce(authorsChain);
 
     const result = await addComment("p1", "hi");
 
     expect(insertChain.insert).toHaveBeenCalledWith({ progress_id: "p1", user_id: "u1", content: "hi" });
     expect(result.author_display_name).toBe("Carlos");
+    expect(result.author_username).toBe("carlos");
   });
 });

@@ -8,7 +8,19 @@
 
 export type QueryResult<T = unknown> = { data: T; error: unknown };
 
-const CHAIN_METHODS = ["select", "insert", "update", "delete", "eq", "neq", "in", "ilike", "order", "limit"] as const;
+const CHAIN_METHODS = [
+  "select",
+  "insert",
+  "update",
+  "delete",
+  "eq",
+  "neq",
+  "in",
+  "ilike",
+  "or",
+  "order",
+  "limit",
+] as const;
 
 export function createChainableQueryMock<T = unknown>(result: QueryResult<T>) {
   const chain: Record<string, jest.Mock> & { then: Promise<QueryResult<T>>["then"] } = {} as never;
@@ -26,6 +38,7 @@ export function createChainableQueryMock<T = unknown>(result: QueryResult<T>) {
 export function createMockSupabaseClient() {
   return {
     from: jest.fn(),
+    rpc: jest.fn(),
     auth: {
       getUser: jest.fn(),
       getSession: jest.fn(),

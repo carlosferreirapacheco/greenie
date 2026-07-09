@@ -32,7 +32,10 @@ describe("getProgressReport", () => {
     mockSupabase.from
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
       .mockReturnValueOnce(
-        createChainableQueryMock({ data: { display_name: "Carlos", comment_policy: "followers" }, error: null })
+        createChainableQueryMock({
+          data: { display_name: "Carlos", username: "carlos", comment_policy: "followers" },
+          error: null,
+        })
       )
       .mockReturnValueOnce(
         createChainableQueryMock({
@@ -76,6 +79,7 @@ describe("getProgressReport", () => {
     expect(result.plant_nickname).toBe("Big Fred");
     expect(result.plant_species).toBe("Epipremnum aureum");
     expect(result.author_display_name).toBe("Carlos");
+    expect(result.author_username).toBe("carlos");
     expect(result.author_comment_policy).toBe("followers");
     expect(result.like_count).toBe(2);
     expect(result.liked_by_me).toBe(true);
