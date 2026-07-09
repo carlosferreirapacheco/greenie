@@ -1,0 +1,38 @@
+# Deploys the demo web build to Cloudflare Pages on every push to
+# master (and on demand). Requires one-time owner setup -- see
+# docs/demo-hosting.md. Until the Cloudflare secrets exist this job
+# fails at the deploy step; CI (ci.yml) is unaffected.
+name: Deploy demo
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Export web bundle
+        run: npx expo export --platform web
+        env:
+          # Repo *Variables* (not secrets): both values are baked into
+          # the client bundle by design and protected by Supabase RLS.
+          EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name greenie
