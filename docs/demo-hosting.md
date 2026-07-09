@@ -84,4 +84,16 @@ email. Takes effect immediately (sessions last 24h by default).
 - Every merge to `master` redeploys the demo automatically.
 - Manual refresh: Actions → Deploy demo → Run workflow.
 - Local dry run of exactly what CI builds:
-  `npx expo export --platform web` then `npx serve dist`.
+  `npx expo export --platform web && node scripts/patch-dist-for-pages.js`
+  then `npx serve dist`.
+
+## Gotcha: fonts and the node_modules upload skip
+
+`wrangler pages deploy` silently skips any `node_modules` directory,
+but Expo's web export emits its font assets under
+`dist/assets/node_modules/...` — deploying without the patch step drops
+every font and the live app falls back to system fonts.
+`scripts/patch-dist-for-pages.js` renames that folder to
+`assets/vendor` and rewrites the bundle references; the deploy workflow
+runs it automatically after the export. A healthy deploy uploads ~45+
+files, not 4.

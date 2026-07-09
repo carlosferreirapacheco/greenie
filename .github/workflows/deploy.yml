@@ -23,7 +23,10 @@ jobs:
       - run: npm ci
 
       - name: Export web bundle
-        run: npx expo export --platform web
+        # The patch step works around wrangler skipping node_modules
+        # directories in the upload -- Expo emits font assets under
+        # dist/assets/node_modules (see scripts/patch-dist-for-pages.js).
+        run: npx expo export --platform web && node scripts/patch-dist-for-pages.js
         env:
           # Repo *Variables* (not secrets): both values are baked into
           # the client bundle by design and protected by Supabase RLS.
