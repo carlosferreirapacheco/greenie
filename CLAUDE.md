@@ -270,6 +270,27 @@ sharing them socially with other users.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet
+- Online demo (gated) — repo side done. `.github/workflows/deploy.yml`
+  exports the Expo web bundle (`app.json` `web.output: "single"`, SPA)
+  and deploys it to Cloudflare Pages on every push to `master`; access
+  is gated by Cloudflare Access (free ≤50 users): only allowlisted
+  email addresses can load the site at all (one-time PIN by email).
+  Full owner runbook in `docs/demo-hosting.md` — the Cloudflare
+  account, API token, GitHub secrets/variables, and Access policy are
+  one-time owner setup that hasn't happened yet; the deploy job fails
+  until it does (expected). A future mobile release does NOT depend on
+  this hosting (native builds talk straight to Supabase) — it's a demo
+  vehicle that can later graduate to a production web app.
+  - Owner setup pending — follow `docs/demo-hosting.md` steps 1–4,
+    then verify: allowlisted email gets the PIN and enters, everyone
+    else is blocked.
+  - Custom domain — later, free on Cloudflare Pages.
+  - Access seat count — the free Zero Trust plan covers 50 users;
+    revisit if the invite list approaches that.
+  - Store-required public pages — when a mobile release happens, the
+    privacy-policy URL (and Google Play's required account-deletion
+    web link) must be *publicly* reachable, i.e. carved out of the
+    Access policy or hosted as a separate public project.
 
 ### Technical follow-ups
 - Screen/component-level tests — unit testing (Jest + `jest-expo`) now
