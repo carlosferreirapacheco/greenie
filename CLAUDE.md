@@ -270,20 +270,23 @@ sharing them socially with other users.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet
-- Online demo (gated) — repo side done. `.github/workflows/deploy.yml`
-  exports the Expo web bundle (`app.json` `web.output: "single"`, SPA)
-  and deploys it to Cloudflare Pages on every push to `master`; access
-  is gated by Cloudflare Access (free ≤50 users): only allowlisted
-  email addresses can load the site at all (one-time PIN by email).
-  Full owner runbook in `docs/demo-hosting.md` — the Cloudflare
-  account, API token, GitHub secrets/variables, and Access policy are
-  one-time owner setup that hasn't happened yet; the deploy job fails
-  until it does (expected). A future mobile release does NOT depend on
-  this hosting (native builds talk straight to Supabase) — it's a demo
-  vehicle that can later graduate to a production web app.
-  - Owner setup pending — follow `docs/demo-hosting.md` steps 1–4,
-    then verify: allowlisted email gets the PIN and enters, everyone
-    else is blocked.
+- Online demo (gated) — done and live at https://greenie-cwb.pages.dev.
+  `.github/workflows/deploy.yml` exports the Expo web bundle
+  (`app.json` `web.output: "single"`, SPA) and deploys it to Cloudflare
+  Pages on every push to `master`; access is gated by Cloudflare Access
+  (free ≤50 users): only allowlisted email addresses can load the site
+  at all (one-time PIN by email). Owner setup (Cloudflare account, API
+  token, GitHub secrets/variables, Access policy incl. adding the bare
+  production domain alongside the wildcard) is complete and the gate is
+  verified — unauthenticated requests 302 to the Access login; the
+  post-merge pipeline ran green end-to-end. Full runbook in
+  `docs/demo-hosting.md`, including the fonts gotcha: wrangler skips
+  `node_modules` dirs, so `scripts/patch-dist-for-pages.js` rewrites
+  Expo's font asset paths after export (a deploy that uploads ~4 files
+  instead of ~45 means the patch didn't run). Inviting someone = adding
+  their email to the Access policy. A future mobile release does NOT
+  depend on this hosting (native builds talk straight to Supabase) —
+  it's a demo vehicle that can later graduate to a production web app.
   - Custom domain — later, free on Cloudflare Pages.
   - Access seat count — the free Zero Trust plan covers 50 users;
     revisit if the invite list approaches that.
