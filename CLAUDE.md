@@ -172,6 +172,14 @@ sharing them socially with other users.
   - Per-item visibility overrides — this slice is account-wide defaults
     only; overriding a single progress report's visibility independent
     of the account default is a future enhancement.
+  - Review interactions between visibility settings — some settings
+    depend on each other, so combinations can produce surprising (if
+    coherent) results: e.g. a *public* progress report from a *private*
+    profile shows "Unknown plant" to non-followers, because the plant
+    row is hidden profile content even though the report itself is
+    visible. Audit the setting combinations, decide the intended
+    behavior for each, and apply the same review to any future
+    visibility setting so similar cases are caught at design time.
 - Plant profile screen — a per-plant detail view (`app/plant/[id].tsx`)
   is built: name/species/location, per-task care status pills, a Log
   Progress link, and the originally-scoped first job — editing
