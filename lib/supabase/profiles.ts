@@ -119,6 +119,29 @@ export async function updateMyProfile(input: {
   return data;
 }
 
+// Stamps the GDPR consent time on the user's own profile -- called from
+// the welcome screen once the consent checkbox is confirmed (OAuth
+// signups and pre-existing accounts never went through the sign-up
+// form's checkbox).
+export async function acceptPrivacyPolicy(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ accepted_privacy_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function updatePrivacySettings(input: {
   profile_visibility: ProfileVisibility;
   follow_policy: FollowPolicy;

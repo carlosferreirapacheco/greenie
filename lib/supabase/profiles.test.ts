@@ -5,7 +5,14 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getMyProfile, getProfile, searchProfiles, updateMyProfile, updatePrivacySettings } from "./profiles";
+import {
+  acceptPrivacyPolicy,
+  getMyProfile,
+  getProfile,
+  searchProfiles,
+  updateMyProfile,
+  updatePrivacySettings,
+} from "./profiles";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -124,6 +131,26 @@ describe("updateMyProfile", () => {
     await expect(updateMyProfile({ username: "taken", display_name: null, bio: null })).rejects.toThrow(
       "That username is already taken"
     );
+  });
+});
+
+describe("acceptPrivacyPolicy", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(acceptPrivacyPolicy()).rejects.toThrow("Not signed in");
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("stamps accepted_privacy_at on the signed-in user's own row", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await acceptPrivacyPolicy();
+
+    expect(chain.update).toHaveBeenCalledWith({ accepted_privacy_at: expect.any(String) });
+    expect(chain.eq).toHaveBeenCalledWith("id", "u1");
   });
 });
 

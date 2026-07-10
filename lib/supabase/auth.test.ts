@@ -3,10 +3,12 @@ jest.mock("./client", () => {
   return { supabase: createMockSupabaseClient() };
 });
 
+import { Platform } from "react-native";
 import { supabase } from "./client";
 import {
   signUpWithEmail,
   signInWithEmail,
+  signInWithGoogle,
   signOut,
   updatePasswordWithReauth,
   requestAccountDeletionCode,
@@ -119,6 +121,47 @@ describe("confirmAccountDeletion", () => {
 
     await expect(confirmAccountDeletion("pw", "123456")).rejects.toBe(err);
     expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("signInWithGoogle", () => {
+  it("throws on native without starting an OAuth flow (jest-expo runs as iOS)", async () => {
+    await expect(signInWithGoogle()).rejects.toThrow("only available on the web");
+    expect(mockSupabase.auth.signInWithOAuth).not.toHaveBeenCalled();
+  });
+
+  describe("on web", () => {
+    let platformSpy: { restore: () => void };
+
+    beforeEach(() => {
+      platformSpy = jest.replaceProperty(Platform, "OS", "web");
+      // jest-expo's environment has no browser location -- provide the
+      // origin the browser would.
+      (globalThis as { location?: unknown }).location = { origin: "http://localhost:8081" };
+    });
+
+    afterEach(() => {
+      platformSpy.restore();
+      delete (globalThis as { location?: unknown }).location;
+    });
+
+    it("starts the Google OAuth flow with a redirect back to the current origin", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+
+      await signInWithGoogle();
+
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: "http://localhost:8081" },
+      });
+    });
+
+    it("throws the Supabase error on failure", async () => {
+      const err = { message: "Unsupported provider: provider is not enabled" };
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: err });
+
+      await expect(signInWithGoogle()).rejects.toBe(err);
+    });
   });
 });
 

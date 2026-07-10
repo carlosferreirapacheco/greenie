@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./client";
 
@@ -21,6 +22,28 @@ export async function signUpWithEmail(
   }
 
   return { session: data.session };
+}
+
+// Web-only for now: the browser does a full-page redirect through
+// Supabase to Google and back, and the client picks the session out of
+// the return URL (detectSessionInUrl, see ./client). Native needs a
+// different mechanism (expo-web-browser + custom scheme) -- backlogged
+// until the app targets devices.
+export async function signInWithGoogle(): Promise<void> {
+  if (Platform.OS !== "web") {
+    throw new Error("Google sign-in is only available on the web for now");
+  }
+
+  const origin = (globalThis as { location?: { origin: string } }).location?.origin;
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: origin },
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<Session> {
