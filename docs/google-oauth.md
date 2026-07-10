@@ -85,6 +85,9 @@ Google" with that same Gmail — you should land in the SAME account
 - The demo (greenie-cwb.pages.dev) sits behind Cloudflare Access — a
   Google-OAuth demo user must ALSO be on the Access allowlist to reach
   the app at all. The two logins are unrelated layers.
-- Account deletion's password re-auth doesn't work for Google-only
-  accounts (they have no password) — a different second factor for
-  OAuth users is backlogged.
+- Account deletion works for Google-only accounts: since they have no
+  password, Settings detects it (no `email` identity) and confirms
+  deletion with the emailed one-time code plus typing the account's
+  @username (a deliberateness check — the code is the security
+  factor). Accounts with a password, including linked Google+password
+  ones, keep the password + code flow.

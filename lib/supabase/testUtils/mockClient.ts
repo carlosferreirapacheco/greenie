@@ -41,6 +41,7 @@ export function createMockSupabaseClient() {
     rpc: jest.fn(),
     auth: {
       getUser: jest.fn(),
+      getUserIdentities: jest.fn(),
       getSession: jest.fn(),
       signInWithPassword: jest.fn(),
       signInWithOAuth: jest.fn(),

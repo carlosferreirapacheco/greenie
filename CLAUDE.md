@@ -131,9 +131,20 @@ sharing them socially with other users.
     and a one-time code emailed to the account address (password alone
     is not enough if credentials are compromised) — Settings' "Danger
     zone" drives the two-step flow behind an inline confirm.
-    - OAuth-user deletion re-auth — the password step assumes an
-      email/password account; when Google OAuth lands, its users need
-      a different second factor for deletion (part of the OAuth slice).
+    - OAuth-user deletion re-auth — done. `accountHasPassword()` in
+      `lib/supabase/auth.ts` (via `getUserIdentities()`: password
+      accounts have an `email` identity) drives Settings for
+      passwordless (Google-only) accounts: the Change password form is
+      replaced by a "You sign in with Google" note, and the Danger
+      zone's password field becomes a "Type @username to confirm"
+      input (deliberateness check; leading `@`/case/whitespace
+      tolerated) — the emailed code stays the real security factor,
+      verified by `confirmPasswordlessAccountDeletion()`. A fresh
+      Google redirect was deliberately rejected as a second factor:
+      it proves control of the same Google account the emailed code
+      already proves. Linked accounts (Google + password) keep the
+      password flow. Per user decision, no "set a password" option
+      for OAuth users.
     - Owner dashboard TODO: the default Magic Link email template only
       contains a link — add `{{ .Token }}` to it (Auth → Email
       Templates → Magic Link) so real deletion emails carry the
@@ -363,7 +374,7 @@ sharing them socially with other users.
     - Native OAuth — needs `expo-web-browser`/`expo-auth-session` + a
       custom URL scheme; deferred until the app targets devices.
     - Other social providers (Apple etc.) — later.
-    - OAuth-user deletion re-auth — see Account settings above.
+    - OAuth-user deletion re-auth — done, see Account settings above.
     - Post-Google-signup review screen — done as `app/welcome.tsx`:
       shown once to any account with `accepted_privacy_at = null`
       (fresh OAuth signups AND accounts predating consent tracking —
