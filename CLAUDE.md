@@ -355,7 +355,11 @@ sharing them socially with other users.
     `full_name` metadata. Owner runbook in `docs/google-oauth.md`
     (Google Cloud OAuth client + Supabase provider + redirect URL
     allowlist) — setup pending; until then the button bounces back with
-    Supabase's "provider is not enabled" (verified wiring).
+    Supabase's "provider is not enabled" (verified wiring). Google
+    sign-in with an email belonging to an existing account links up
+    rather than duplicating (Supabase automatic identity linking;
+    requires the existing email to be verified — always true while
+    auto-confirm is on; see docs/google-oauth.md).
     - Native OAuth — needs `expo-web-browser`/`expo-auth-session` + a
       custom URL scheme; deferred until the app targets devices.
     - Other social providers (Apple etc.) — later.

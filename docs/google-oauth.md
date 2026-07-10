@@ -55,6 +55,32 @@ sign-in. That is the consent rollout, not a bug.
 - Before the setup, the same click bounces straight back to the app
   (Supabase answers "Unsupported provider: provider is not enabled").
 
+## Existing accounts: automatic identity linking
+
+Signing in/up with Google using an email that already belongs to an
+account **links up, it does not duplicate**: Supabase Auth's automatic
+identity linking (default behavior, no configuration) finds the
+existing user by verified email and attaches the Google identity to it
+(`auth.identities`, not a new `auth.users` row). Consequences:
+
+- The user lands in their existing account — same profile, username,
+  plants, everything. `handle_new_user()` doesn't fire (no new user is
+  inserted), so nothing gets overwritten.
+- Email/password sign-in continues to work alongside Google.
+- The welcome screen appears only if that account never accepted the
+  privacy policy — same rule as any sign-in.
+- **Caveat**: linking requires the existing account's email to be
+  *verified*. Today every account is auto-confirmed ("Confirm email"
+  is disabled), so this always holds. When confirmations are
+  re-enabled (see the SMTP backlog item), an account that never
+  confirmed its email is not a linking target — Supabase instead
+  removes such unconfirmed identities to prevent pre-account-takeover.
+
+Suggested test once the provider is configured: create a password
+account with your Gmail address, sign out, then "Continue with
+Google" with that same Gmail — you should land in the SAME account
+(same username/plants), and the old password should still work.
+
 ## Notes
 - The demo (greenie-cwb.pages.dev) sits behind Cloudflare Access — a
   Google-OAuth demo user must ALSO be on the Access allowlist to reach
