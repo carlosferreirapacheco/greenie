@@ -85,6 +85,19 @@ export async function requestAccountDeletionCode(): Promise<void> {
   }
 }
 
+// Whether the account can sign in with a password at all. Password
+// accounts have an "email" identity; a Google-only (OAuth) account
+// doesn't, so password re-auth flows can't apply to it.
+export async function accountHasPassword(): Promise<boolean> {
+  const { data, error } = await supabase.auth.getUserIdentities();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data?.identities ?? []).some((identity) => identity.provider === "email");
+}
+
 // Deleting an account requires BOTH the current password and the emailed
 // code: a password alone isn't enough if the credentials are compromised
 // (the attacker would have it), and an unlocked session alone isn't
@@ -127,6 +140,41 @@ export async function confirmAccountDeletion(currentPassword: string, code: stri
 
   // The auth user (and every server-side session) is already gone; only
   // the locally stored session state is left to clear.
+  await supabase.auth.signOut({ scope: "local" });
+}
+
+// Deletion confirm for accounts with no password (Google-only): the
+// emailed code is the security factor -- it proves mailbox control
+// independent of a stolen or unlocked app session, which is also why a
+// fresh Google redirect would add nothing (it proves control of the
+// same Google account the mailbox already does). The screen adds a
+// typed-username check on top, but that's an anti-accident gate, not
+// authentication.
+export async function confirmPasswordlessAccountDeletion(code: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  const { error: otpError } = await supabase.auth.verifyOtp({
+    email: user.email,
+    token: code.trim(),
+    type: "email",
+  });
+
+  if (otpError) {
+    throw otpError;
+  }
+
+  const { error: fnError } = await supabase.functions.invoke("delete-account");
+
+  if (fnError) {
+    throw fnError;
+  }
+
   await supabase.auth.signOut({ scope: "local" });
 }
 

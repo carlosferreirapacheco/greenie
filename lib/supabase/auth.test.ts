@@ -13,6 +13,8 @@ import {
   updatePasswordWithReauth,
   requestAccountDeletionCode,
   confirmAccountDeletion,
+  confirmPasswordlessAccountDeletion,
+  accountHasPassword,
 } from "./auth";
 
 const mockSupabase = supabase as unknown as ReturnType<
@@ -120,6 +122,76 @@ describe("confirmAccountDeletion", () => {
     mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: err });
 
     await expect(confirmAccountDeletion("pw", "123456")).rejects.toBe(err);
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
+  });
+});
+
+describe("accountHasPassword", () => {
+  it("is true when the account has an email (password) identity", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "email" }, { provider: "google" }] },
+      error: null,
+    });
+
+    await expect(accountHasPassword()).resolves.toBe(true);
+  });
+
+  it("is false for an OAuth-only account", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "google" }] },
+      error: null,
+    });
+
+    await expect(accountHasPassword()).resolves.toBe(false);
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "network error" };
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({ data: null, error: err });
+
+    await expect(accountHasPassword()).rejects.toBe(err);
+  });
+});
+
+describe("confirmPasswordlessAccountDeletion", () => {
+  it("throws Not signed in without verifying anything when there's no session email", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(confirmPasswordlessAccountDeletion("123456")).rejects.toThrow("Not signed in");
+    expect(mockSupabase.auth.verifyOtp).not.toHaveBeenCalled();
+    expect(mockSupabase.functions.invoke).not.toHaveBeenCalled();
+  });
+
+  it("never invokes the function when the emailed code is wrong", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    const err = { message: "Token has expired or is invalid" };
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: err });
+
+    await expect(confirmPasswordlessAccountDeletion("000000")).rejects.toBe(err);
+    expect(mockSupabase.functions.invoke).not.toHaveBeenCalled();
+  });
+
+  it("verifies the code, invokes delete-account, then clears the local session -- no password re-auth", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
+    mockSupabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
+    mockSupabase.auth.signOut.mockResolvedValue({ error: null });
+
+    await confirmPasswordlessAccountDeletion(" 123456 ");
+
+    expect(mockSupabase.auth.signInWithPassword).not.toHaveBeenCalled();
+    expect(mockSupabase.auth.verifyOtp).toHaveBeenCalledWith({ email: "a@b.com", token: "123456", type: "email" });
+    expect(mockSupabase.functions.invoke).toHaveBeenCalledWith("delete-account");
+    expect(mockSupabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("throws and skips the local sign-out when the function itself fails", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
+    const err = { message: "Account deletion failed" };
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: err });
+
+    await expect(confirmPasswordlessAccountDeletion("123456")).rejects.toBe(err);
     expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
   });
 });

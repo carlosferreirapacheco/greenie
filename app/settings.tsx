@@ -13,7 +13,9 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import {
+  accountHasPassword,
   confirmAccountDeletion,
+  confirmPasswordlessAccountDeletion,
   requestAccountDeletionCode,
   updatePasswordWithReauth,
 } from "../lib/supabase/auth";
@@ -122,6 +124,12 @@ export default function SettingsScreen() {
   const isSavingPrivacy = useRef(false);
 
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [accountUsername, setAccountUsername] = useState<string | null>(null);
+
+  // null = not resolved yet, which keeps the regular password UI -- also
+  // the fallback if the identities lookup fails, leaving a passwordless
+  // account no worse off than before this check existed.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
   const fetchPrivacySettings = useCallback(() => {
     getMyProfile()
@@ -131,12 +139,17 @@ export default function SettingsScreen() {
         setProgressVisibility(profile.progress_visibility);
         setCommentPolicy(profile.comment_policy);
         setAccountEmail(profile.email);
+        setAccountUsername(profile.username);
         setPrivacyStatus("ready");
       })
       .catch((err) => {
         setPrivacyError(getErrorMessage(err));
         setPrivacyStatus("error");
       });
+
+    accountHasPassword()
+      .then(setHasPassword)
+      .catch(() => setHasPassword(null));
   }, []);
 
   useFocusEffect(
@@ -183,6 +196,7 @@ export default function SettingsScreen() {
   }
 
   const [deletePassword, setDeletePassword] = useState("");
+  const [deleteUsername, setDeleteUsername] = useState("");
   const [deleteCode, setDeleteCode] = useState("");
   const [codeStatus, setCodeStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -223,7 +237,11 @@ export default function SettingsScreen() {
     setDeleteError(null);
 
     try {
-      await confirmAccountDeletion(deletePassword, deleteCode);
+      if (hasPassword === false) {
+        await confirmPasswordlessAccountDeletion(deleteCode);
+      } else {
+        await confirmAccountDeletion(deletePassword, deleteCode);
+      }
       // No navigation needed -- the root layout's onAuthStateChange
       // listener swaps to the sign-in stack once the session clears.
     } catch (err) {
@@ -234,7 +252,16 @@ export default function SettingsScreen() {
     }
   }
 
-  const canDelete = deletePassword.length > 0 && deleteCode.trim().length > 0 && deleteStatus !== "deleting";
+  // For passwordless (Google-only) accounts the typed username replaces
+  // the password field -- a deliberateness check, while the emailed code
+  // stays the actual proof it's the account owner.
+  const typedUsernameMatches =
+    accountUsername !== null && deleteUsername.trim().replace(/^@/, "").toLowerCase() === accountUsername;
+
+  const canDelete =
+    (hasPassword === false ? typedUsernameMatches : deletePassword.length > 0) &&
+    deleteCode.trim().length > 0 &&
+    deleteStatus !== "deleting";
 
   async function handleSavePrivacy() {
     if (isSavingPrivacy.current) {
@@ -272,75 +299,83 @@ export default function SettingsScreen() {
           Change password
         </Text>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Current password
+        {hasPassword === false ? (
+          <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            You sign in with Google — this account has no password.
           </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.inkSoft}
-            secureTextEntry
-          />
-        </View>
+        ) : (
+          <>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Current password
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.inkSoft}
+                secureTextEntry
+              />
+            </View>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            New password (min. 6 characters)
-          </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.inkSoft}
-            secureTextEntry
-          />
-        </View>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                New password (min. 6 characters)
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.inkSoft}
+                secureTextEntry
+              />
+            </View>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Confirm new password
-          </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.inkSoft}
-            secureTextEntry
-          />
-          {confirmPassword.length > 0 && !passwordsMatch ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-              Passwords don't match
-            </Text>
-          ) : null}
-        </View>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Confirm new password
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.inkSoft}
+                secureTextEntry
+              />
+              {confirmPassword.length > 0 && !passwordsMatch ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                  Passwords don't match
+                </Text>
+              ) : null}
+            </View>
 
-        {saveStatus === "error" ? (
-          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
-        ) : null}
-        {saveStatus === "saved" ? (
-          <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Password updated
-          </Text>
-        ) : null}
+            {saveStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
+            ) : null}
+            {saveStatus === "saved" ? (
+              <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Password updated
+              </Text>
+            ) : null}
 
-        <Pressable
-          style={[styles.saveButton, { backgroundColor: canSave ? colors.moss : colors.line }]}
-          onPress={handleSave}
-          disabled={!canSave}
-        >
-          {saveStatus === "saving" ? (
-            <ActivityIndicator color={colors.paper} />
-          ) : (
-            <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Save
-            </Text>
-          )}
-        </Pressable>
+            <Pressable
+              style={[styles.saveButton, { backgroundColor: canSave ? colors.moss : colors.line }]}
+              onPress={handleSave}
+              disabled={!canSave}
+            >
+              {saveStatus === "saving" ? (
+                <ActivityIndicator color={colors.paper} />
+              ) : (
+                <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                  Save
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           Privacy
@@ -484,21 +519,40 @@ export default function SettingsScreen() {
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           Deleting your account permanently removes your profile, plants, care schedules, progress reports,
-          comments, likes, and follows. This cannot be undone. To confirm it's really you, enter your
-          password and a confirmation code sent to your email.
+          comments, likes, and follows. This cannot be undone.{" "}
+          {hasPassword === false
+            ? "To confirm it's really you, type your username and enter a confirmation code sent to your email."
+            : "To confirm it's really you, enter your password and a confirmation code sent to your email."}
         </Text>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Password</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={deletePassword}
-            onChangeText={setDeletePassword}
-            placeholder="••••••••"
-            placeholderTextColor={colors.inkSoft}
-            secureTextEntry
-          />
-        </View>
+        {hasPassword === false ? (
+          <View style={styles.field}>
+            <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+              Type @{accountUsername ?? "your username"} to confirm
+            </Text>
+            <TextInput
+              style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+              value={deleteUsername}
+              onChangeText={setDeleteUsername}
+              placeholder={accountUsername ? `@${accountUsername}` : "@username"}
+              placeholderTextColor={colors.inkSoft}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        ) : (
+          <View style={styles.field}>
+            <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Password</Text>
+            <TextInput
+              style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              placeholder="••••••••"
+              placeholderTextColor={colors.inkSoft}
+              secureTextEntry
+            />
+          </View>
+        )}
 
         {codeStatus === "sent" ? (
           <>
