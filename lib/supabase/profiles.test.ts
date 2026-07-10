@@ -163,18 +163,16 @@ describe("updatePrivacySettings", () => {
         profile_visibility: "private",
         follow_policy: "request",
         progress_visibility: "private",
-        comment_policy: "followers",
       })
     ).rejects.toThrow("Not signed in");
   });
 
-  it("updates all four privacy fields for the signed-in user", async () => {
+  it("updates all three privacy fields for the signed-in user", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const settings = {
       profile_visibility: "private" as const,
       follow_policy: "request" as const,
       progress_visibility: "private" as const,
-      comment_policy: "followers" as const,
     };
     const chain = createChainableQueryMock({ data: { id: "u1", ...settings }, error: null });
     mockSupabase.from.mockReturnValue(chain);

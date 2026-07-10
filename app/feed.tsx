@@ -101,21 +101,29 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
             {likeCount > 0 ? ` (${likeCount})` : ""}
           </Text>
         </Pressable>
-        <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
-          <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            {item.comment_count > 0
-              ? `${item.comment_count} comment${item.comment_count === 1 ? "" : "s"}`
-              : "No comments yet"}
+        {item.comment_policy === "disabled" ? (
+          <Text style={[styles.commentsLink, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            Comments off
           </Text>
-        </Pressable>
-        <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
-          <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Add comment
-          </Text>
-        </Pressable>
+        ) : (
+          <>
+            <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
+              <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                {item.comment_count > 0
+                  ? `${item.comment_count} comment${item.comment_count === 1 ? "" : "s"}`
+                  : "No comments yet"}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
+              <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Add comment
+              </Text>
+            </Pressable>
+          </>
+        )}
       </View>
 
-      {item.latest_comment ? (
+      {item.comment_policy !== "disabled" && item.latest_comment ? (
         <Text
           style={[styles.commentPreview, { fontFamily: fonts.body, color: colors.inkSoft }]}
           numberOfLines={1}

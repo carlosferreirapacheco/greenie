@@ -3,7 +3,6 @@ import { supabase } from "./client";
 export type ProfileVisibility = "public" | "private";
 export type FollowPolicy = "open" | "request";
 export type ProgressVisibility = "public" | "private";
-export type CommentPolicy = "public" | "followers";
 
 export type Profile = {
   id: string;
@@ -17,7 +16,6 @@ export type Profile = {
   profile_visibility: ProfileVisibility;
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
-  comment_policy: CommentPolicy;
 };
 
 export type MyProfile = Profile & { email: string | null };
@@ -146,7 +144,6 @@ export async function updatePrivacySettings(input: {
   profile_visibility: ProfileVisibility;
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
-  comment_policy: CommentPolicy;
 }): Promise<Profile> {
   const {
     data: { user },

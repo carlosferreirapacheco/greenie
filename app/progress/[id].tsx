@@ -12,7 +12,13 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { getProgressReport, type FeedItem } from "../../lib/supabase/plant_progress";
+import {
+  getProgressReport,
+  updateProgressReportSettings,
+  type CommentPolicy,
+  type FeedItem,
+} from "../../lib/supabase/plant_progress";
+import { ChipGroup } from "../../components/ChipGroup";
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../../lib/supabase/comments";
 import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
@@ -39,11 +45,15 @@ export default function ProgressDetailScreen() {
   const toggling = useRef(false);
 
   const [canComment, setCanComment] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   const [commentText, setCommentText] = useState("");
   const [postStatus, setPostStatus] = useState<"idle" | "posting" | "error">("idle");
   const [postError, setPostError] = useState<string | null>(null);
   const isPosting = useRef(false);
+
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const isSavingSettings = useRef(false);
 
   const fetchData = useCallback(() => {
     if (!id) {
@@ -59,10 +69,15 @@ export default function ProgressDetailScreen() {
         setLiked(reportData.liked_by_me);
         setLikeCount(reportData.like_count);
         setComments(commentsData);
+        setIsOwner(reportData.user_id === currentUserId);
 
-        if (reportData.user_id === currentUserId) {
+        // The report's own comment_policy (per-report since migration
+        // 0012). 'disabled' silences everyone, the owner included.
+        if (reportData.comment_policy === "disabled") {
+          setCanComment(false);
+        } else if (reportData.user_id === currentUserId) {
           setCanComment(true);
-        } else if (reportData.author_comment_policy === "public") {
+        } else if (reportData.comment_policy === "public") {
           setCanComment(true);
         } else {
           const followStatus = await getFollowStatus(reportData.user_id);
@@ -128,6 +143,31 @@ export default function ProgressDetailScreen() {
       setPostStatus("error");
     } finally {
       isPosting.current = false;
+    }
+  }
+
+  // Chips save immediately (same spirit as other inline owner edits);
+  // comments are refetched because toggling 'disabled' changes what RLS
+  // lets this session read.
+  async function handleUpdateSettings(patch: { comment_policy?: CommentPolicy; shared_to_feed?: boolean }) {
+    if (!report || isSavingSettings.current) {
+      return;
+    }
+    isSavingSettings.current = true;
+    setSettingsError(null);
+
+    try {
+      const updated = await updateProgressReportSettings(report.id, {
+        comment_policy: patch.comment_policy ?? report.comment_policy,
+        shared_to_feed: patch.shared_to_feed ?? report.shared_to_feed,
+      });
+      setReport({ ...report, comment_policy: updated.comment_policy, shared_to_feed: updated.shared_to_feed });
+      setCanComment(updated.comment_policy !== "disabled");
+      setComments(await getCommentsForProgress(report.id));
+    } catch (err) {
+      setSettingsError(getErrorMessage(err));
+    } finally {
+      isSavingSettings.current = false;
     }
   }
 
@@ -208,66 +248,121 @@ export default function ProgressDetailScreen() {
           </Text>
         </Pressable>
 
+        {isOwner ? (
+          <>
+            <View style={styles.divider} />
+
+            <View style={styles.ownerSetting}>
+              <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Comments
+              </Text>
+              <ChipGroup
+                fonts={fonts}
+                value={report.comment_policy}
+                onChange={(value) => handleUpdateSettings({ comment_policy: value })}
+                options={[
+                  { value: "public", label: "Anyone" },
+                  { value: "followers", label: "Followers only" },
+                  { value: "disabled", label: "Off" },
+                ]}
+              />
+            </View>
+
+            <View style={styles.ownerSetting}>
+              <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Feed
+              </Text>
+              <ChipGroup
+                fonts={fonts}
+                value={report.shared_to_feed ? "share" : "unlisted"}
+                onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
+                options={[
+                  { value: "share", label: "Share to feed" },
+                  { value: "unlisted", label: "Don't share" },
+                ]}
+              />
+            </View>
+
+            {settingsError ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {settingsError}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+
         <View style={styles.divider} />
 
-        <Text style={[styles.commentsHeading, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-          {comments.length > 0 ? `${comments.length} comment${comments.length === 1 ? "" : "s"}` : "No comments yet"}
-        </Text>
-
-        {comments.map((comment) => (
-          <View key={comment.id} style={styles.comment}>
-            <Pressable onPress={() => router.push(`/user/${comment.user_id}`)}>
-              <Text style={[styles.commentAuthor, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                {comment.author_display_name ?? `@${comment.author_username}`}
-              </Text>
-            </Pressable>
-            <Text style={[styles.commentContent, { fontFamily: fonts.body, color: colors.ink }]}>
-              {comment.content}
-            </Text>
-            <Text style={[styles.commentTimestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              {dateFormatter.format(new Date(comment.created_at))}
-            </Text>
-          </View>
-        ))}
-
-        {canComment ? (
-          <View style={styles.field}>
-            <TextInput
-              style={[
-                styles.input,
-                styles.commentInput,
-                { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line },
-              ]}
-              value={commentText}
-              onChangeText={setCommentText}
-              placeholder="Add a comment"
-              placeholderTextColor={colors.inkSoft}
-              multiline
-            />
-            {postStatus === "error" ? (
-              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{postError}</Text>
-            ) : null}
-            <Pressable
-              style={[
-                styles.postButton,
-                { backgroundColor: commentText.trim().length > 0 ? colors.moss : colors.line },
-              ]}
-              onPress={handlePostComment}
-              disabled={commentText.trim().length === 0}
-            >
-              {postStatus === "posting" ? (
-                <ActivityIndicator color={colors.paper} />
-              ) : (
-                <Text style={[styles.postButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Post
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        ) : (
+        {report.comment_policy === "disabled" ? (
           <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            Only followers can comment on this
+            Comments are off on this post
           </Text>
+        ) : (
+          <>
+            <Text style={[styles.commentsHeading, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+              {comments.length > 0
+                ? `${comments.length} comment${comments.length === 1 ? "" : "s"}`
+                : "No comments yet"}
+            </Text>
+
+            {comments.map((comment) => (
+              <View key={comment.id} style={styles.comment}>
+                <Pressable onPress={() => router.push(`/user/${comment.user_id}`)}>
+                  <Text style={[styles.commentAuthor, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                    {comment.author_display_name ?? `@${comment.author_username}`}
+                  </Text>
+                </Pressable>
+                <Text style={[styles.commentContent, { fontFamily: fonts.body, color: colors.ink }]}>
+                  {comment.content}
+                </Text>
+                <Text style={[styles.commentTimestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                  {dateFormatter.format(new Date(comment.created_at))}
+                </Text>
+              </View>
+            ))}
+
+            {canComment ? (
+              <View style={styles.field}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.commentInput,
+                    { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line },
+                  ]}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  placeholder="Add a comment"
+                  placeholderTextColor={colors.inkSoft}
+                  multiline
+                />
+                {postStatus === "error" ? (
+                  <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                    {postError}
+                  </Text>
+                ) : null}
+                <Pressable
+                  style={[
+                    styles.postButton,
+                    { backgroundColor: commentText.trim().length > 0 ? colors.moss : colors.line },
+                  ]}
+                  onPress={handlePostComment}
+                  disabled={commentText.trim().length === 0}
+                >
+                  {postStatus === "posting" ? (
+                    <ActivityIndicator color={colors.paper} />
+                  ) : (
+                    <Text style={[styles.postButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                      Post
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                Only followers can comment on this
+              </Text>
+            )}
+          </>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -372,5 +467,12 @@ const styles = StyleSheet.create({
   commentsClosedText: {
     fontSize: 13,
     marginTop: spacing.sm,
+  },
+  ownerSetting: {
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  ownerSettingLabel: {
+    fontSize: 13,
   },
 });
