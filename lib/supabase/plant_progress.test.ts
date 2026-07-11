@@ -6,9 +6,9 @@ jest.mock("./client", () => {
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
 import { getFeed, getProgressReport, createProgressReport, updateProgressReportSettings } from "./plant_progress";
-import { getFriends } from "./follows";
+import { getFollowing } from "./follows";
 
-jest.mock("./follows", () => ({ getFriends: jest.fn() }));
+jest.mock("./follows", () => ({ getFollowing: jest.fn() }));
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -163,7 +163,7 @@ describe("createProgressReport", () => {
 
 describe("getFeed", () => {
   it("only fetches reports shared to the feed", async () => {
-    (getFriends as jest.Mock).mockResolvedValue([{ id: "friend1", display_name: "Ann", username: "ann" }]);
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
     const reportsChain = createChainableQueryMock({ data: [], error: null });
     mockSupabase.from.mockReturnValue(reportsChain);
 
@@ -174,7 +174,7 @@ describe("getFeed", () => {
   });
 
   it("returns empty without querying when following nobody", async () => {
-    (getFriends as jest.Mock).mockResolvedValue([]);
+    (getFollowing as jest.Mock).mockResolvedValue([]);
 
     const result = await getFeed();
 

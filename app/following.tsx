@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { getFriends, getPendingFollowRequests } from "../lib/supabase/follows";
+import { getFollowing, getPendingFollowRequests } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
@@ -18,19 +18,19 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   );
 }
 
-export default function FriendsScreen() {
+export default function FollowingScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
-  const [friends, setFriends] = useState<Profile[]>([]);
+  const [following, setFollowing] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
-  const fetchFriends = useCallback(() => {
-    getFriends()
+  const fetchFollowing = useCallback(() => {
+    getFollowing()
       .then((data) => {
-        setFriends(data);
+        setFollowing(data);
         setStatus("ready");
       })
       .catch((err) => {
@@ -46,14 +46,14 @@ export default function FriendsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchFriends();
-    }, [fetchFriends])
+      fetchFollowing();
+    }, [fetchFollowing])
   );
 
   const screen = (
     <Stack.Screen
       options={{
-        title: "Friends",
+        title: "Following",
         headerRight: () => (
           <View style={styles.headerRightRow}>
             <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
@@ -61,6 +61,11 @@ export default function FriendsScreen() {
                 Requests
               </Text>
               {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
+            </Pressable>
+            <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
+              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+                Followers
+              </Text>
             </Pressable>
             <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
               <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
@@ -91,34 +96,36 @@ export default function FriendsScreen() {
     );
   }
 
-  if (friends.length === 0) {
+  if (following.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Not following anyone yet</Text>
       </View>
     );
   }
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
-  const filteredFriends =
+  const filteredFollowing =
     trimmedQuery.length === 0
-      ? friends
-      : friends.filter((friend) => (friend.display_name ?? "").toLowerCase().includes(trimmedQuery));
+      ? following
+      : following.filter((person) => (person.display_name ?? "").toLowerCase().includes(trimmedQuery));
 
   let body: ReactNode;
-  if (filteredFriends.length === 0) {
+  if (filteredFollowing.length === 0) {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends match "{searchQuery.trim()}"</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>
+          No one you follow matches "{searchQuery.trim()}"
+        </Text>
       </View>
     );
   } else {
     body = (
       <FlatList
         style={styles.list}
-        data={filteredFriends}
-        keyExtractor={(friend) => friend.id}
+        data={filteredFollowing}
+        keyExtractor={(person) => person.id}
         renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
       />
     );
@@ -131,7 +138,7 @@ export default function FriendsScreen() {
         style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search your friends"
+        placeholder="Search people you follow"
         placeholderTextColor={colors.inkSoft}
       />
       {body}

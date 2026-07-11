@@ -108,8 +108,11 @@ sharing them socially with other users.
   progress detail screen's "Logged progress on ..." sentence
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
-  Progress-report creation (`app/log-progress.tsx`), a Friends list with
-  in-list search (`app/friends.tsx`), search for any user by name
+  Progress-report creation (`app/log-progress.tsx`), a Following list
+  with in-list search (`app/following.tsx`, `getFollowing()` in
+  `lib/supabase/follows.ts` — renamed from Friends/`getFriends()` for
+  consistency with the Followers screen and the concept they actually
+  represent), search for any user by name
   (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), a
   feed of progress reports from people you follow (`app/feed.tsx`), and
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
@@ -247,11 +250,11 @@ sharing them socially with other users.
   `is_accepted_follower()` drives all follower checks (migration
   `0008_content_visibility.sql`). New follower-request flow:
   `app/follow-requests.tsx` (Accept/Decline, linked from a "Requests"
-  header link on Friends), tri-state Follow/Requested/Unfollow button
-  on `app/user/[id].tsx` (tapping Requested cancels), a "This account
-  is private" state on private profiles, and a red-dot badge on the
-  Plants screen's Friends link and the Friends screen's Requests link
-  while requests are pending. Known coherent side effect: a *public*
+  header link on the Following screen), tri-state
+  Follow/Requested/Unfollow button on `app/user/[id].tsx` (tapping
+  Requested cancels), a "This account is private" state on private
+  profiles, and a red-dot badge on the Plants screen's Following link
+  and the Following screen's Requests link while requests are pending. Known coherent side effect: a *public*
   progress report by a *private* profile shows "Unknown plant" to
   non-followers, since the plant row itself is profile content.
   - Disable comments entirely — done, as part of the per-report
@@ -267,10 +270,27 @@ sharing them socially with other users.
     (`getFeed()` filters it) but it stays *unlisted*, not private —
     direct links work for anyone who could already see it, and the
     future plant-history section will list it.
-  - Remove follower UI — the `follows_delete_by_followee` RLS policy
-    already lets a user delete a follow row targeting them (that's how
-    Decline works); no screen exposes removing an *accepted* follower
-    yet.
+  - Remove follower UI — done. `app/followers.tsx` (linked from a
+    "Followers" header link on the Following screen) lists accepted
+    followers via
+    `getFollowers()` in `lib/supabase/follows.ts`; each row links to
+    the follower's profile and has a Remove action behind the inline
+    two-tap confirm, calling `removeFollower()` — the same
+    `follows_delete_by_followee` RLS delete Decline uses (Decline now
+    delegates to it). Removal is silent for the removed person; under
+    a `request` policy they'd have to re-request.
+  - Block users — a `blocks` table plus an RLS pass threading
+    "blocked ⇒ invisible" through every social surface: a blocked
+    user can't follow (insert policy/trigger + auto-removal of
+    existing follows in both directions), can't see the blocker's
+    profile, plants, or progress reports (feed and direct link), and
+    can't like or comment; the blocker likewise stops seeing the
+    blocked user's content. Needs a Block/Unblock affordance (user
+    profile screen + maybe the Followers list) and a Blocked-users
+    list in Settings. Ties into "Review interactions between
+    visibility settings" below — blocking must be checked against
+    every existing policy (including `is_accepted_follower()`
+    call sites) and every future one.
   - Per-item visibility overrides — partially delivered since:
     comments and feed-sharing are now per-report (see Disable comments
     entirely above). Overriding a single report's *visibility*
@@ -352,8 +372,8 @@ sharing them socially with other users.
 - Show email (or future username) for authors without a display name —
   done, resolved by the Usernames feature (see Product features):
   every former "No display name yet" fallback now shows `@username`
-  instead (feed rows, comment previews, progress detail, friends list,
-  follow requests, user search, user profiles)
+  instead (feed rows, comment previews, progress detail, following
+  list, follow requests, user search, user profiles)
 - Photo capture — add-plant, the profile avatar, and progress reports have
   each separately deferred real photo capture so far (all currently show
   flat-color placeholders instead). One consolidated item: needs

@@ -6,13 +6,15 @@ jest.mock("./client", () => {
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
 import {
-  getFriends,
+  getFollowing,
+  getFollowers,
   getFollowStatus,
   followUser,
   unfollowUser,
   getPendingFollowRequests,
   acceptFollowRequest,
   declineFollowRequest,
+  removeFollower,
 } from "./follows";
 
 const mockSupabase = supabase as unknown as ReturnType<
@@ -23,18 +25,18 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("getFriends", () => {
+describe("getFollowing", () => {
   it("throws Not signed in when there's no session", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
 
-    await expect(getFriends()).rejects.toThrow("Not signed in");
+    await expect(getFollowing()).rejects.toThrow("Not signed in");
   });
 
   it("returns an empty array without a second query when following no one", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
 
-    const result = await getFriends();
+    const result = await getFollowing();
 
     expect(result).toEqual([]);
     expect(mockSupabase.from).toHaveBeenCalledTimes(1);
@@ -46,12 +48,72 @@ describe("getFriends", () => {
     const profilesChain = createChainableQueryMock({ data: [{ id: "u2" }, { id: "u3" }], error: null });
     mockSupabase.from.mockReturnValueOnce(followChain).mockReturnValueOnce(profilesChain);
 
-    const result = await getFriends();
+    const result = await getFollowing();
 
     expect(followChain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u1");
     expect(followChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
     expect(profilesChain.in).toHaveBeenCalledWith("id", ["u2", "u3"]);
     expect(result).toEqual([{ id: "u2" }, { id: "u3" }]);
+  });
+});
+
+describe("getFollowers", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(getFollowers()).rejects.toThrow("Not signed in");
+  });
+
+  it("returns an empty array without a second query when nobody follows me", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    const result = await getFollowers();
+
+    expect(result).toEqual([]);
+    expect(mockSupabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves accepted followers of the signed-in user to profile rows", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const followChain = createChainableQueryMock({ data: [{ follower_id: "u2" }, { follower_id: "u3" }], error: null });
+    const profilesChain = createChainableQueryMock({ data: [{ id: "u2" }, { id: "u3" }], error: null });
+    mockSupabase.from.mockReturnValueOnce(followChain).mockReturnValueOnce(profilesChain);
+
+    const result = await getFollowers();
+
+    expect(followChain.eq).toHaveBeenNthCalledWith(1, "followee_id", "u1");
+    expect(followChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
+    expect(profilesChain.in).toHaveBeenCalledWith("id", ["u2", "u3"]);
+    expect(result).toEqual([{ id: "u2" }, { id: "u3" }]);
+  });
+});
+
+describe("removeFollower", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(removeFollower("u2")).rejects.toThrow("Not signed in");
+  });
+
+  it("deletes the row where the given user follows me", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await removeFollower("u2");
+
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u2");
+    expect(chain.eq).toHaveBeenNthCalledWith(2, "followee_id", "u1");
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const err = { message: "permission denied" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(removeFollower("u2")).rejects.toBe(err);
   });
 });
 
