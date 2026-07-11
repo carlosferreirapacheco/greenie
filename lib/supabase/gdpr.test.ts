@@ -27,7 +27,6 @@ const profileRow = {
   profile_visibility: "public",
   follow_policy: "open",
   progress_visibility: "public",
-  comment_policy: "public",
 };
 
 describe("collectMyData", () => {

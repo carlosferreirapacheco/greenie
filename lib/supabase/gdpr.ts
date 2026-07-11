@@ -14,7 +14,6 @@ export type MyDataExport = {
     profile_visibility: string;
     follow_policy: string;
     progress_visibility: string;
-    comment_policy: string;
     accepted_privacy_at: string | null;
     username_changed_at: string | null;
     created_at: string;
@@ -116,7 +115,6 @@ export async function collectMyData(): Promise<MyDataExport> {
       profile_visibility: profile.profile_visibility,
       follow_policy: profile.follow_policy,
       progress_visibility: profile.progress_visibility,
-      comment_policy: profile.comment_policy,
       accepted_privacy_at: profile.accepted_privacy_at,
       username_changed_at: profile.username_changed_at,
       created_at: profile.created_at,

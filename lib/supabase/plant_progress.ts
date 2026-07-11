@@ -2,7 +2,10 @@ import { supabase } from "./client";
 import { getFriends } from "./follows";
 import { getLikesForProgress } from "./likes";
 import { getCommentsForProgressIds, type CommentWithAuthor } from "./comments";
-import type { CommentPolicy } from "./profiles";
+
+// Per-report (moved off profiles in migration 0012): who may comment.
+// 'disabled' hides existing comments too (RLS) without deleting them.
+export type CommentPolicy = "public" | "followers" | "disabled";
 
 export type ProgressReport = {
   id: string;
@@ -12,12 +15,16 @@ export type ProgressReport = {
   notes: string | null;
   photo_url: string | null;
   created_at: string;
+  comment_policy: CommentPolicy;
+  // Unlisted, not private: false only keeps the report out of feeds --
+  // direct links (and the future plant-history section) still work for
+  // anyone who can see the report.
+  shared_to_feed: boolean;
 };
 
 export type FeedItem = ProgressReport & {
   author_display_name: string | null;
   author_username: string | null;
-  author_comment_policy: CommentPolicy | null;
   plant_name: string;
   plant_nickname: string | null;
   plant_species: string | null;
@@ -27,7 +34,7 @@ export type FeedItem = ProgressReport & {
   latest_comment: CommentWithAuthor | null;
 };
 
-type AuthorInfo = { display_name: string | null; username: string; comment_policy: CommentPolicy };
+type AuthorInfo = { display_name: string | null; username: string };
 
 // Shared by getFeed (many reports, author info already known from the
 // friends list) and getProgressReport (a single report, author info
@@ -87,7 +94,6 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       ...report,
       author_display_name: authorInfo?.display_name ?? null,
       author_username: authorInfo?.username ?? null,
-      author_comment_policy: authorInfo?.comment_policy ?? null,
       plant_name: plant?.name ?? "Unknown plant",
       plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
@@ -106,10 +112,7 @@ export async function getFeed(): Promise<FeedItem[]> {
   }
 
   const authorInfoById = new Map<string, AuthorInfo>(
-    friends.map((friend) => [
-      friend.id,
-      { display_name: friend.display_name, username: friend.username, comment_policy: friend.comment_policy },
-    ])
+    friends.map((friend) => [friend.id, { display_name: friend.display_name, username: friend.username }])
   );
 
   const { data: reports, error: reportsError } = await supabase
@@ -119,6 +122,7 @@ export async function getFeed(): Promise<FeedItem[]> {
       "user_id",
       friends.map((friend) => friend.id)
     )
+    .eq("shared_to_feed", true)
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -142,7 +146,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
 
   const { data: author, error: authorError } = await supabase
     .from("profiles")
-    .select("display_name, username, comment_policy")
+    .select("display_name, username")
     .eq("id", report.user_id)
     .single();
 
@@ -151,10 +155,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
   }
 
   const authorInfoById = new Map<string, AuthorInfo>([
-    [
-      report.user_id,
-      { display_name: author.display_name, username: author.username, comment_policy: author.comment_policy },
-    ],
+    [report.user_id, { display_name: author.display_name, username: author.username }],
   ]);
   const [item] = await hydrateReports([report], authorInfoById);
   return item;
@@ -164,6 +165,8 @@ export async function createProgressReport(input: {
   plant_id: string;
   height_cm: number | null;
   notes: string;
+  comment_policy: CommentPolicy;
+  shared_to_feed: boolean;
 }): Promise<ProgressReport> {
   const {
     data: { user },
@@ -180,7 +183,28 @@ export async function createProgressReport(input: {
       user_id: user.id,
       height_cm: input.height_cm,
       notes: input.notes,
+      comment_policy: input.comment_policy,
+      shared_to_feed: input.shared_to_feed,
     })
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// Owner-only via the plant_progress_update_own RLS policy.
+export async function updateProgressReportSettings(
+  id: string,
+  input: { comment_policy: CommentPolicy; shared_to_feed: boolean }
+): Promise<ProgressReport> {
+  const { data, error } = await supabase
+    .from("plant_progress")
+    .update(input)
+    .eq("id", id)
     .select()
     .single();
 

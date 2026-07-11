@@ -5,7 +5,10 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getProgressReport, createProgressReport } from "./plant_progress";
+import { getFeed, getProgressReport, createProgressReport, updateProgressReportSettings } from "./plant_progress";
+import { getFriends } from "./follows";
+
+jest.mock("./follows", () => ({ getFriends: jest.fn() }));
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -25,6 +28,8 @@ describe("getProgressReport", () => {
       notes: "Growing well",
       photo_url: null,
       created_at: "2026-01-01",
+      comment_policy: "followers",
+      shared_to_feed: true,
     };
 
     // Call order (see plant_progress.ts): report -> author -> auth.getUser
@@ -33,7 +38,7 @@ describe("getProgressReport", () => {
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
       .mockReturnValueOnce(
         createChainableQueryMock({
-          data: { display_name: "Carlos", username: "carlos", comment_policy: "followers" },
+          data: { display_name: "Carlos", username: "carlos" },
           error: null,
         })
       )
@@ -80,7 +85,9 @@ describe("getProgressReport", () => {
     expect(result.plant_species).toBe("Epipremnum aureum");
     expect(result.author_display_name).toBe("Carlos");
     expect(result.author_username).toBe("carlos");
-    expect(result.author_comment_policy).toBe("followers");
+    // The report's own per-report settings ride through untouched.
+    expect(result.comment_policy).toBe("followers");
+    expect(result.shared_to_feed).toBe(true);
     expect(result.like_count).toBe(2);
     expect(result.liked_by_me).toBe(true);
     expect(result.comment_count).toBe(2);
@@ -125,18 +132,78 @@ describe("createProgressReport", () => {
   it("throws Not signed in when there's no session", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
 
-    await expect(createProgressReport({ plant_id: "pl1", height_cm: 10, notes: "n" })).rejects.toThrow(
-      "Not signed in"
-    );
+    await expect(
+      createProgressReport({ plant_id: "pl1", height_cm: 10, notes: "n", comment_policy: "public", shared_to_feed: true })
+    ).rejects.toThrow("Not signed in");
   });
 
-  it("inserts with user_id from the signed-in user", async () => {
+  it("inserts with user_id from the signed-in user and the per-report settings", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const chain = createChainableQueryMock({ data: { id: "pr1" }, error: null });
     mockSupabase.from.mockReturnValue(chain);
 
-    await createProgressReport({ plant_id: "pl1", height_cm: 10, notes: "Growing" });
+    await createProgressReport({
+      plant_id: "pl1",
+      height_cm: 10,
+      notes: "Growing",
+      comment_policy: "disabled",
+      shared_to_feed: false,
+    });
 
-    expect(chain.insert).toHaveBeenCalledWith({ plant_id: "pl1", user_id: "u1", height_cm: 10, notes: "Growing" });
+    expect(chain.insert).toHaveBeenCalledWith({
+      plant_id: "pl1",
+      user_id: "u1",
+      height_cm: 10,
+      notes: "Growing",
+      comment_policy: "disabled",
+      shared_to_feed: false,
+    });
+  });
+});
+
+describe("getFeed", () => {
+  it("only fetches reports shared to the feed", async () => {
+    (getFriends as jest.Mock).mockResolvedValue([{ id: "friend1", display_name: "Ann", username: "ann" }]);
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(reportsChain);
+
+    const result = await getFeed();
+
+    expect(reportsChain.eq).toHaveBeenCalledWith("shared_to_feed", true);
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty without querying when following nobody", async () => {
+    (getFriends as jest.Mock).mockResolvedValue([]);
+
+    const result = await getFeed();
+
+    expect(result).toEqual([]);
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateProgressReportSettings", () => {
+  it("updates the targeted report's settings", async () => {
+    const chain = createChainableQueryMock({
+      data: { id: "pr1", comment_policy: "disabled", shared_to_feed: false },
+      error: null,
+    });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const result = await updateProgressReportSettings("pr1", { comment_policy: "disabled", shared_to_feed: false });
+
+    expect(chain.update).toHaveBeenCalledWith({ comment_policy: "disabled", shared_to_feed: false });
+    expect(chain.eq).toHaveBeenCalledWith("id", "pr1");
+    expect(result.comment_policy).toBe("disabled");
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "permission denied" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(updateProgressReportSettings("pr1", { comment_policy: "public", shared_to_feed: true })).rejects.toBe(
+      err
+    );
   });
 });

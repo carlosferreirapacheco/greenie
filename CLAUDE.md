@@ -38,9 +38,10 @@ sharing them socially with other users.
 - `profiles` (id [= auth.users id], username [mandatory + unique, chosen
   at signup, changeable on a cooldown], username_changed_at,
   accepted_privacy_at [GDPR consent stamp], display_name, bio,
-  avatar_url, created_at, plus the four privacy columns from migration
-  0008: profile_visibility, follow_policy, progress_visibility,
-  comment_policy)
+  avatar_url, created_at, plus three account-wide privacy columns from
+  migration 0008: profile_visibility, follow_policy,
+  progress_visibility — the fourth, comment_policy, moved to
+  plant_progress as a per-report setting in migration 0012)
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently just
   `username_change_cooldown_days`
@@ -50,9 +51,11 @@ sharing them socially with other users.
 - `care_tasks` (id, plant_id, type [water/fertilize/repot], frequency_days,
   last_done, next_due)
 - `plant_progress` (id, plant_id, user_id, height_cm, notes, photo_url,
-  created_at) — structured per-plant growth log entries ("progress
-  reports"), not generic posts; `photo_url` is nullable until photo capture
-  is built (see Backlog)
+  created_at, comment_policy [public/followers/disabled, per-report],
+  shared_to_feed [boolean; false = unlisted, kept out of feeds but
+  reachable by direct link and the future plant history]) — structured
+  per-plant growth log entries ("progress reports"), not generic posts;
+  `photo_url` is nullable until photo capture is built (see Backlog)
 - `follows` (follower_id, followee_id, status [pending/accepted,
   server-computed from the target's follow_policy])
 - `likes` (progress_id, user_id)
@@ -235,18 +238,28 @@ sharing them socially with other users.
   while requests are pending. Known coherent side effect: a *public*
   progress report by a *private* profile shows "Unknown plant" to
   non-followers, since the plant row itself is profile content.
-  - Disable comments entirely — a third `comment_policy` option
-    (`disabled`), deliberately left out of this slice's UI and column
-    constraint per user decision. Needs deciding what happens to
-    *existing* comments (hidden vs. kept visible) plus hiding the
-    composer entirely, not just gating new posts.
+  - Disable comments entirely — done, as part of the per-report
+    comments slice (migration 0012): `comment_policy` moved from
+    `profiles` to `plant_progress` (`public`/`followers`/`disabled`,
+    chosen on Log Progress, default `public`, editable afterwards by
+    the owner on the report's detail screen; the Settings Comments
+    section was removed and the profiles column dropped). `disabled`
+    blocks new comments for everyone including the owner AND hides
+    existing ones (RLS-enforced) without deleting them — re-enabling
+    restores them. The same slice added `shared_to_feed`: logging a
+    report with "Don't share" keeps it out of every feed
+    (`getFeed()` filters it) but it stays *unlisted*, not private —
+    direct links work for anyone who could already see it, and the
+    future plant-history section will list it.
   - Remove follower UI — the `follows_delete_by_followee` RLS policy
     already lets a user delete a follow row targeting them (that's how
     Decline works); no screen exposes removing an *accepted* follower
     yet.
-  - Per-item visibility overrides — this slice is account-wide defaults
-    only; overriding a single progress report's visibility independent
-    of the account default is a future enhancement.
+  - Per-item visibility overrides — partially delivered since:
+    comments and feed-sharing are now per-report (see Disable comments
+    entirely above). Overriding a single report's *visibility*
+    (public/followers) independent of the account-wide
+    progress_visibility remains a future enhancement.
   - Review interactions between visibility settings — some settings
     depend on each other, so combinations can produce surprising (if
     coherent) results: e.g. a *public* progress report from a *private*
@@ -260,7 +273,9 @@ sharing them socially with other users.
   Progress link, and the originally-scoped first job — editing
   `acquired_at` after the fact — all done.
   - Progress history/chrono — a timeline/graph of a plant's progress
-    reports, on its profile screen. Further down the line.
+    reports, on its profile screen. Further down the line. Must include
+    unlisted (`shared_to_feed = false`) reports — that's the one place
+    they surface besides direct links.
   - Adding a new photo — ties into the consolidated Photo capture item
     below; the plant profile screen is one of the places that'll need it
   - Replace a plant's photo from Log Progress — once photo capture

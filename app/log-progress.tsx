@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { createProgressReport } from "../lib/supabase/plant_progress";
+import { createProgressReport, type CommentPolicy } from "../lib/supabase/plant_progress";
+import { ChipGroup } from "../components/ChipGroup";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -23,6 +24,8 @@ export default function LogProgressScreen() {
 
   const [heightCm, setHeightCm] = useState("");
   const [notes, setNotes] = useState("");
+  const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
+  const [sharedToFeed, setSharedToFeed] = useState(true);
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -47,6 +50,8 @@ export default function LogProgressScreen() {
         plant_id: plantId,
         height_cm: trimmedHeight.length > 0 ? Number(trimmedHeight) : null,
         notes: notes.trim(),
+        comment_policy: commentPolicy,
+        shared_to_feed: sharedToFeed,
       });
 
       router.back();
@@ -95,6 +100,39 @@ export default function LogProgressScreen() {
           />
         </View>
 
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Comments</Text>
+          <ChipGroup
+            fonts={fonts}
+            value={commentPolicy}
+            onChange={setCommentPolicy}
+            options={[
+              { value: "public", label: "Anyone" },
+              { value: "followers", label: "Followers only" },
+              { value: "disabled", label: "Off" },
+            ]}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Feed</Text>
+          <ChipGroup
+            fonts={fonts}
+            value={sharedToFeed ? "share" : "unlisted"}
+            onChange={(value) => setSharedToFeed(value === "share")}
+            options={[
+              { value: "share", label: "Share to feed" },
+              { value: "unlisted", label: "Don't share" },
+            ]}
+          />
+          {!sharedToFeed ? (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              Won't appear in anyone's feed; it stays on this plant's own history, and its link keeps
+              working for anyone who can see the report.
+            </Text>
+          ) : null}
+        </View>
+
         {saveStatus === "error" ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
         ) : null}
@@ -127,6 +165,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

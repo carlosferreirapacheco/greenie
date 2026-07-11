@@ -23,49 +23,13 @@ import { collectMyData } from "../lib/supabase/gdpr";
 import {
   getMyProfile,
   updatePrivacySettings,
-  type CommentPolicy,
   type FollowPolicy,
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
 import { getErrorMessage } from "../lib/errors";
+import { ChipGroup } from "../components/ChipGroup";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
-
-function ChipGroup<T extends string>({
-  options,
-  value,
-  onChange,
-  fonts,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-  fonts: ReturnType<typeof getFonts>;
-}) {
-  return (
-    <View style={styles.chipRow}>
-      {options.map((option) => (
-        <Pressable
-          key={option.value}
-          style={[
-            styles.chip,
-            { borderColor: colors.line, backgroundColor: value === option.value ? colors.sage : "transparent" },
-          ]}
-          onPress={() => onChange(option.value)}
-        >
-          <Text
-            style={[
-              styles.chipText,
-              { fontFamily: fonts.bodyMedium, color: value === option.value ? colors.mossStrong : colors.ink },
-            ]}
-          >
-            {option.label}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -118,7 +82,6 @@ export default function SettingsScreen() {
   const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility>("public");
   const [followPolicy, setFollowPolicy] = useState<FollowPolicy>("open");
   const [progressVisibility, setProgressVisibility] = useState<ProgressVisibility>("public");
-  const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
   const [privacySaveStatus, setPrivacySaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [privacySaveError, setPrivacySaveError] = useState<string | null>(null);
   const isSavingPrivacy = useRef(false);
@@ -137,7 +100,6 @@ export default function SettingsScreen() {
         setProfileVisibility(profile.profile_visibility);
         setFollowPolicy(profile.follow_policy);
         setProgressVisibility(profile.progress_visibility);
-        setCommentPolicy(profile.comment_policy);
         setAccountEmail(profile.email);
         setAccountUsername(profile.username);
         setPrivacyStatus("ready");
@@ -277,7 +239,6 @@ export default function SettingsScreen() {
         profile_visibility: profileVisibility,
         follow_policy: followPolicy,
         progress_visibility: progressVisibility,
-        comment_policy: commentPolicy,
       });
       setPrivacySaveStatus("saved");
     } catch (err) {
@@ -435,19 +396,6 @@ export default function SettingsScreen() {
                 options={[
                   { value: "public", label: "Public" },
                   { value: "private", label: "Followers only" },
-                ]}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Comments</Text>
-              <ChipGroup
-                fonts={fonts}
-                value={commentPolicy}
-                onChange={setCommentPolicy}
-                options={[
-                  { value: "public", label: "Anyone can comment" },
-                  { value: "followers", label: "Followers only" },
                 ]}
               />
             </View>
@@ -681,20 +629,6 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.xs,
-  },
-  chip: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 8,
-  },
-  chipText: {
-    fontSize: 13,
   },
   policyLink: {
     fontSize: 14,
