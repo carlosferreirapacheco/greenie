@@ -98,6 +98,33 @@ export async function getFollowStatus(userId: string): Promise<FollowStatus> {
   return data.status as FollowStatus;
 }
 
+// Reverse direction of getFollowStatus(): does userId follow ME
+// (accepted)? Used to gate mutual-follow-only affordances (e.g.
+// "Request plant-sitting") client-side -- RLS is the real enforcement
+// either way.
+export async function amIFollowedBy(userId: string): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("follows")
+    .select("status")
+    .eq("follower_id", userId)
+    .eq("followee_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.status === "accepted";
+}
+
 export async function followUser(userId: string): Promise<{ status: FollowStatus }> {
   const {
     data: { user },

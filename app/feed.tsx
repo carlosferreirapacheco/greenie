@@ -63,6 +63,11 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
 
       <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
         Logged progress on{" "}
+        {item.user_id !== item.plant_owner_id ? (
+          <Text onPress={() => router.push(`/user/${item.plant_owner_id}`)} style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>
+            {(item.plant_owner_display_name ?? `@${item.plant_owner_username}`) + "'s "}
+          </Text>
+        ) : null}
         <Text
           onPress={() => router.push(`/plant/${item.plant_id}`)}
           style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}

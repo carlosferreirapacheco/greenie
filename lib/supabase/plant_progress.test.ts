@@ -39,7 +39,9 @@ describe("getProgressReport", () => {
     };
 
     // Call order (see plant_progress.ts): report -> author -> auth.getUser
-    // -> plants -> likes -> comments -> comment-authors.
+    // -> plants -> (owner profiles, skipped here since the plant's
+    // owner_id matches the already-known author) -> likes -> comments
+    // -> comment-authors.
     mockSupabase.from
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
       .mockReturnValueOnce(
@@ -50,7 +52,9 @@ describe("getProgressReport", () => {
       )
       .mockReturnValueOnce(
         createChainableQueryMock({
-          data: [{ id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: "Big Fred" }],
+          data: [
+            { id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: "Big Fred", owner_id: "author1" },
+          ],
           error: null,
         })
       )
@@ -91,6 +95,11 @@ describe("getProgressReport", () => {
     expect(result.plant_species).toBe("Epipremnum aureum");
     expect(result.author_display_name).toBe("Carlos");
     expect(result.author_username).toBe("carlos");
+    // Author === owner here, so owner info reuses the already-known
+    // author profile rather than triggering a second fetch.
+    expect(result.plant_owner_id).toBe("author1");
+    expect(result.plant_owner_display_name).toBe("Carlos");
+    expect(result.plant_owner_username).toBe("carlos");
     // The report's own per-report settings ride through untouched.
     expect(result.comment_policy).toBe("followers");
     expect(result.shared_to_feed).toBe(true);
@@ -100,6 +109,52 @@ describe("getProgressReport", () => {
     expect(result.latest_comment).toEqual(
       expect.objectContaining({ id: "c2", content: "newest", author_display_name: "Bob" })
     );
+  });
+
+  it("fetches the owner's profile separately when the report's author isn't the plant's owner (plant-sitting)", async () => {
+    const report = {
+      id: "pr3",
+      plant_id: "pl1",
+      user_id: "sitter1",
+      height_cm: 20,
+      notes: "Watered while owner was away",
+      photo_url: null,
+      created_at: "2026-01-01",
+      comment_policy: "public",
+      shared_to_feed: true,
+    };
+
+    // Call order: report -> author (the sitter) -> auth.getUser -> plants
+    // -> owner profiles (extra call, since owner_id "owner1" != author
+    // "sitter1") -> likes -> comments.
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
+      .mockReturnValueOnce(
+        createChainableQueryMock({ data: { display_name: "Sammy", username: "sammy" }, error: null })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [{ id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: null, owner_id: "owner1" }],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [{ id: "owner1", display_name: "Carlos", username: "carlos" }],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }))
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "owner1" } } });
+
+    const result = await getProgressReport("pr3");
+
+    expect(result.author_display_name).toBe("Sammy");
+    expect(result.plant_owner_id).toBe("owner1");
+    expect(result.plant_owner_display_name).toBe("Carlos");
+    expect(result.plant_owner_username).toBe("carlos");
   });
 
   it("falls back to 'Unknown plant' and no counts when the plant and engagement are missing", async () => {

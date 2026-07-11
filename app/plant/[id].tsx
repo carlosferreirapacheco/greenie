@@ -19,6 +19,7 @@ import {
   type Plant,
 } from "../../lib/supabase/plants";
 import { getProgressReportsForPlant, type ProgressReport } from "../../lib/supabase/plant_progress";
+import { getMyActiveAssignmentOwnerIds } from "../../lib/supabase/plant_sitting";
 import { HeightChart } from "../../components/HeightChart";
 import {
   createCareTask,
@@ -67,6 +68,7 @@ export default function PlantProfileScreen() {
   const [careTasks, setCareTasks] = useState<CareTask[]>([]);
   const [progressReports, setProgressReports] = useState<ProgressReport[]>([]);
   const [isOwner, setIsOwner] = useState(false);
+  const [isSitting, setIsSitting] = useState(false);
 
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [acquiredAtInput, setAcquiredAtInput] = useState("");
@@ -104,12 +106,14 @@ export default function PlantProfileScreen() {
       getCareTasksForPlants([id]),
       getProgressReportsForPlant(id),
       supabase.auth.getUser().then(({ data }) => data.user?.id),
+      getMyActiveAssignmentOwnerIds().catch(() => [] as string[]),
     ])
-      .then(([plantData, careTasksData, progressReportsData, currentUserId]) => {
+      .then(([plantData, careTasksData, progressReportsData, currentUserId, activeOwnerIds]) => {
         setPlant(plantData);
         setCareTasks(careTasksData);
         setProgressReports(progressReportsData);
         setIsOwner(currentUserId === plantData.owner_id);
+        setIsSitting(activeOwnerIds.includes(plantData.owner_id));
         setStatus("ready");
       })
       .catch((err) => {
@@ -533,7 +537,7 @@ export default function PlantProfileScreen() {
         )}
       </View>
 
-      {isOwner ? (
+      {isOwner || isSitting ? (
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Care tasks</Text>
 
@@ -555,7 +559,7 @@ export default function PlantProfileScreen() {
                   </Text>
                 </View>
 
-                {editingTaskId === task.id ? (
+                {isOwner && editingTaskId === task.id ? (
                   <View style={styles.taskEditRow}>
                     <TextInput
                       style={[styles.taskFrequencyInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -581,7 +585,7 @@ export default function PlantProfileScreen() {
                       </Text>
                     </Pressable>
                   </View>
-                ) : confirmDeleteId === task.id ? (
+                ) : isOwner && confirmDeleteId === task.id ? (
                   <View style={styles.taskEditRow}>
                     <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
                       Delete this task?
@@ -636,23 +640,27 @@ export default function PlantProfileScreen() {
                         </Text>
                       )}
                     </Pressable>
-                    <Pressable onPress={() => handleStartEditFrequency(task)} hitSlop={8} disabled={isBusy}>
-                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                        Edit
-                      </Text>
-                    </Pressable>
-                    <Pressable onPress={() => handleStartDelete(task)} hitSlop={8} disabled={isBusy}>
-                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                        Delete
-                      </Text>
-                    </Pressable>
+                    {isOwner ? (
+                      <>
+                        <Pressable onPress={() => handleStartEditFrequency(task)} hitSlop={8} disabled={isBusy}>
+                          <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                            Edit
+                          </Text>
+                        </Pressable>
+                        <Pressable onPress={() => handleStartDelete(task)} hitSlop={8} disabled={isBusy}>
+                          <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+                            Delete
+                          </Text>
+                        </Pressable>
+                      </>
+                    ) : null}
                   </View>
                 )}
               </View>
             );
           })}
 
-          {isAddingTask ? (
+          {isOwner && isAddingTask ? (
             <View style={[styles.taskRow, { borderColor: colors.line }]}>
               <View style={styles.taskTypeRow}>
                 {ALL_TASK_TYPES.filter((t) => !careTasks.some((task) => task.type === t)).map((t) => (
@@ -707,7 +715,7 @@ export default function PlantProfileScreen() {
                 </Pressable>
               </View>
             </View>
-          ) : ALL_TASK_TYPES.some((t) => !careTasks.some((task) => task.type === t)) ? (
+          ) : isOwner && ALL_TASK_TYPES.some((t) => !careTasks.some((task) => task.type === t)) ? (
             <Pressable onPress={handleStartAddTask} hitSlop={8} style={styles.addTaskLink}>
               <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 + Add task
@@ -717,7 +725,7 @@ export default function PlantProfileScreen() {
         </View>
       ) : null}
 
-      {isOwner ? (
+      {isOwner || isSitting ? (
         <Pressable
           style={[styles.logProgressButton, { backgroundColor: colors.sage }]}
           onPress={() => router.push({ pathname: "/log-progress", params: { plantId: plant.id } })}

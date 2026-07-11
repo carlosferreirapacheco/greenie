@@ -89,22 +89,82 @@ sharing them socially with other users.
 
 ### Product features
 - Plant-sitting — split into two slices. **Share care instructions
-  (non-app users) — done.** `lib/careInstructions.ts`'s pure
-  `buildCareInstructionsText()` compiles every one of the signed-in
+  (non-app users) — done** (separate PR #47). `lib/careInstructions.ts`'s
+  pure `buildCareInstructionsText()` compiles every one of the signed-in
   user's plants (name/species/location) and their care tasks
-  (type/frequency/next-due, human-formatted) into one plain-text
-  block; a "Share" link in the Plants screen header
-  (`app/index.tsx`, next to "+ Add") gathers plants +
-  `getCareTasksForPlants()` (both pre-existing) and hands the text to
-  React Native's built-in `Share.share()` — no new dependency, no
-  schema impact. **In-app delegated plant-sitting — planned, not yet
-  built.** A mutual-follows-gated request/accept flow letting a sitter
-  view a follower's plants, mark care tasks done, and log progress
-  reports on plants they don't own (with owner-attribution back to the
-  feed, an account-wide opt-out), reusing the owner-only
-  progress-logging gate introduced under Plant list on user profiles
-  below as the reason this needs deliberate delegation rather than
-  reopening logging to everyone.
+  (type/frequency/next-due, human-formatted) into one plain-text block; a
+  "Share" link in the Plants screen header (`app/index.tsx`, next to
+  "+ Add") gathers plants + `getCareTasksForPlants()` (both pre-existing)
+  and hands the text to React Native's built-in `Share.share()` — no new
+  dependency, no schema impact.
+  **In-app delegated plant-sitting (mutual follows) — done.** Migration
+  `0015_plant_sitting.sql`: new `plant_sitting_assignments` table
+  (`owner_id`, `sitter_id`, `status` [pending/accepted/declined/cancelled],
+  optional `starts_at`/`ends_at` window, a partial unique index enforcing
+  at most one live request per pair) with RLS requiring **mutual** accepted
+  follows to create a request (`is_accepted_follower()` from migration
+  0008, reused in both directions — no new helper needed) and separate
+  UPDATE policies for the sitter's accept/decline and the owner's
+  cancel-anytime. New `is_active_plant_sitter(owner, sitter)` helper
+  (mirrors `is_accepted_follower()`/`is_blocked()`'s pattern) drives two
+  new `care_tasks` policies letting an active sitter view **and mark
+  tasks done** (the broader UPDATE grant is intentional, matching
+  `plant_progress_update_own`'s precedent — the UI, not RLS, is what
+  actually hides Edit/Delete/+Add task from a sitter on
+  `app/plant/[id].tsx`) and a `plant_progress_insert_own` extension
+  letting a sitter log a report on the owner's plant. `plant_progress_select_visible`
+  gained an explicit, unconditional "the plant's owner can always see
+  reports on their own plant" clause, more robust than relying on the
+  mutual-follow prerequisite making that true implicitly. A new
+  `cancel_sitting_on_unfollow` trigger (`after delete on follows`)
+  immediately cancels any live assignment the moment mutual-follow breaks
+  for **any** reason — unfollow, follower removal, a declined
+  re-request, or a block (which already deletes the `follows` rows via
+  migration 0014's `remove_follows_on_block`) — one trigger point covers
+  every path since they all end in a `follows` deletion; verified live
+  that a sitter loses `care_tasks` access the instant the underlying
+  follow is removed. New account-wide `profiles.plant_sitter_attribution`
+  column (`allowed`/`disabled`, matches the other three privacy columns'
+  shape, defaults to the open position like the rest) drives a new
+  Settings "Plant-sitters" toggle controlling whether a sitter's shared
+  report credits the owner by name.
+  New `lib/supabase/plant_sitting.ts` (request/accept/decline/cancel,
+  `getMyActiveAssignmentOwnerIds()`, and the pure, tested
+  `computeSittingAccessState()` state machine handling the
+  pending/upcoming/active/ended distinction — an `accepted` assignment
+  isn't necessarily currently active if a date window hasn't opened yet
+  or has passed, with no scheduled job needed since both RLS and the UI
+  just compare against `now()`). `follows.ts` gained `amIFollowedBy()`
+  (the reverse of `getFollowStatus()`) to client-side-gate a new "Request
+  plant-sitting" link on `app/user/[id].tsx` (shown only when the
+  relationship is mutual) linking to the new `app/request-sitting.tsx`
+  form (optional start/end dates, reusing the existing plain
+  `YYYY-MM-DD` text-input pattern). New `app/plant-sitting.tsx` hub
+  (linked from the Plants header) has three sections: pending requests to
+  respond to (single-tap Accept/Decline, matching
+  `app/follow-requests.tsx`'s no-confirm pattern), assignments the
+  signed-in user is sitting for (deep-links to the existing
+  `app/user/[id].tsx` profile screen and its Plants list — no dedicated
+  "sitting session" screen needed, since a mutual follower already has
+  full RLS-granted visibility into that list), and requests sent as an
+  owner (two-tap Cancel, matching Remove follower/Block).
+  `hydrateReports()` in `lib/supabase/plant_progress.ts` now also
+  resolves each plant's owner (reusing already-known author info when
+  author === owner, the common case) so `app/feed.tsx` and
+  `app/progress/[id].tsx`'s "Logged progress on ..." sentence gains a
+  conditional "{Owner}'s " prefix when a sitter logged the report —
+  verified live end-to-end (mutual-follow gate rejects a one-directional
+  follow with `42501`, `care_tasks`/`plant_progress` access opens only
+  once `starts_at` arrives, the owner sees the sitter's report
+  immediately, and the feed/detail screens render "Logged progress on
+  Carlos Pacheco's Fiddle Leaf Fig" correctly).
+  A sitter can accept or decline a pending request but — matching the
+  literal spec ("cancelled by the original user") — can't back out of an
+  accepted assignment; only the owner can cancel, at any time. Losing
+  mutual-follow status after accepting does **not** retroactively hide
+  reports the sitter already logged (those already went through the
+  normal owner-always-visible/follower-visibility rules) — only future
+  access is cut off.
 - Plant nicknames — done. Owners can set a personal `nickname` on a
   plant (new nullable column on `plants`, no RLS change needed), separate
   from its common name (`plants.name`, e.g. "Pothos") and Latin species.
@@ -386,8 +446,9 @@ sharing them socially with other users.
   `app/plant/[id].tsx`'s "Log progress" button is now gated behind its
   existing `isOwner` check (`app/index.tsx`'s own Log progress link was
   already implicitly owner-only, since that screen only ever lists the
-  signed-in user's own plants). Delegated non-owner logging is deferred
-  to Plant-sitting above.
+  signed-in user's own plants). Delegated non-owner logging is now live
+  via the Plant-sitting feature above — a sitter with an active,
+  accepted assignment can log progress reports on the owner's plants.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet

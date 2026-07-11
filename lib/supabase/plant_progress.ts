@@ -28,6 +28,14 @@ export type FeedItem = ProgressReport & {
   plant_name: string;
   plant_nickname: string | null;
   plant_species: string | null;
+  // The plant's actual owner -- distinct from the report's author
+  // (user_id) once plant-sitting lets a sitter log progress on a plant
+  // they don't own. Falls back to the author when the plant itself
+  // couldn't be resolved (e.g. deleted), so callers' "was this logged
+  // by someone other than the owner" check defaults to "no".
+  plant_owner_id: string;
+  plant_owner_display_name: string | null;
+  plant_owner_username: string | null;
   like_count: number;
   liked_by_me: boolean;
   comment_count: number;
@@ -52,7 +60,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   const plantIds = [...new Set(reports.map((report) => report.plant_id))];
   const { data: plants, error: plantsError } = await supabase
     .from("plants")
-    .select("id, name, species, nickname")
+    .select("id, name, species, nickname, owner_id")
     .in("id", plantIds);
 
   if (plantsError) {
@@ -60,6 +68,27 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   }
 
   const plantsById = new Map(plants.map((plant) => [plant.id, plant]));
+
+  // Owner info for plants whose owner isn't already known from
+  // authorInfoById (the common case: author === owner) -- avoids
+  // re-fetching a profile we already have.
+  const ownerIds = [...new Set(plants.map((plant) => plant.owner_id))];
+  const unknownOwnerIds = ownerIds.filter((id) => !authorInfoById.has(id));
+  const ownerInfoById = new Map<string, AuthorInfo>(authorInfoById);
+  if (unknownOwnerIds.length > 0) {
+    const { data: ownerProfiles, error: ownerProfilesError } = await supabase
+      .from("profiles")
+      .select("id, display_name, username")
+      .in("id", unknownOwnerIds);
+
+    if (ownerProfilesError) {
+      throw ownerProfilesError;
+    }
+
+    for (const profile of ownerProfiles) {
+      ownerInfoById.set(profile.id, { display_name: profile.display_name, username: profile.username });
+    }
+  }
 
   const reportIds = reports.map((report) => report.id);
   const [likes, comments] = await Promise.all([
@@ -90,6 +119,8 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   return reports.map((report) => {
     const plant = plantsById.get(report.plant_id);
     const authorInfo = authorInfoById.get(report.user_id);
+    const plantOwnerId = plant?.owner_id ?? report.user_id;
+    const plantOwnerInfo = ownerInfoById.get(plantOwnerId);
     return {
       ...report,
       author_display_name: authorInfo?.display_name ?? null,
@@ -97,6 +128,9 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       plant_name: plant?.name ?? "Unknown plant",
       plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
+      plant_owner_id: plantOwnerId,
+      plant_owner_display_name: plantOwnerInfo?.display_name ?? null,
+      plant_owner_username: plantOwnerInfo?.username ?? null,
       like_count: likeCountsById.get(report.id) ?? 0,
       liked_by_me: likedByMeIds.has(report.id),
       comment_count: commentCountsById.get(report.id) ?? 0,

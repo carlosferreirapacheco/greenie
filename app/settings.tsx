@@ -24,6 +24,7 @@ import {
   getMyProfile,
   updatePrivacySettings,
   type FollowPolicy,
+  type PlantSitterAttribution,
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
@@ -82,6 +83,7 @@ export default function SettingsScreen() {
   const [profileVisibility, setProfileVisibility] = useState<ProfileVisibility>("public");
   const [followPolicy, setFollowPolicy] = useState<FollowPolicy>("open");
   const [progressVisibility, setProgressVisibility] = useState<ProgressVisibility>("public");
+  const [plantSitterAttribution, setPlantSitterAttribution] = useState<PlantSitterAttribution>("allowed");
   const [privacySaveStatus, setPrivacySaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [privacySaveError, setPrivacySaveError] = useState<string | null>(null);
   const isSavingPrivacy = useRef(false);
@@ -100,6 +102,7 @@ export default function SettingsScreen() {
         setProfileVisibility(profile.profile_visibility);
         setFollowPolicy(profile.follow_policy);
         setProgressVisibility(profile.progress_visibility);
+        setPlantSitterAttribution(profile.plant_sitter_attribution);
         setAccountEmail(profile.email);
         setAccountUsername(profile.username);
         setPrivacyStatus("ready");
@@ -239,6 +242,7 @@ export default function SettingsScreen() {
         profile_visibility: profileVisibility,
         follow_policy: followPolicy,
         progress_visibility: progressVisibility,
+        plant_sitter_attribution: plantSitterAttribution,
       });
       setPrivacySaveStatus("saved");
     } catch (err) {
@@ -404,6 +408,25 @@ export default function SettingsScreen() {
                   { value: "private", label: "Followers only" },
                 ]}
               />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Plant-sitters
+              </Text>
+              <ChipGroup
+                fonts={fonts}
+                value={plantSitterAttribution}
+                onChange={setPlantSitterAttribution}
+                options={[
+                  { value: "allowed", label: "Allow crediting me" },
+                  { value: "disabled", label: "Don't credit me" },
+                ]}
+              />
+              <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                When a plant-sitter shares a progress report they logged on one of your plants to their
+                own feed, this controls whether it names you as the plant's owner.
+              </Text>
             </View>
 
             {privacySaveStatus === "error" ? (

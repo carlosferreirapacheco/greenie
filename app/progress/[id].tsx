@@ -213,6 +213,14 @@ export default function ProgressDetailScreen() {
 
         <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           Logged progress on{" "}
+          {report.user_id !== report.plant_owner_id ? (
+            <Text
+              onPress={() => router.push(`/user/${report.plant_owner_id}`)}
+              style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
+            >
+              {(report.plant_owner_display_name ?? `@${report.plant_owner_username}`) + "'s "}
+            </Text>
+          ) : null}
           <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{plantPrimary}</Text>
           {plantCommonName || report.plant_species ? (
             <Text>
