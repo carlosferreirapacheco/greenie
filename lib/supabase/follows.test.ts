@@ -154,6 +154,22 @@ describe("followUser", () => {
     expect(chain.insert).toHaveBeenCalledWith({ follower_id: "u1", followee_id: "u2" });
     expect(result).toEqual({ status: "pending" });
   });
+
+  it("maps an RLS rejection (42501, e.g. a block between the two accounts) to a friendly message", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const err = { code: "42501", message: "new row violates row-level security policy" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(followUser("u2")).rejects.toThrow("You can't follow this account.");
+  });
+
+  it("throws other Supabase errors unchanged", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const err = { code: "23505", message: "duplicate key" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(followUser("u2")).rejects.toBe(err);
+  });
 });
 
 describe("unfollowUser", () => {
