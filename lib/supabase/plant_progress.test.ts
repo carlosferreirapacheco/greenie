@@ -5,7 +5,13 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getFeed, getProgressReport, createProgressReport, updateProgressReportSettings } from "./plant_progress";
+import {
+  getFeed,
+  getProgressReport,
+  createProgressReport,
+  updateProgressReportSettings,
+  getProgressReportsForPlant,
+} from "./plant_progress";
 import { getFollowing } from "./follows";
 
 jest.mock("./follows", () => ({ getFollowing: jest.fn() }));
@@ -205,5 +211,31 @@ describe("updateProgressReportSettings", () => {
     await expect(updateProgressReportSettings("pr1", { comment_policy: "public", shared_to_feed: true })).rejects.toBe(
       err
     );
+  });
+});
+
+describe("getProgressReportsForPlant", () => {
+  it("queries by plant_id, newest first, without filtering shared_to_feed", async () => {
+    const chain = createChainableQueryMock({
+      data: [{ id: "pr2" }, { id: "pr1" }],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const result = await getProgressReportsForPlant("pl1");
+
+    expect(chain.eq).toHaveBeenCalledWith("plant_id", "pl1");
+    // Guards against a future regression silently hiding unlisted
+    // reports here -- this is the one place they must surface.
+    expect(chain.eq).not.toHaveBeenCalledWith("shared_to_feed", expect.anything());
+    expect(chain.order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(result).toEqual([{ id: "pr2" }, { id: "pr1" }]);
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "network error" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(getProgressReportsForPlant("pl1")).rejects.toBe(err);
   });
 });

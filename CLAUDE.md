@@ -340,10 +340,27 @@ sharing them socially with other users.
   is built: name/species/location, per-task care status pills, a Log
   Progress link, and the originally-scoped first job — editing
   `acquired_at` after the fact — all done.
-  - Progress history/chrono — a timeline/graph of a plant's progress
-    reports, on its profile screen. Further down the line. Must include
-    unlisted (`shared_to_feed = false`) reports — that's the one place
-    they surface besides direct links.
+  - Progress history/chrono — done. A "Progress" section on
+    `app/plant/[id].tsx` (visible to any viewer the RLS lets see the
+    reports, same as the care-status pills — not owner-only), backed
+    by `getProgressReportsForPlant()` in `lib/supabase/plant_progress.ts`,
+    which deliberately does **not** filter `shared_to_feed` — it relies
+    purely on `plant_progress_select_visible` RLS, making this the one
+    place unlisted reports surface besides a direct link. A timeline
+    list (newest first, matching Feed's convention; each row taps
+    through to `/progress/[id]`, shows a height badge when logged, and
+    an "Unlisted" tag when `shared_to_feed` is false) plus a simple
+    height-over-time line chart (`components/HeightChart.tsx`, shown
+    once 2+ reports have a height logged) — the chart always reads
+    chronologically oldest → newest left-to-right regardless of the
+    list's newest-first order, a deliberate, separate convention for a
+    trend-at-a-glance view. New dependency **`react-native-svg`**
+    (installed via `npx expo install`) draws a hand-rolled polyline —
+    no charting library. Points are spaced evenly by index, not
+    date-proportionally (a deliberate simplification for a lightweight
+    sparkline); the scaling math lives in `lib/chart.ts`
+    (`computeChartPoints()`), kept pure and unit-tested separately from
+    the presentational SVG component.
   - Adding a new photo — ties into the consolidated Photo capture item
     below; the plant profile screen is one of the places that'll need it
   - Replace a plant's photo from Log Progress — once photo capture
