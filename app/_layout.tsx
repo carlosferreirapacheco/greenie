@@ -4,14 +4,18 @@ import { Redirect, Stack, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase/client";
+import { getPrivacyPolicyUpdatedAt, isConsentCurrent } from "../lib/supabase/consent";
 import { onConsentAccepted } from "../lib/consentEvents";
 import { colors, fontAssets, getFonts } from "../lib/theme";
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
-  // null = needs the welcome/consent screen; undefined = not yet known.
+  // null = never accepted; undefined = not yet known. Compared against
+  // the policy's effective date below -- a stamp older than the policy
+  // needs re-consent just like a null one.
   const [consentedAt, setConsentedAt] = useState<string | null | undefined>(undefined);
+  const [policyUpdatedAt, setPolicyUpdatedAt] = useState<string | null | undefined>(undefined);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const segments = useSegments();
 
@@ -54,9 +58,10 @@ export default function RootLayout() {
     };
   }, []);
 
-  // Accounts that never accepted the privacy policy (fresh OAuth
-  // signups, pre-consent-era accounts) are routed to /welcome until
-  // they do. One fetch per signed-in user.
+  // Accounts whose consent isn't current -- never accepted (fresh OAuth
+  // signups, pre-consent-era accounts) or accepted before the policy's
+  // current effective date -- are routed to /welcome until they accept.
+  // One fetch per signed-in user (app_config needs a session to read).
   const userId = session?.user?.id;
   useEffect(() => {
     if (!userId) {
@@ -73,6 +78,19 @@ export default function RootLayout() {
           setConsentedAt(data.accepted_privacy_at);
         }
       });
+    getPrivacyPolicyUpdatedAt()
+      .then((value) => {
+        if (!cancelled) {
+          setPolicyUpdatedAt(value);
+        }
+      })
+      .catch(() => {
+        // isConsentCurrent fails open on a null policy date -- a config
+        // read hiccup must not lock users out behind the consent gate.
+        if (!cancelled) {
+          setPolicyUpdatedAt(null);
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -80,7 +98,11 @@ export default function RootLayout() {
 
   const fonts = getFonts(fontsLoaded && !fontError);
 
-  if (!sessionLoaded || (!fontsLoaded && !fontError) || (session && consentedAt === undefined)) {
+  if (
+    !sessionLoaded ||
+    (!fontsLoaded && !fontError) ||
+    (session && (consentedAt === undefined || policyUpdatedAt === undefined))
+  ) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         <ActivityIndicator color={colors.moss} />
@@ -111,13 +133,16 @@ export default function RootLayout() {
 
   // Consent gate: everything except the welcome screen itself and the
   // privacy policy (which the welcome screen links to) waits until the
-  // account has accepted the policy.
-  if (session && consentedAt === null && segments[0] !== "welcome" && !inPublicGroup) {
+  // account's consent is current -- exists AND is no older than the
+  // policy's effective date.
+  const consentCurrent = isConsentCurrent(consentedAt ?? null, policyUpdatedAt ?? null);
+
+  if (session && !consentCurrent && segments[0] !== "welcome" && !inPublicGroup) {
     return <Redirect href="/welcome" />;
   }
 
-  // Nothing to review once consent is on record.
-  if (session && consentedAt && segments[0] === "welcome") {
+  // Nothing to review once current consent is on record.
+  if (session && consentCurrent && segments[0] === "welcome") {
     return <Redirect href="/" />;
   }
 

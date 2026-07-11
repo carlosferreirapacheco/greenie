@@ -64,6 +64,15 @@ export default function PrivacyPolicyScreen() {
         </Text>
       </View>
 
+      {/* Keep in sync with app_config.privacy_policy_updated_at: a
+          material policy change updates this line AND ships a migration
+          bumping that value (which re-prompts every user once). This is
+          hardcoded because this screen is public/pre-auth and app_config
+          is only readable with a session. */}
+      <Text style={[styles.lastUpdated, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+        Last updated: 9 July 2026
+      </Text>
+
       {sections.map((section) => (
         <View key={section.heading} style={styles.section}>
           <Text style={[styles.heading, { fontFamily: fonts.display, color: colors.ink }]}>
@@ -90,6 +99,9 @@ const styles = StyleSheet.create({
   },
   draftText: {
     fontSize: 13,
+  },
+  lastUpdated: {
+    fontSize: 12,
   },
   section: {
     gap: spacing.xs,

@@ -19,11 +19,14 @@ import { emitConsentAccepted } from "../lib/consentEvents";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
-// Shown once per account: after a fresh OAuth signup (review what Google
-// auto-populated, customize the generated username -- the cooldown-free
-// first change) and for accounts created before the consent stamp
-// existed. The root layout redirects here while accepted_privacy_at is
-// null.
+// Two modes, both driven by the root layout's consent gate:
+// - First-time (accepted_privacy_at null): fresh OAuth signups (review
+//   what Google auto-populated, customize the generated username -- the
+//   cooldown-free first change) and accounts created before the consent
+//   stamp existed.
+// - Re-consent (a stamp exists, but it's older than the policy's
+//   effective date -- the policy changed): a slim "policy updated"
+//   prompt with just the checkbox; no profile fields to review again.
 export default function WelcomeScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
@@ -60,10 +63,16 @@ export default function WelcomeScreen() {
     }, [fetchProfile])
   );
 
+  // A non-null stamp means the gate sent us here because the policy
+  // changed after it -- only the acceptance itself needs redoing.
+  const isReconsent = profile?.accepted_privacy_at !== null && profile !== null;
+
   const normalizedUsername = normalizeUsername(username);
   const usernameError = normalizedUsername.length > 0 ? validateUsername(normalizedUsername) : null;
   const canSave =
-    normalizedUsername.length > 0 && usernameError === null && privacyAccepted && saveStatus !== "saving";
+    (isReconsent || (normalizedUsername.length > 0 && usernameError === null)) &&
+    privacyAccepted &&
+    saveStatus !== "saving";
 
   async function handleSave() {
     if (!canSave || isSaving.current || !profile) {
@@ -75,11 +84,13 @@ export default function WelcomeScreen() {
     setSaveError(null);
 
     try {
-      await updateMyProfile({
-        username: normalizedUsername,
-        display_name: displayName.trim().length > 0 ? displayName.trim() : null,
-        bio: profile.bio,
-      });
+      if (!isReconsent) {
+        await updateMyProfile({
+          username: normalizedUsername,
+          display_name: displayName.trim().length > 0 ? displayName.trim() : null,
+          bio: profile.bio,
+        });
+      }
       await acceptPrivacyPolicy();
       // Open the root layout's consent gate before navigating so the
       // redirect-to-welcome rule doesn't race the profile refetch.
@@ -125,46 +136,55 @@ export default function WelcomeScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Welcome" }} />
+      <Stack.Screen options={{ title: isReconsent ? "Privacy Policy" : "Welcome" }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>
-          Welcome to Greenie
+          {isReconsent ? "Privacy Policy update" : "Welcome to Greenie"}
         </Text>
         <Text style={[styles.intro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          One quick step before you head in: check that these look right, and agree to the privacy
-          policy.
+          {isReconsent
+            ? "The privacy policy has changed since you last accepted it — please review it to continue."
+            : "One quick step before you head in: check that these look right, and agree to the privacy policy."}
         </Text>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Display name</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="e.g. Carlos"
-            placeholderTextColor={colors.inkSoft}
-          />
-        </View>
+        {!isReconsent ? (
+          <>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Display name
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={displayName}
+                onChangeText={setDisplayName}
+                placeholder="e.g. Carlos"
+                placeholderTextColor={colors.inkSoft}
+              />
+            </View>
 
-        <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="e.g. plant.parent_42"
-            placeholderTextColor={colors.inkSoft}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {usernameError ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{usernameError}</Text>
-          ) : (
-            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              This first change is free; afterwards usernames can only be changed once in a while.
-            </Text>
-          )}
-        </View>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="e.g. plant.parent_42"
+                placeholderTextColor={colors.inkSoft}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {usernameError ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                  {usernameError}
+                </Text>
+              ) : (
+                <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                  This first change is free; afterwards usernames can only be changed once in a while.
+                </Text>
+              )}
+            </View>
+          </>
+        ) : null}
 
         <Pressable style={styles.consentRow} onPress={() => setPrivacyAccepted((prev) => !prev)} hitSlop={4}>
           <View
@@ -201,14 +221,14 @@ export default function WelcomeScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Continue
+              {isReconsent ? "Accept and continue" : "Continue"}
             </Text>
           )}
         </Pressable>
 
         <Pressable onPress={handleSignOut} hitSlop={8}>
           <Text style={[styles.signOutLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Not you? Sign out
+            {isReconsent ? "Sign out" : "Not you? Sign out"}
           </Text>
         </Pressable>
       </ScrollView>

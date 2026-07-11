@@ -43,8 +43,9 @@ sharing them socially with other users.
   progress_visibility — the fourth, comment_policy, moved to
   plant_progress as a per-report setting in migration 0012)
 - `app_config` (key, value) — app-level settings readable by signed-in
-  users, written only via migrations; currently just
-  `username_change_cooldown_days`
+  users, written only via migrations; currently
+  `username_change_cooldown_days` and `privacy_policy_updated_at` (the
+  policy's effective date, see Re-consent under GDPR)
 - `plants` (id, owner_id, name, species, photo_urls[], location, acquired_at,
   created_at) — publicly readable (like every other social table below),
   write access owner-only
@@ -190,8 +191,23 @@ sharing them socially with other users.
   - Consent for pre-existing users — done via the welcome screen from
     the Google OAuth slice (`app/welcome.tsx`): any account with a null
     consent stamp is routed there once to review profile basics and
-    accept the policy. Re-consent on material policy changes remains
-    open.
+    accept the policy.
+  - Re-consent on material policy changes — done (migration 0013).
+    The policy has an effective date in
+    `app_config.privacy_policy_updated_at`; consent counts only while
+    `accepted_privacy_at` is on/after it (`isConsentCurrent()` in
+    `lib/supabase/consent.ts`, fails open if the config row is
+    missing so a hiccup can't lock everyone out). The root layout's
+    gate routes stale-consent accounts to `app/welcome.tsx`, which now
+    has a second, slim "Privacy Policy update" mode (checkbox +
+    Accept, no profile fields) for accounts whose stamp exists but
+    predates the policy; acceptance overwrites the stamp (no audit
+    trail, per user decision). **Publishing a policy change** = one PR
+    that updates the policy text in `app/privacy-policy.tsx` AND its
+    hardcoded "Last updated" line (the screen is public/pre-auth, so
+    it can't read app_config) AND ships a migration bumping
+    `privacy_policy_updated_at` — every user is then re-prompted once
+    on their next visit.
   - Native data export — the JSON download uses a web Blob + anchor;
     native needs `expo-file-system`/share-sheet wiring (fold into the
     photo-capture/native pass).
