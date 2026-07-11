@@ -38,11 +38,19 @@ export async function getMyProfile(): Promise<MyProfile> {
   return { ...data, email: user.email ?? null };
 }
 
+// maybeSingle, not single: a 0-row result is a real case now (a block,
+// or a deleted account), not an error -- surfaced as one friendly
+// message that doesn't reveal which, same privacy principle as not
+// telling a declined follow requester why.
 export async function getProfile(userId: string): Promise<Profile> {
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
 
   if (error) {
     throw error;
+  }
+
+  if (!data) {
+    throw new Error("This profile isn't available");
   }
 
   return data;

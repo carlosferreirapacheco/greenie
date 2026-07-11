@@ -24,6 +24,7 @@ export type MyDataExport = {
   comments: unknown[];
   likes: unknown[];
   follows: { following: unknown[]; followers: unknown[] };
+  blocks: unknown[];
 };
 
 export async function collectMyData(): Promise<MyDataExport> {
@@ -104,6 +105,15 @@ export async function collectMyData(): Promise<MyDataExport> {
     throw followsError;
   }
 
+  // blocks_select_own means this returns exactly the accounts the user
+  // has blocked -- the blocked party's own outgoing blocks (if any)
+  // stay invisible to this query, by design.
+  const { data: blocks, error: blocksError } = await supabase.from("blocks").select("*").eq("blocker_id", user.id);
+
+  if (blocksError) {
+    throw blocksError;
+  }
+
   return {
     exported_at: new Date().toISOString(),
     account: {
@@ -128,5 +138,6 @@ export async function collectMyData(): Promise<MyDataExport> {
       following: follows.filter((row: { follower_id: string }) => row.follower_id === user.id),
       followers: follows.filter((row: { followee_id: string }) => row.followee_id === user.id),
     },
+    blocks,
   };
 }

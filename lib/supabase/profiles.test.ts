@@ -62,6 +62,14 @@ describe("getProfile", () => {
     expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
     expect(result).toEqual({ id: "u2", display_name: "Sammy" });
   });
+
+  it("throws a friendly error instead of a raw 0-row error when the profile isn't visible", async () => {
+    // Covers both a deleted account and a block (RLS hides the row
+    // either way) -- the message deliberately doesn't distinguish.
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: null }));
+
+    await expect(getProfile("u2")).rejects.toThrow("This profile isn't available");
+  });
 });
 
 describe("searchProfiles", () => {

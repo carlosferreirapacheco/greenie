@@ -118,6 +118,13 @@ export async function followUser(userId: string): Promise<{ status: FollowStatus
     .single();
 
   if (error) {
+    // 42501 (insufficient_privilege) here means the RLS WITH CHECK
+    // rejected the insert -- in practice, a block exists between the
+    // two accounts. Don't say which direction; same privacy principle
+    // as not telling a declined follow requester why.
+    if ((error as { code?: string }).code === "42501") {
+      throw new Error("You can't follow this account.");
+    }
     throw error;
   }
 

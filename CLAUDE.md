@@ -61,6 +61,9 @@ sharing them socially with other users.
   server-computed from the target's follow_policy])
 - `likes` (progress_id, user_id)
 - `comments` (id, progress_id, user_id, content, created_at)
+- `blocks` (blocker_id, blocked_id, created_at) — only the blocker can
+  read/write their own outgoing blocks; see the Block users backlog
+  item for the asymmetric-identity/symmetric-content RLS design
 
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
@@ -279,18 +282,47 @@ sharing them socially with other users.
     `follows_delete_by_followee` RLS delete Decline uses (Decline now
     delegates to it). Removal is silent for the removed person; under
     a `request` policy they'd have to re-request.
-  - Block users — a `blocks` table plus an RLS pass threading
-    "blocked ⇒ invisible" through every social surface: a blocked
-    user can't follow (insert policy/trigger + auto-removal of
-    existing follows in both directions), can't see the blocker's
-    profile, plants, or progress reports (feed and direct link), and
-    can't like or comment; the blocker likewise stops seeing the
-    blocked user's content. Needs a Block/Unblock affordance (user
-    profile screen + maybe the Followers list) and a Blocked-users
-    list in Settings. Ties into "Review interactions between
-    visibility settings" below — blocking must be checked against
-    every existing policy (including `is_accepted_follower()`
-    call sites) and every future one.
+  - Block users — done (migration `0014_block_users.sql`). New
+    `blocks` table (`blocker_id`, `blocked_id`, RLS: only the blocker
+    can see/manage their own outgoing blocks — the blocked party never
+    gets row-level visibility into who's blocked them). Two helpers
+    mirror `is_accepted_follower()`'s pattern: `blocked(blocker,
+    blockee)` (raw single-direction check) and `is_blocked(a, b)`
+    (symmetric, `blocked(a,b) or blocked(b,a)`). **Identity is
+    asymmetric, content is symmetric** — a deliberate split: the
+    blocked party can't see the blocker's profile at all
+    (`profiles_select_visible` checks only `blocked(id, auth.uid())`),
+    but the blocker *can* still see the blocked party's bare profile
+    (needed to render the Blocked-users list and know who they're
+    unblocking); plants, progress reports, comments, and likes are
+    hidden **both ways** via `is_blocked()` added to
+    `plants_select_visible`, `plant_progress_select_visible`,
+    `comments_select_visible`/`comments_insert_allowed`,
+    `likes_select_visible`/`likes_insert_visible`. A trigger
+    (`remove_follows_on_block`) auto-deletes any `follows` row between
+    the pair (either direction, any status) the moment a block is
+    inserted, and `follows_insert_own`'s `with check` now rejects a
+    new follow between a blocked pair — so `getFeed()`,
+    `getFollowing()`, and `getFollowers()` all naturally exclude
+    blocked accounts for free, no changes needed there. `care_tasks`
+    untouched (already owner-only, never publicly visible).
+    `getProfile()` now uses `maybeSingle()` + a friendly "This profile
+    isn't available" error instead of a raw 0-row PostgREST error
+    (covers a block OR a deleted account, deliberately indistinguishable);
+    `followUser()` maps the RLS-rejection code (`42501`) to "You can't
+    follow this account." — same privacy principle as not telling a
+    declined follow requester why. UI: a "Block this account" link on
+    `app/user/[id].tsx` (inline two-tap confirm, matching Remove
+    follower/account deletion) flips to "You've blocked this account"
+    + a single-tap Unblock button (no confirm — low-stakes, instantly
+    reversible); `app/blocked-users.tsx` (new, linked from a "Blocked
+    users" line in Settings' Privacy section) lists blocked accounts
+    with single-tap Unblock. `collectMyData()` (GDPR export) gained a
+    `blocks` field for the same completeness the export already
+    commits to. Ties into "Review interactions between visibility
+    settings" below — this is itself an application of that review
+    (see the asymmetric/symmetric split above); re-check block
+    interactions against any future visibility setting too.
   - Per-item visibility overrides — partially delivered since:
     comments and feed-sharing are now per-report (see Disable comments
     entirely above). Overriding a single report's *visibility*

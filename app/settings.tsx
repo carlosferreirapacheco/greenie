@@ -348,6 +348,12 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
+        <Pressable onPress={() => router.push("/blocked-users")} hitSlop={4}>
+          <Text style={[styles.policyLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            Blocked users
+          </Text>
+        </Pressable>
+
         {privacyStatus === "loading" ? (
           <ActivityIndicator color={colors.moss} />
         ) : privacyStatus === "error" ? (
