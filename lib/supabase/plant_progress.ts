@@ -196,6 +196,25 @@ export async function createProgressReport(input: {
   return data;
 }
 
+// Every report for one plant, newest first -- deliberately does NOT
+// filter shared_to_feed. Relies purely on plant_progress_select_visible
+// RLS (owner always; others per progress_visibility/follower/block
+// status), which is what makes this the one place unlisted reports
+// surface besides a direct link.
+export async function getProgressReportsForPlant(plantId: string): Promise<ProgressReport[]> {
+  const { data, error } = await supabase
+    .from("plant_progress")
+    .select("*")
+    .eq("plant_id", plantId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 // Owner-only via the plant_progress_update_own RLS policy.
 export async function updateProgressReportSettings(
   id: string,

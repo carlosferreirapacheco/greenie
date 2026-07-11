@@ -18,6 +18,8 @@ import {
   updatePlantNickname,
   type Plant,
 } from "../../lib/supabase/plants";
+import { getProgressReportsForPlant, type ProgressReport } from "../../lib/supabase/plant_progress";
+import { HeightChart } from "../../components/HeightChart";
 import {
   createCareTask,
   deleteCareTask,
@@ -33,6 +35,8 @@ import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../
 import { getErrorMessage } from "../../lib/errors";
 
 const ALL_TASK_TYPES: CareTaskType[] = ["water", "fertilize", "repot"];
+
+const progressDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 function careTaskLabel(type: CareTask["type"]): string {
   switch (type) {
@@ -61,6 +65,7 @@ export default function PlantProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [plant, setPlant] = useState<Plant | null>(null);
   const [careTasks, setCareTasks] = useState<CareTask[]>([]);
+  const [progressReports, setProgressReports] = useState<ProgressReport[]>([]);
   const [isOwner, setIsOwner] = useState(false);
 
   const [isEditingDate, setIsEditingDate] = useState(false);
@@ -94,10 +99,16 @@ export default function PlantProfileScreen() {
     if (!id) {
       return;
     }
-    Promise.all([getPlant(id), getCareTasksForPlants([id]), supabase.auth.getUser().then(({ data }) => data.user?.id)])
-      .then(([plantData, careTasksData, currentUserId]) => {
+    Promise.all([
+      getPlant(id),
+      getCareTasksForPlants([id]),
+      getProgressReportsForPlant(id),
+      supabase.auth.getUser().then(({ data }) => data.user?.id),
+    ])
+      .then(([plantData, careTasksData, progressReportsData, currentUserId]) => {
         setPlant(plantData);
         setCareTasks(careTasksData);
+        setProgressReports(progressReportsData);
         setIsOwner(currentUserId === plantData.owner_id);
         setStatus("ready");
       })
@@ -466,6 +477,62 @@ export default function PlantProfileScreen() {
         </View>
       ) : null}
 
+      <View style={styles.field}>
+        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Progress</Text>
+
+        {progressReports.length === 0 ? (
+          <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            No progress logged yet
+          </Text>
+        ) : (
+          <>
+            {progressReports.filter((r) => r.height_cm !== null).length >= 2 ? (
+              <HeightChart
+                fonts={fonts}
+                entries={progressReports
+                  .filter((r): r is ProgressReport & { height_cm: number } => r.height_cm !== null)
+                  .map((r) => ({ created_at: r.created_at, height_cm: r.height_cm }))
+                  .reverse()}
+              />
+            ) : null}
+
+            {progressReports.map((report) => (
+              <Pressable
+                key={report.id}
+                style={[styles.progressRow, { borderColor: colors.line }]}
+                onPress={() => router.push(`/progress/${report.id}`)}
+              >
+                <View style={styles.progressRowHeader}>
+                  <Text style={[styles.progressDate, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                    {progressDateFormatter.format(new Date(report.created_at))}
+                  </Text>
+                  {report.height_cm !== null ? (
+                    <Text style={[styles.progressHeight, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                      {report.height_cm} cm
+                    </Text>
+                  ) : null}
+                  {!report.shared_to_feed ? (
+                    <View style={[styles.unlistedTag, { backgroundColor: colors.sage }]}>
+                      <Text style={[styles.unlistedTagText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
+                        Unlisted
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                {report.notes ? (
+                  <Text
+                    style={[styles.progressNotes, { fontFamily: fonts.body, color: colors.inkSoft }]}
+                    numberOfLines={2}
+                  >
+                    {report.notes}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </>
+        )}
+      </View>
+
       {isOwner ? (
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Care tasks</Text>
@@ -744,6 +811,41 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 6,
     marginTop: spacing.sm,
+  },
+  emptyText: {
+    fontSize: 14,
+  },
+  progressRow: {
+    width: "100%",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    gap: 4,
+  },
+  progressRowHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  progressDate: {
+    fontSize: 13.5,
+  },
+  progressHeight: {
+    fontSize: 13,
+  },
+  unlistedTag: {
+    borderRadius: 999,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  unlistedTagText: {
+    fontSize: 10.5,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  progressNotes: {
+    fontSize: 13.5,
+    lineHeight: 19,
   },
   pill: {
     flexDirection: "row",
