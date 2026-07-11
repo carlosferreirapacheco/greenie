@@ -88,14 +88,23 @@ sharing them socially with other users.
 ## Backlog
 
 ### Product features
-- Plant-sitting instructions — generate a shareable instructions file
-  (per-plant care summary: watering schedule, light, notes) that a user can
-  send to a friend/contact watching their plants while away. Now that
-  progress-report logging is owner-only (see Plant list on user profiles
-  below), this is also where a future delegated logging capability
-  should live — letting a sitter log progress on a plant they don't own
-  while it's explicitly shared with them, rather than reopening logging
-  to everyone
+- Plant-sitting — split into two slices. **Share care instructions
+  (non-app users) — done.** `lib/careInstructions.ts`'s pure
+  `buildCareInstructionsText()` compiles every one of the signed-in
+  user's plants (name/species/location) and their care tasks
+  (type/frequency/next-due, human-formatted) into one plain-text
+  block; a "Share" link in the Plants screen header
+  (`app/index.tsx`, next to "+ Add") gathers plants +
+  `getCareTasksForPlants()` (both pre-existing) and hands the text to
+  React Native's built-in `Share.share()` — no new dependency, no
+  schema impact. **In-app delegated plant-sitting — planned, not yet
+  built.** A mutual-follows-gated request/accept flow letting a sitter
+  view a follower's plants, mark care tasks done, and log progress
+  reports on plants they don't own (with owner-attribution back to the
+  feed, an account-wide opt-out), reusing the owner-only
+  progress-logging gate introduced under Plant list on user profiles
+  below as the reason this needs deliberate delegation rather than
+  reopening logging to everyone.
 - Plant nicknames — done. Owners can set a personal `nickname` on a
   plant (new nullable column on `plants`, no RLS change needed), separate
   from its common name (`plants.name`, e.g. "Pothos") and Latin species.
@@ -378,7 +387,7 @@ sharing them socially with other users.
   existing `isOwner` check (`app/index.tsx`'s own Log progress link was
   already implicitly owner-only, since that screen only ever lists the
   signed-in user's own plants). Delegated non-owner logging is deferred
-  to Plant-sitting instructions above.
+  to Plant-sitting above.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet

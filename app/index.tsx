@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../lib/supabase/plants";
@@ -10,6 +10,7 @@ import {
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
 import { getPendingFollowRequests } from "../lib/supabase/follows";
+import { buildCareInstructionsText } from "../lib/careInstructions";
 import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -42,6 +43,8 @@ export default function PlantListScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
@@ -83,6 +86,28 @@ export default function PlantListScreen() {
     }, [fetchPlants])
   );
 
+  async function handleShareInstructions() {
+    if (shareBusy) {
+      return;
+    }
+    setShareBusy(true);
+    setShareError(null);
+
+    try {
+      const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
+      const tasksByPlant: Record<string, typeof tasks> = {};
+      for (const task of tasks) {
+        (tasksByPlant[task.plant_id] ??= []).push(task);
+      }
+      const text = buildCareInstructionsText(plants.map((plant) => ({ ...plant, tasks: tasksByPlant[plant.id] ?? [] })));
+      await Share.share({ message: text, title: "Plant care instructions" });
+    } catch (err) {
+      setShareError(getErrorMessage(err));
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
   const screen = (
     <Stack.Screen
       options={{
@@ -106,9 +131,18 @@ export default function PlantListScreen() {
           </View>
         ),
         headerRight: () => (
-          <Pressable onPress={() => router.push("/add-plant")} hitSlop={8} style={styles.addButtonWrap}>
-            <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
-          </Pressable>
+          <View style={styles.headerRightRow}>
+            <Pressable onPress={handleShareInstructions} disabled={shareBusy || plants.length === 0} hitSlop={8}>
+              {shareBusy ? (
+                <ActivityIndicator color={colors.moss} />
+              ) : (
+                <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Share</Text>
+              )}
+            </Pressable>
+            <Pressable onPress={() => router.push("/add-plant")} hitSlop={8} style={styles.addButtonWrap}>
+              <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
+            </Pressable>
+          </View>
         ),
       }}
     />
@@ -144,6 +178,9 @@ export default function PlantListScreen() {
   return (
     <>
       {screen}
+      {shareError ? (
+        <Text style={[styles.shareErrorText, { fontFamily: fonts.body, color: colors.coral }]}>{shareError}</Text>
+      ) : null}
       <FlatList
         style={[styles.list, { backgroundColor: colors.paper }]}
         data={plants}
@@ -204,6 +241,16 @@ const styles = StyleSheet.create({
   },
   addButtonWrap: {
     marginRight: spacing.md,
+  },
+  headerRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  shareErrorText: {
+    fontSize: 13,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
   },
   headerLeftRow: {
     flexDirection: "row",
