@@ -1,5 +1,5 @@
 import { supabase } from "./client";
-import { getFriends } from "./follows";
+import { getFollowing } from "./follows";
 import { getLikesForProgress } from "./likes";
 import { getCommentsForProgressIds, type CommentWithAuthor } from "./comments";
 
@@ -37,7 +37,7 @@ export type FeedItem = ProgressReport & {
 type AuthorInfo = { display_name: string | null; username: string };
 
 // Shared by getFeed (many reports, author info already known from the
-// friends list) and getProgressReport (a single report, author info
+// following list) and getProgressReport (a single report, author info
 // looked up fresh) -- everything else (plants, likes, comments) is
 // batch-fetched and combined client-side the same way either way.
 async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<string, AuthorInfo>): Promise<FeedItem[]> {
@@ -106,13 +106,13 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
 }
 
 export async function getFeed(): Promise<FeedItem[]> {
-  const friends = await getFriends();
-  if (friends.length === 0) {
+  const following = await getFollowing();
+  if (following.length === 0) {
     return [];
   }
 
   const authorInfoById = new Map<string, AuthorInfo>(
-    friends.map((friend) => [friend.id, { display_name: friend.display_name, username: friend.username }])
+    following.map((person) => [person.id, { display_name: person.display_name, username: person.username }])
   );
 
   const { data: reports, error: reportsError } = await supabase
@@ -120,7 +120,7 @@ export async function getFeed(): Promise<FeedItem[]> {
     .select("*")
     .in(
       "user_id",
-      friends.map((friend) => friend.id)
+      following.map((person) => person.id)
     )
     .eq("shared_to_feed", true)
     .order("created_at", { ascending: false })

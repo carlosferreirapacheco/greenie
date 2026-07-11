@@ -3,7 +3,7 @@ import type { Profile } from "./profiles";
 
 export type FollowStatus = "none" | "pending" | "accepted";
 
-export async function getFriends(): Promise<Profile[]> {
+export async function getFollowing(): Promise<Profile[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -36,7 +36,7 @@ export async function getFriends(): Promise<Profile[]> {
   return data;
 }
 
-// Mirror of getFriends() with the join direction flipped: the accepted
+// Mirror of getFollowing() with the join direction flipped: the accepted
 // followers OF the signed-in user.
 export async function getFollowers(): Promise<Profile[]> {
   const {

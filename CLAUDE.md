@@ -109,9 +109,10 @@ sharing them socially with other users.
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
   Progress-report creation (`app/log-progress.tsx`), a Following list
-  with in-list search (`app/friends.tsx` — UI relabeled Friends →
-  Following for consistency with the Followers screen; file and
-  `getFriends()` keep their names), search for any user by name
+  with in-list search (`app/following.tsx`, `getFollowing()` in
+  `lib/supabase/follows.ts` — renamed from Friends/`getFriends()` for
+  consistency with the Followers screen and the concept they actually
+  represent), search for any user by name
   (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), a
   feed of progress reports from people you follow (`app/feed.tsx`), and
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
@@ -371,8 +372,8 @@ sharing them socially with other users.
 - Show email (or future username) for authors without a display name —
   done, resolved by the Usernames feature (see Product features):
   every former "No display name yet" fallback now shows `@username`
-  instead (feed rows, comment previews, progress detail, friends list,
-  follow requests, user search, user profiles)
+  instead (feed rows, comment previews, progress detail, following
+  list, follow requests, user search, user profiles)
 - Photo capture — add-plant, the profile avatar, and progress reports have
   each separately deferred real photo capture so far (all currently show
   flat-color placeholders instead). One consolidated item: needs

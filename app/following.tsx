@@ -2,7 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { getFriends, getPendingFollowRequests } from "../lib/supabase/follows";
+import { getFollowing, getPendingFollowRequests } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
@@ -18,19 +18,19 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   );
 }
 
-export default function FriendsScreen() {
+export default function FollowingScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
-  const [friends, setFriends] = useState<Profile[]>([]);
+  const [following, setFollowing] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
 
-  const fetchFriends = useCallback(() => {
-    getFriends()
+  const fetchFollowing = useCallback(() => {
+    getFollowing()
       .then((data) => {
-        setFriends(data);
+        setFollowing(data);
         setStatus("ready");
       })
       .catch((err) => {
@@ -46,8 +46,8 @@ export default function FriendsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchFriends();
-    }, [fetchFriends])
+      fetchFollowing();
+    }, [fetchFollowing])
   );
 
   const screen = (
@@ -96,7 +96,7 @@ export default function FriendsScreen() {
     );
   }
 
-  if (friends.length === 0) {
+  if (following.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
@@ -106,13 +106,13 @@ export default function FriendsScreen() {
   }
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
-  const filteredFriends =
+  const filteredFollowing =
     trimmedQuery.length === 0
-      ? friends
-      : friends.filter((friend) => (friend.display_name ?? "").toLowerCase().includes(trimmedQuery));
+      ? following
+      : following.filter((person) => (person.display_name ?? "").toLowerCase().includes(trimmedQuery));
 
   let body: ReactNode;
-  if (filteredFriends.length === 0) {
+  if (filteredFollowing.length === 0) {
     body = (
       <View style={styles.center}>
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>
@@ -124,8 +124,8 @@ export default function FriendsScreen() {
     body = (
       <FlatList
         style={styles.list}
-        data={filteredFriends}
-        keyExtractor={(friend) => friend.id}
+        data={filteredFollowing}
+        keyExtractor={(person) => person.id}
         renderItem={({ item }) => <ProfileRow profile={item} fonts={fonts} />}
       />
     );

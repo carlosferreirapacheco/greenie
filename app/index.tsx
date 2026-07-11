@@ -92,14 +92,14 @@ export default function PlantListScreen() {
             <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
               <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
             </Pressable>
-            <Pressable onPress={() => router.push("/friends")} hitSlop={8} style={styles.badgeWrap}>
-              <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            <Pressable onPress={() => router.push("/following")} hitSlop={8} style={styles.badgeWrap}>
+              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 Following
               </Text>
               {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
             </Pressable>
             <Pressable onPress={() => router.push("/feed")} hitSlop={8}>
-              <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 Feed
               </Text>
             </Pressable>
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: radius.sm,
   },
-  friendsLink: {
+  headerLink: {
     fontSize: 14,
   },
   badgeWrap: {

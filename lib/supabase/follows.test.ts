@@ -6,7 +6,7 @@ jest.mock("./client", () => {
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
 import {
-  getFriends,
+  getFollowing,
   getFollowers,
   getFollowStatus,
   followUser,
@@ -25,18 +25,18 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("getFriends", () => {
+describe("getFollowing", () => {
   it("throws Not signed in when there's no session", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
 
-    await expect(getFriends()).rejects.toThrow("Not signed in");
+    await expect(getFollowing()).rejects.toThrow("Not signed in");
   });
 
   it("returns an empty array without a second query when following no one", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
 
-    const result = await getFriends();
+    const result = await getFollowing();
 
     expect(result).toEqual([]);
     expect(mockSupabase.from).toHaveBeenCalledTimes(1);
@@ -48,7 +48,7 @@ describe("getFriends", () => {
     const profilesChain = createChainableQueryMock({ data: [{ id: "u2" }, { id: "u3" }], error: null });
     mockSupabase.from.mockReturnValueOnce(followChain).mockReturnValueOnce(profilesChain);
 
-    const result = await getFriends();
+    const result = await getFollowing();
 
     expect(followChain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u1");
     expect(followChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
