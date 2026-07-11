@@ -62,6 +62,11 @@ export default function FriendsScreen() {
               </Text>
               {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
             </Pressable>
+            <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
+              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+                Followers
+              </Text>
+            </Pressable>
             <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
               <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
                 Search

@@ -36,6 +36,41 @@ export async function getFriends(): Promise<Profile[]> {
   return data;
 }
 
+// Mirror of getFriends() with the join direction flipped: the accepted
+// followers OF the signed-in user.
+export async function getFollowers(): Promise<Profile[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data: followRows, error: followError } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("followee_id", user.id)
+    .eq("status", "accepted");
+
+  if (followError) {
+    throw followError;
+  }
+
+  const followerIds = followRows.map((row) => row.follower_id);
+  if (followerIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase.from("profiles").select("*").in("id", followerIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getFollowStatus(userId: string): Promise<FollowStatus> {
   const {
     data: { user },
@@ -162,7 +197,11 @@ export async function acceptFollowRequest(followerId: string): Promise<void> {
   }
 }
 
-export async function declineFollowRequest(followerId: string): Promise<void> {
+// Deletes the follow row targeting the signed-in user, via the
+// follows_delete_by_followee RLS policy. Works on any status: removing
+// an accepted follower and declining a pending request are the same
+// delete, they just read differently in the UI.
+export async function removeFollower(followerId: string): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -176,4 +215,8 @@ export async function declineFollowRequest(followerId: string): Promise<void> {
   if (error) {
     throw error;
   }
+}
+
+export async function declineFollowRequest(followerId: string): Promise<void> {
+  return removeFollower(followerId);
 }

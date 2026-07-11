@@ -267,10 +267,26 @@ sharing them socially with other users.
     (`getFeed()` filters it) but it stays *unlisted*, not private —
     direct links work for anyone who could already see it, and the
     future plant-history section will list it.
-  - Remove follower UI — the `follows_delete_by_followee` RLS policy
-    already lets a user delete a follow row targeting them (that's how
-    Decline works); no screen exposes removing an *accepted* follower
-    yet.
+  - Remove follower UI — done. `app/followers.tsx` (linked from a
+    "Followers" header link on Friends) lists accepted followers via
+    `getFollowers()` in `lib/supabase/follows.ts`; each row links to
+    the follower's profile and has a Remove action behind the inline
+    two-tap confirm, calling `removeFollower()` — the same
+    `follows_delete_by_followee` RLS delete Decline uses (Decline now
+    delegates to it). Removal is silent for the removed person; under
+    a `request` policy they'd have to re-request.
+  - Block users — a `blocks` table plus an RLS pass threading
+    "blocked ⇒ invisible" through every social surface: a blocked
+    user can't follow (insert policy/trigger + auto-removal of
+    existing follows in both directions), can't see the blocker's
+    profile, plants, or progress reports (feed and direct link), and
+    can't like or comment; the blocker likewise stops seeing the
+    blocked user's content. Needs a Block/Unblock affordance (user
+    profile screen + maybe the Followers list) and a Blocked-users
+    list in Settings. Ties into "Review interactions between
+    visibility settings" below — blocking must be checked against
+    every existing policy (including `is_accepted_follower()`
+    call sites) and every future one.
   - Per-item visibility overrides — partially delivered since:
     comments and feed-sharing are now per-report (see Disable comments
     entirely above). Overriding a single report's *visibility*
