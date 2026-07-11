@@ -53,7 +53,7 @@ export default function FriendsScreen() {
   const screen = (
     <Stack.Screen
       options={{
-        title: "Friends",
+        title: "Following",
         headerRight: () => (
           <View style={styles.headerRightRow}>
             <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
@@ -100,7 +100,7 @@ export default function FriendsScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Not following anyone yet</Text>
       </View>
     );
   }
@@ -115,7 +115,9 @@ export default function FriendsScreen() {
   if (filteredFriends.length === 0) {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No friends match "{searchQuery.trim()}"</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>
+          No one you follow matches "{searchQuery.trim()}"
+        </Text>
       </View>
     );
   } else {
@@ -136,7 +138,7 @@ export default function FriendsScreen() {
         style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search your friends"
+        placeholder="Search people you follow"
         placeholderTextColor={colors.inkSoft}
       />
       {body}

@@ -94,7 +94,7 @@ export default function PlantListScreen() {
             </Pressable>
             <Pressable onPress={() => router.push("/friends")} hitSlop={8} style={styles.badgeWrap}>
               <Text style={[styles.friendsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Friends
+                Following
               </Text>
               {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
             </Pressable>

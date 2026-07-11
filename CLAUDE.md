@@ -108,8 +108,10 @@ sharing them socially with other users.
   progress detail screen's "Logged progress on ..." sentence
 - Social features — `plant_progress`, `follows`, `likes`, `comments`
   already have schema and RLS policies (see Data model above).
-  Progress-report creation (`app/log-progress.tsx`), a Friends list with
-  in-list search (`app/friends.tsx`), search for any user by name
+  Progress-report creation (`app/log-progress.tsx`), a Following list
+  with in-list search (`app/friends.tsx` — UI relabeled Friends →
+  Following for consistency with the Followers screen; file and
+  `getFriends()` keep their names), search for any user by name
   (`app/search-users.tsx`), follow/unfollow (on `app/user/[id].tsx`), a
   feed of progress reports from people you follow (`app/feed.tsx`), and
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
@@ -247,11 +249,11 @@ sharing them socially with other users.
   `is_accepted_follower()` drives all follower checks (migration
   `0008_content_visibility.sql`). New follower-request flow:
   `app/follow-requests.tsx` (Accept/Decline, linked from a "Requests"
-  header link on Friends), tri-state Follow/Requested/Unfollow button
-  on `app/user/[id].tsx` (tapping Requested cancels), a "This account
-  is private" state on private profiles, and a red-dot badge on the
-  Plants screen's Friends link and the Friends screen's Requests link
-  while requests are pending. Known coherent side effect: a *public*
+  header link on the Following screen), tri-state
+  Follow/Requested/Unfollow button on `app/user/[id].tsx` (tapping
+  Requested cancels), a "This account is private" state on private
+  profiles, and a red-dot badge on the Plants screen's Following link
+  and the Following screen's Requests link while requests are pending. Known coherent side effect: a *public*
   progress report by a *private* profile shows "Unknown plant" to
   non-followers, since the plant row itself is profile content.
   - Disable comments entirely — done, as part of the per-report
@@ -268,7 +270,8 @@ sharing them socially with other users.
     direct links work for anyone who could already see it, and the
     future plant-history section will list it.
   - Remove follower UI — done. `app/followers.tsx` (linked from a
-    "Followers" header link on Friends) lists accepted followers via
+    "Followers" header link on the Following screen) lists accepted
+    followers via
     `getFollowers()` in `lib/supabase/follows.ts`; each row links to
     the follower's profile and has a Remove action behind the inline
     two-tap confirm, calling `removeFollower()` — the same
