@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
-import { followUser, getFollowStatus, unfollowUser, type FollowStatus } from "../../lib/supabase/follows";
+import { amIFollowedBy, followUser, getFollowStatus, unfollowUser, type FollowStatus } from "../../lib/supabase/follows";
 import { blockUser, getMyBlockStatus, unblockUser, type BlockStatus } from "../../lib/supabase/blocks";
 import { getPlantsForUser, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../../lib/supabase/plants";
 import {
@@ -49,6 +49,7 @@ export default function UserProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [followStatus, setFollowStatus] = useState<FollowStatus>("none");
+  const [followsMe, setFollowsMe] = useState(false);
   const [blockStatus, setBlockStatus] = useState<BlockStatus>("none");
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
@@ -73,13 +74,15 @@ export default function UserProfileScreen() {
     Promise.all([
       getProfile(id),
       getFollowStatus(id),
+      amIFollowedBy(id),
       getMyBlockStatus(id),
       getPlantsForUser(id),
       supabase.auth.getUser().then(({ data }) => data.user?.id),
     ])
-      .then(async ([profileData, followStatusData, blockStatusData, plantsData, currentUserId]) => {
+      .then(async ([profileData, followStatusData, followsMeData, blockStatusData, plantsData, currentUserId]) => {
         setProfile(profileData);
         setFollowStatus(followStatusData);
+        setFollowsMe(followsMeData);
         setBlockStatus(blockStatusData);
         setIsOwnProfile(currentUserId === id);
         setPlants(plantsData);
@@ -303,6 +306,14 @@ export default function UserProfileScreen() {
         </>
       ) : null}
 
+      {!isOwnProfile && blockStatus === "none" && followStatus === "accepted" && followsMe ? (
+        <Pressable onPress={() => router.push(`/request-sitting?userId=${id}`)} hitSlop={8}>
+          <Text style={[styles.sittingLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            Request plant-sitting
+          </Text>
+        </Pressable>
+      ) : null}
+
       {blockActionStatus === "error" ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{blockActionError}</Text>
       ) : null}
@@ -435,6 +446,10 @@ const styles = StyleSheet.create({
   blockLink: {
     marginTop: spacing.xs,
     fontSize: 12.5,
+  },
+  sittingLink: {
+    marginTop: spacing.sm,
+    fontSize: 13.5,
   },
   confirmBox: {
     marginTop: spacing.xs,

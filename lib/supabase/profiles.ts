@@ -3,6 +3,7 @@ import { supabase } from "./client";
 export type ProfileVisibility = "public" | "private";
 export type FollowPolicy = "open" | "request";
 export type ProgressVisibility = "public" | "private";
+export type PlantSitterAttribution = "allowed" | "disabled";
 
 export type Profile = {
   id: string;
@@ -16,6 +17,7 @@ export type Profile = {
   profile_visibility: ProfileVisibility;
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
+  plant_sitter_attribution: PlantSitterAttribution;
 };
 
 export type MyProfile = Profile & { email: string | null };
@@ -152,6 +154,7 @@ export async function updatePrivacySettings(input: {
   profile_visibility: ProfileVisibility;
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
+  plant_sitter_attribution: PlantSitterAttribution;
 }): Promise<Profile> {
   const {
     data: { user },

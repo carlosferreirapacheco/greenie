@@ -9,6 +9,7 @@ import {
   getFollowing,
   getFollowers,
   getFollowStatus,
+  amIFollowedBy,
   followUser,
   unfollowUser,
   getPendingFollowRequests,
@@ -137,6 +138,46 @@ describe("getFollowStatus", () => {
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: null }));
 
     await expect(getFollowStatus("u2")).resolves.toBe("none");
+  });
+});
+
+describe("amIFollowedBy", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(amIFollowedBy("u2")).rejects.toThrow("Not signed in");
+  });
+
+  it("queries the reverse direction from getFollowStatus (userId -> me)", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { status: "accepted" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await amIFollowedBy("u2");
+
+    expect(chain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u2");
+    expect(chain.eq).toHaveBeenNthCalledWith(2, "followee_id", "u1");
+  });
+
+  it("returns true when u2 accepted-follows me", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: { status: "accepted" }, error: null }));
+
+    await expect(amIFollowedBy("u2")).resolves.toBe(true);
+  });
+
+  it("returns false when the follow is only pending", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: { status: "pending" }, error: null }));
+
+    await expect(amIFollowedBy("u2")).resolves.toBe(false);
+  });
+
+  it("returns false when no follow row exists", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: null }));
+
+    await expect(amIFollowedBy("u2")).resolves.toBe(false);
   });
 });
 

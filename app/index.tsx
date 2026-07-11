@@ -103,6 +103,11 @@ export default function PlantListScreen() {
                 Feed
               </Text>
             </Pressable>
+            <Pressable onPress={() => router.push("/plant-sitting")} hitSlop={8}>
+              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Sitting
+              </Text>
+            </Pressable>
           </View>
         ),
         headerRight: () => (
