@@ -419,13 +419,14 @@ export default function SettingsScreen() {
                 value={plantSitterAttribution}
                 onChange={setPlantSitterAttribution}
                 options={[
-                  { value: "allowed", label: "Allow crediting me" },
-                  { value: "disabled", label: "Don't credit me" },
+                  { value: "allowed", label: "Allow sharing to their feed" },
+                  { value: "disabled", label: "Keep in plant history only" },
                 ]}
               />
               <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                When a plant-sitter shares a progress report they logged on one of your plants to their
-                own feed, this controls whether it names you as the plant's owner.
+                When a plant-sitter logs a progress report on one of your plants, this controls whether
+                they can share it to their own feed. Off: their reports stay in this plant's own
+                history only.
               </Text>
             </View>
 

@@ -39,9 +39,10 @@ describe("getProgressReport", () => {
     };
 
     // Call order (see plant_progress.ts): report -> author -> auth.getUser
-    // -> plants -> (owner profiles, skipped here since the plant's
-    // owner_id matches the already-known author) -> likes -> comments
-    // -> comment-authors.
+    // -> plants -> owner profiles (always fetched fresh now, for
+    // plant_sitter_attribution -- not reused from the author cache even
+    // though owner === author here) -> likes -> comments ->
+    // comment-authors.
     mockSupabase.from
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
       .mockReturnValueOnce(
@@ -55,6 +56,12 @@ describe("getProgressReport", () => {
           data: [
             { id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: "Big Fred", owner_id: "author1" },
           ],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [{ id: "author1", display_name: "Carlos", username: "carlos", plant_sitter_attribution: "allowed" }],
           error: null,
         })
       )
@@ -95,11 +102,10 @@ describe("getProgressReport", () => {
     expect(result.plant_species).toBe("Epipremnum aureum");
     expect(result.author_display_name).toBe("Carlos");
     expect(result.author_username).toBe("carlos");
-    // Author === owner here, so owner info reuses the already-known
-    // author profile rather than triggering a second fetch.
     expect(result.plant_owner_id).toBe("author1");
     expect(result.plant_owner_display_name).toBe("Carlos");
     expect(result.plant_owner_username).toBe("carlos");
+    expect(result.plant_owner_share_allowed).toBe(true);
     // The report's own per-report settings ride through untouched.
     expect(result.comment_policy).toBe("followers");
     expect(result.shared_to_feed).toBe(true);
@@ -125,8 +131,7 @@ describe("getProgressReport", () => {
     };
 
     // Call order: report -> author (the sitter) -> auth.getUser -> plants
-    // -> owner profiles (extra call, since owner_id "owner1" != author
-    // "sitter1") -> likes -> comments.
+    // -> owner profiles -> likes -> comments.
     mockSupabase.from
       .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
       .mockReturnValueOnce(
@@ -140,7 +145,7 @@ describe("getProgressReport", () => {
       )
       .mockReturnValueOnce(
         createChainableQueryMock({
-          data: [{ id: "owner1", display_name: "Carlos", username: "carlos" }],
+          data: [{ id: "owner1", display_name: "Carlos", username: "carlos", plant_sitter_attribution: "disabled" }],
           error: null,
         })
       )
@@ -155,6 +160,9 @@ describe("getProgressReport", () => {
     expect(result.plant_owner_id).toBe("owner1");
     expect(result.plant_owner_display_name).toBe("Carlos");
     expect(result.plant_owner_username).toBe("carlos");
+    // The owner's plant_sitter_attribution feeds plant_owner_share_allowed,
+    // used to gate the sitter's Feed toggle on app/progress/[id].tsx.
+    expect(result.plant_owner_share_allowed).toBe(false);
   });
 
   it("falls back to 'Unknown plant' and no counts when the plant and engagement are missing", async () => {
@@ -186,6 +194,8 @@ describe("getProgressReport", () => {
     expect(result.liked_by_me).toBe(false);
     expect(result.comment_count).toBe(0);
     expect(result.latest_comment).toBeNull();
+    // No plant resolved -> no owner to fetch -> fails open.
+    expect(result.plant_owner_share_allowed).toBe(true);
   });
 });
 
@@ -219,6 +229,17 @@ describe("createProgressReport", () => {
       comment_policy: "disabled",
       shared_to_feed: false,
     });
+  });
+
+  it("maps a 42501 rejection to a friendly share-gate message", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    mockSupabase.from.mockReturnValue(
+      createChainableQueryMock({ data: null, error: { code: "42501", message: "new row violates row-level security policy" } })
+    );
+
+    await expect(
+      createProgressReport({ plant_id: "pl1", height_cm: 10, notes: "n", comment_policy: "public", shared_to_feed: true })
+    ).rejects.toThrow("doesn't allow sitters to share reports");
   });
 });
 
@@ -266,6 +287,16 @@ describe("updateProgressReportSettings", () => {
     await expect(updateProgressReportSettings("pr1", { comment_policy: "public", shared_to_feed: true })).rejects.toBe(
       err
     );
+  });
+
+  it("maps a 42501 rejection to a friendly share-gate message", async () => {
+    mockSupabase.from.mockReturnValue(
+      createChainableQueryMock({ data: null, error: { code: "42501", message: "new row violates row-level security policy" } })
+    );
+
+    await expect(
+      updateProgressReportSettings("pr1", { comment_policy: "public", shared_to_feed: true })
+    ).rejects.toThrow("doesn't allow sitters to share reports");
   });
 });
 

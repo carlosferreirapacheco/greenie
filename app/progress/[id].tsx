@@ -280,15 +280,22 @@ export default function ProgressDetailScreen() {
               <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
                 Feed
               </Text>
-              <ChipGroup
-                fonts={fonts}
-                value={report.shared_to_feed ? "share" : "unlisted"}
-                onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
-                options={[
-                  { value: "share", label: "Share to feed" },
-                  { value: "unlisted", label: "Don't share" },
-                ]}
-              />
+              {report.user_id !== report.plant_owner_id && !report.plant_owner_share_allowed ? (
+                <Text style={[styles.settingHint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                  This plant's owner keeps sitter reports out of feeds -- this stays in the plant's own
+                  history only.
+                </Text>
+              ) : (
+                <ChipGroup
+                  fonts={fonts}
+                  value={report.shared_to_feed ? "share" : "unlisted"}
+                  onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
+                  options={[
+                    { value: "share", label: "Share to feed" },
+                    { value: "unlisted", label: "Don't share" },
+                  ]}
+                />
+              )}
             </View>
 
             {settingsError ? (
@@ -482,5 +489,9 @@ const styles = StyleSheet.create({
   },
   ownerSettingLabel: {
     fontSize: 13,
+  },
+  settingHint: {
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

@@ -36,6 +36,12 @@ export type FeedItem = ProgressReport & {
   plant_owner_id: string;
   plant_owner_display_name: string | null;
   plant_owner_username: string | null;
+  // Whether the plant's owner currently allows a sitter's report on
+  // their plant to be shared to the sitter's own feed (see
+  // can_share_progress_to_feed() RLS, migration 0016). Fails open
+  // (true) if the owner's profile couldn't be resolved, matching
+  // isConsentCurrent()'s fail-open precedent for missing config.
+  plant_owner_share_allowed: boolean;
   like_count: number;
   liked_by_me: boolean;
   comment_count: number;
@@ -69,17 +75,19 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
 
   const plantsById = new Map(plants.map((plant) => [plant.id, plant]));
 
-  // Owner info for plants whose owner isn't already known from
-  // authorInfoById (the common case: author === owner) -- avoids
-  // re-fetching a profile we already have.
+  // Owner info is always fetched fresh (not reused from authorInfoById)
+  // because we need plant_sitter_attribution, which that cache doesn't
+  // carry -- and reusing the *author's* cached info here would be
+  // wrong anyway whenever author !== owner, exactly the sitter case
+  // this field exists for.
   const ownerIds = [...new Set(plants.map((plant) => plant.owner_id))];
-  const unknownOwnerIds = ownerIds.filter((id) => !authorInfoById.has(id));
   const ownerInfoById = new Map<string, AuthorInfo>(authorInfoById);
-  if (unknownOwnerIds.length > 0) {
+  const shareAllowedByOwnerId = new Map<string, boolean>();
+  if (ownerIds.length > 0) {
     const { data: ownerProfiles, error: ownerProfilesError } = await supabase
       .from("profiles")
-      .select("id, display_name, username")
-      .in("id", unknownOwnerIds);
+      .select("id, display_name, username, plant_sitter_attribution")
+      .in("id", ownerIds);
 
     if (ownerProfilesError) {
       throw ownerProfilesError;
@@ -87,6 +95,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
 
     for (const profile of ownerProfiles) {
       ownerInfoById.set(profile.id, { display_name: profile.display_name, username: profile.username });
+      shareAllowedByOwnerId.set(profile.id, profile.plant_sitter_attribution === "allowed");
     }
   }
 
@@ -131,6 +140,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       plant_owner_id: plantOwnerId,
       plant_owner_display_name: plantOwnerInfo?.display_name ?? null,
       plant_owner_username: plantOwnerInfo?.username ?? null,
+      plant_owner_share_allowed: shareAllowedByOwnerId.get(plantOwnerId) ?? true,
       like_count: likeCountsById.get(report.id) ?? 0,
       liked_by_me: likedByMeIds.has(report.id),
       comment_count: commentCountsById.get(report.id) ?? 0,
@@ -224,6 +234,15 @@ export async function createProgressReport(input: {
     .single();
 
   if (error) {
+    // 42501 here means the plant_progress_insert_own RLS check
+    // failed -- with shared_to_feed true, that's the
+    // can_share_progress_to_feed() gate rejecting a sitter's report
+    // because the plant's owner has plant_sitter_attribution
+    // 'disabled' (the other insert-time checks are all covered by the
+    // "am I owner or active sitter" gate the UI already respects).
+    if ((error as { code?: string }).code === "42501") {
+      throw new Error("This plant's owner doesn't allow sitters to share reports to a feed -- save it as unlisted instead.");
+    }
     throw error;
   }
 
@@ -262,6 +281,12 @@ export async function updateProgressReportSettings(
     .single();
 
   if (error) {
+    // Same 42501 case as createProgressReport(): flipping an unlisted
+    // sitter report to shared_to_feed:true after the fact hits the
+    // same can_share_progress_to_feed() gate.
+    if ((error as { code?: string }).code === "42501") {
+      throw new Error("This plant's owner doesn't allow sitters to share reports to a feed -- save it as unlisted instead.");
+    }
     throw error;
   }
 
