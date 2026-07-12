@@ -668,6 +668,26 @@ sharing them socially with other users.
   default "September 2026" title with two independently-tappable
   segments built from the same `month.toString("MMMM"/"yyyy")` calls
   the library's own default header uses internally.
+  **Min/max date limits — done.** `DatePickerField` gained optional
+  `minDate`/`maxDate` props, passed straight through to `Calendar`
+  (which already grays out/disables out-of-range days natively) and
+  also respected by the custom month/year grids (disabled chips +
+  disabled page/year-nav arrows when the entire adjacent page/year
+  would be out of range, so navigating there never lands on an
+  all-disabled dead end). `acquired_at` (`app/add-plant.tsx`,
+  `app/plant/[id].tsx`) gets `maxDate={todayISO()}` — no future
+  acquisition dates. `request-sitting.tsx`'s Start date gets
+  `minDate={today} maxDate={addYears(today, 1)}`; End date gets the
+  same `maxDate` plus a `minDate` that dynamically tracks the picked
+  Start date (falling back to today), so the End-date calendar can't
+  go earlier than the Start date already chosen. `lib/dateGrid.ts`
+  gained `todayISO()` (moved out of the component; reimplemented with
+  local `Date` getters instead of `toISOString()`, which converts to
+  UTC and can report the wrong calendar day near midnight — matters
+  now that this drives an inclusive date limit, not just a view
+  default), `addYears()`, and `isMonthOutOfRange()`/
+  `isYearOutOfRange()` (string-prefix comparisons, no `Date` parsing
+  needed).
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep

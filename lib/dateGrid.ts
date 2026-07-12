@@ -21,3 +21,40 @@ export function getYearPage(centerYear: number): number[] {
   const start = centerYear - 5;
   return Array.from({ length: 12 }, (_, i) => start + i);
 }
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+// Local Date getters, not toISOString() -- toISOString() converts to
+// UTC, which can report the wrong calendar day near midnight in
+// timezones behind/ahead of UTC. Matters here since this drives
+// inclusive min/max date limits, not just a default view.
+export function todayISO(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+}
+
+export function addYears(dateString: string, years: number): string {
+  const { year, month0 } = getYearMonth(dateString);
+  const day = Number(dateString.split("-")[2]);
+  const shifted = new Date(year + years, month0, day);
+  return `${shifted.getFullYear()}-${pad2(shifted.getMonth() + 1)}-${pad2(shifted.getDate())}`;
+}
+
+// YYYY-MM-DD strings compare correctly as plain strings, so these
+// just compare "YYYY-MM"/"YYYY" prefixes against the bounds -- no
+// Date parsing needed (same reasoning as request-sitting.tsx's
+// existing rangeIsValid check).
+export function isMonthOutOfRange(year: number, month0: number, minDate?: string, maxDate?: string): boolean {
+  const monthKey = buildMonthDate(year, month0).slice(0, 7);
+  if (minDate && monthKey < minDate.slice(0, 7)) return true;
+  if (maxDate && monthKey > maxDate.slice(0, 7)) return true;
+  return false;
+}
+
+export function isYearOutOfRange(year: number, minDate?: string, maxDate?: string): boolean {
+  if (minDate && year < Number(minDate.slice(0, 4))) return true;
+  if (maxDate && year > Number(maxDate.slice(0, 4))) return true;
+  return false;
+}

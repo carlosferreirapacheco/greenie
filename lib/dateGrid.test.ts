@@ -1,4 +1,4 @@
-import { buildMonthDate, getYearMonth, getYearPage } from "./dateGrid";
+import { addYears, buildMonthDate, getYearMonth, getYearPage, isMonthOutOfRange, isYearOutOfRange } from "./dateGrid";
 
 describe("getYearMonth", () => {
   it("parses year and 0-indexed month", () => {
@@ -26,5 +26,51 @@ describe("getYearPage", () => {
     expect(page).toHaveLength(12);
     expect(page[5]).toBe(2026);
     expect(page).toEqual([2021, 2022, 2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032]);
+  });
+});
+
+describe("addYears", () => {
+  it("shifts the year while keeping month and day", () => {
+    expect(addYears("2026-07-12", 1)).toBe("2027-07-12");
+  });
+
+  it("supports shifting backwards", () => {
+    expect(addYears("2026-07-12", -1)).toBe("2025-07-12");
+  });
+});
+
+describe("isMonthOutOfRange", () => {
+  it("is false when no bounds are set", () => {
+    expect(isMonthOutOfRange(2026, 6)).toBe(false);
+  });
+
+  it("is true below minDate's month", () => {
+    expect(isMonthOutOfRange(2026, 5, "2026-07-01")).toBe(true);
+  });
+
+  it("is true above maxDate's month", () => {
+    expect(isMonthOutOfRange(2026, 7, undefined, "2026-07-31")).toBe(true);
+  });
+
+  it("is false within range", () => {
+    expect(isMonthOutOfRange(2026, 6, "2026-01-01", "2026-12-31")).toBe(false);
+  });
+});
+
+describe("isYearOutOfRange", () => {
+  it("is false when no bounds are set", () => {
+    expect(isYearOutOfRange(2026)).toBe(false);
+  });
+
+  it("is true below minDate's year", () => {
+    expect(isYearOutOfRange(2025, "2026-07-01")).toBe(true);
+  });
+
+  it("is true above maxDate's year", () => {
+    expect(isYearOutOfRange(2028, undefined, "2027-07-01")).toBe(true);
+  });
+
+  it("is false within range", () => {
+    expect(isYearOutOfRange(2026, "2020-01-01", "2030-01-01")).toBe(false);
   });
 });

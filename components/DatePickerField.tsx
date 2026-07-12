@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Calendar, type DateData } from "react-native-calendars";
-import { buildMonthDate, getYearMonth, getYearPage } from "../lib/dateGrid";
+import {
+  buildMonthDate,
+  getYearMonth,
+  getYearPage,
+  isMonthOutOfRange,
+  isYearOutOfRange,
+  todayISO,
+} from "../lib/dateGrid";
 import { colors, getFonts, radius, spacing } from "../lib/theme";
 
 const MONTH_NAMES = [
@@ -15,10 +22,6 @@ const MONTH_NAMES = [
 // could break on a future react-native-calendars bump.
 type MonthLike = { toString(format: string): string };
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 // Drop-in replacement for a TextInput used for a single YYYY-MM-DD
 // value -- callers keep their own label Text exactly as before, this
 // only replaces the input box. A pure-JS calendar (not the native OS
@@ -29,21 +32,28 @@ export function DatePickerField({
   onChange,
   placeholder = "Select date",
   fonts,
+  minDate,
+  maxDate,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   fonts: ReturnType<typeof getFonts>;
+  minDate?: string;
+  maxDate?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"days" | "months" | "years">("days");
   // The month currently being browsed -- independent from `value` so
   // navigating around doesn't commit anything until a day is tapped.
-  const [viewDate, setViewDate] = useState(value || todayISO());
+  const [viewDate, setViewDate] = useState(value || minDate || todayISO());
   const [yearPageStart, setYearPageStart] = useState(0);
 
   function handleOpen() {
-    setViewDate(value || todayISO());
+    // Falls back to minDate before today so opening an empty field
+    // with a future-only range (e.g. End date after Start date is
+    // picked) doesn't open on a mostly-disabled current month.
+    setViewDate(value || minDate || todayISO());
     setPickerMode("days");
     setIsOpen(true);
   }
@@ -97,6 +107,8 @@ export function DatePickerField({
               {pickerMode === "days" ? (
                 <Calendar
                   current={viewDate}
+                  minDate={minDate}
+                  maxDate={maxDate}
                   onDayPress={handleDayPress}
                   onMonthChange={(day) => setViewDate(day.dateString)}
                   markedDates={
@@ -136,14 +148,42 @@ export function DatePickerField({
               {pickerMode === "months" ? (
                 <View>
                   <View style={styles.subHeaderRow}>
-                    <Pressable onPress={() => setViewDate(buildMonthDate(viewYear - 1, viewMonth0))} hitSlop={8}>
-                      <Text style={[styles.chevron, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>‹</Text>
+                    <Pressable
+                      onPress={() => setViewDate(buildMonthDate(viewYear - 1, viewMonth0))}
+                      disabled={isYearOutOfRange(viewYear - 1, minDate, maxDate)}
+                      hitSlop={8}
+                    >
+                      <Text
+                        style={[
+                          styles.chevron,
+                          {
+                            fontFamily: fonts.bodySemiBold,
+                            color: isYearOutOfRange(viewYear - 1, minDate, maxDate) ? colors.line : colors.moss,
+                          },
+                        ]}
+                      >
+                        ‹
+                      </Text>
                     </Pressable>
                     <Text style={[styles.subHeaderText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
                       {viewYear}
                     </Text>
-                    <Pressable onPress={() => setViewDate(buildMonthDate(viewYear + 1, viewMonth0))} hitSlop={8}>
-                      <Text style={[styles.chevron, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>›</Text>
+                    <Pressable
+                      onPress={() => setViewDate(buildMonthDate(viewYear + 1, viewMonth0))}
+                      disabled={isYearOutOfRange(viewYear + 1, minDate, maxDate)}
+                      hitSlop={8}
+                    >
+                      <Text
+                        style={[
+                          styles.chevron,
+                          {
+                            fontFamily: fonts.bodySemiBold,
+                            color: isYearOutOfRange(viewYear + 1, minDate, maxDate) ? colors.line : colors.moss,
+                          },
+                        ]}
+                      >
+                        ›
+                      </Text>
                     </Pressable>
                   </View>
                   <Pressable onPress={() => setPickerMode("days")} hitSlop={8} style={styles.backLink}>
@@ -154,19 +194,25 @@ export function DatePickerField({
                   <View style={styles.grid}>
                     {MONTH_NAMES.map((name, month0) => {
                       const isCurrent = month0 === viewMonth0;
+                      const isDisabled = isMonthOutOfRange(viewYear, month0, minDate, maxDate);
                       return (
                         <Pressable
                           key={name}
                           style={[
                             styles.gridChip,
-                            { borderColor: colors.line, backgroundColor: isCurrent ? colors.moss : "transparent" },
+                            { borderColor: colors.line, backgroundColor: isCurrent && !isDisabled ? colors.moss : "transparent" },
                           ]}
                           onPress={() => pickMonth(viewYear, month0)}
+                          disabled={isDisabled}
                         >
                           <Text
                             style={[
                               styles.gridChipText,
-                              { fontFamily: fonts.bodyMedium, color: isCurrent ? colors.paperRaised : colors.ink },
+                              {
+                                fontFamily: fonts.bodyMedium,
+                                color: isDisabled ? colors.inkSoft : isCurrent ? colors.paperRaised : colors.ink,
+                                opacity: isDisabled ? 0.5 : 1,
+                              },
                             ]}
                           >
                             {name.slice(0, 3)}
@@ -179,48 +225,87 @@ export function DatePickerField({
               ) : null}
 
               {pickerMode === "years" ? (
-                <View>
-                  <View style={styles.subHeaderRow}>
-                    <Pressable onPress={() => setYearPageStart((start) => start - 12)} hitSlop={8}>
-                      <Text style={[styles.chevron, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>‹</Text>
-                    </Pressable>
-                    <Text style={[styles.subHeaderText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                      {yearPageStart}–{yearPageStart + 11}
-                    </Text>
-                    <Pressable onPress={() => setYearPageStart((start) => start + 12)} hitSlop={8}>
-                      <Text style={[styles.chevron, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>›</Text>
-                    </Pressable>
-                  </View>
-                  <Pressable onPress={() => setPickerMode("days")} hitSlop={8} style={styles.backLink}>
-                    <Text style={[styles.backText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                      ‹ Back to calendar
-                    </Text>
-                  </Pressable>
-                  <View style={styles.grid}>
-                    {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map((year) => {
-                      const isCurrent = year === viewYear;
-                      return (
+                (() => {
+                  const minYear = minDate ? Number(minDate.slice(0, 4)) : undefined;
+                  const maxYear = maxDate ? Number(maxDate.slice(0, 4)) : undefined;
+                  // Pages are contiguous and sorted, so checking just the
+                  // nearest year in the adjacent page is enough -- if it's
+                  // already out of range, all 12 in that page are.
+                  const prevPageDisabled = minYear !== undefined && yearPageStart - 1 < minYear;
+                  const nextPageDisabled = maxYear !== undefined && yearPageStart + 12 > maxYear;
+                  return (
+                    <View>
+                      <View style={styles.subHeaderRow}>
                         <Pressable
-                          key={year}
-                          style={[
-                            styles.gridChip,
-                            { borderColor: colors.line, backgroundColor: isCurrent ? colors.moss : "transparent" },
-                          ]}
-                          onPress={() => pickYear(year)}
+                          onPress={() => setYearPageStart((start) => start - 12)}
+                          disabled={prevPageDisabled}
+                          hitSlop={8}
                         >
                           <Text
                             style={[
-                              styles.gridChipText,
-                              { fontFamily: fonts.bodyMedium, color: isCurrent ? colors.paperRaised : colors.ink },
+                              styles.chevron,
+                              { fontFamily: fonts.bodySemiBold, color: prevPageDisabled ? colors.line : colors.moss },
                             ]}
                           >
-                            {year}
+                            ‹
                           </Text>
                         </Pressable>
-                      );
-                    })}
-                  </View>
-                </View>
+                        <Text style={[styles.subHeaderText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                          {yearPageStart}–{yearPageStart + 11}
+                        </Text>
+                        <Pressable
+                          onPress={() => setYearPageStart((start) => start + 12)}
+                          disabled={nextPageDisabled}
+                          hitSlop={8}
+                        >
+                          <Text
+                            style={[
+                              styles.chevron,
+                              { fontFamily: fonts.bodySemiBold, color: nextPageDisabled ? colors.line : colors.moss },
+                            ]}
+                          >
+                            ›
+                          </Text>
+                        </Pressable>
+                      </View>
+                      <Pressable onPress={() => setPickerMode("days")} hitSlop={8} style={styles.backLink}>
+                        <Text style={[styles.backText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                          ‹ Back to calendar
+                        </Text>
+                      </Pressable>
+                      <View style={styles.grid}>
+                        {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map((year) => {
+                          const isCurrent = year === viewYear;
+                          const isDisabled = isYearOutOfRange(year, minDate, maxDate);
+                          return (
+                            <Pressable
+                              key={year}
+                              style={[
+                                styles.gridChip,
+                                { borderColor: colors.line, backgroundColor: isCurrent && !isDisabled ? colors.moss : "transparent" },
+                              ]}
+                              onPress={() => pickYear(year)}
+                              disabled={isDisabled}
+                            >
+                              <Text
+                                style={[
+                                  styles.gridChipText,
+                                  {
+                                    fontFamily: fonts.bodyMedium,
+                                    color: isDisabled ? colors.inkSoft : isCurrent ? colors.paperRaised : colors.ink,
+                                    opacity: isDisabled ? 0.5 : 1,
+                                  },
+                                ]}
+                              >
+                                {year}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })()
               ) : null}
 
               {pickerMode === "days" && value ? (

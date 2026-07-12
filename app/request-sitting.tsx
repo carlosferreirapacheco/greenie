@@ -14,6 +14,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { requestPlantSitting } from "../lib/supabase/plant_sitting";
 import { getProfile, type Profile } from "../lib/supabase/profiles";
 import { DatePickerField } from "../components/DatePickerField";
+import { addYears, todayISO } from "../lib/dateGrid";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -40,6 +41,9 @@ export default function RequestSittingScreen() {
   const [endsAt, setEndsAt] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const today = todayISO();
+  const maxSittingDate = addYears(today, 1);
 
   // Same synchronous-guard pattern as app/add-plant.tsx and app/log-progress.tsx.
   const isSaving = useRef(false);
@@ -90,14 +94,20 @@ export default function RequestSittingScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Start date (optional)
           </Text>
-          <DatePickerField value={startsAt} onChange={setStartsAt} fonts={fonts} />
+          <DatePickerField value={startsAt} onChange={setStartsAt} fonts={fonts} minDate={today} maxDate={maxSittingDate} />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             End date (optional)
           </Text>
-          <DatePickerField value={endsAt} onChange={setEndsAt} fonts={fonts} />
+          <DatePickerField
+            value={endsAt}
+            onChange={setEndsAt}
+            fonts={fonts}
+            minDate={startsAt.trim() || today}
+            maxDate={maxSittingDate}
+          />
           {!rangeIsValid ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
               End date must be on or after the start date

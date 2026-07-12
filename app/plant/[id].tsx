@@ -22,6 +22,7 @@ import { getProgressReportsForPlant, type ProgressReport } from "../../lib/supab
 import { getMyActiveAssignmentOwnerIds } from "../../lib/supabase/plant_sitting";
 import { HeightChart } from "../../components/HeightChart";
 import { DatePickerField } from "../../components/DatePickerField";
+import { todayISO } from "../../lib/dateGrid";
 import {
   createCareTask,
   deleteCareTask,
@@ -407,7 +408,7 @@ export default function PlantProfileScreen() {
         <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Acquired date</Text>
         {isEditingDate ? (
           <>
-            <DatePickerField value={acquiredAtInput} onChange={setAcquiredAtInput} fonts={fonts} />
+            <DatePickerField value={acquiredAtInput} onChange={setAcquiredAtInput} fonts={fonts} maxDate={todayISO()} />
             {saveStatus === "error" ? (
               <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
             ) : null}

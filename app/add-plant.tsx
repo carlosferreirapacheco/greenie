@@ -16,6 +16,7 @@ import { lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { DatePickerField } from "../components/DatePickerField";
+import { todayISO } from "../lib/dateGrid";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -201,7 +202,7 @@ export default function AddPlantScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Acquired date (optional)
           </Text>
-          <DatePickerField value={acquiredAt} onChange={setAcquiredAt} fonts={fonts} />
+          <DatePickerField value={acquiredAt} onChange={setAcquiredAt} fonts={fonts} maxDate={todayISO()} />
         </View>
 
         {saveStatus === "error" ? (
