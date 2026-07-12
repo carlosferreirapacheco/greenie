@@ -654,6 +654,20 @@ sharing them socially with other users.
   element itself (`{isOpen ? <Modal visible transparent>...</Modal> :
   null}`) rather than trust `visible={isOpen}` alone. Applies to any
   future `Modal` usage in this codebase, not just this component.
+  **Month/year quick-navigation — done.** Tapping the month name in the
+  picker's header opens a Jan–Dec grid for the year shown; tapping the
+  year opens a 12-year grid (current year centered, paged ±12). Picking
+  either jumps `DatePickerField`'s internal `viewDate` there and
+  returns to the day view; a "‹ Back to calendar" link bails out of
+  either grid unchanged. New `lib/dateGrid.ts` (pure, tested) holds the
+  three small helpers this needed — `getYearMonth`/`buildMonthDate`
+  (string-split YYYY-MM-DD parsing/building, same no-`Date()` reasoning
+  as the rest of this component) and `getYearPage` (centers a 12-year
+  window on a given year for stable ± 12 paging). The day view's
+  `renderHeader` prop (from `react-native-calendars`) replaces the
+  default "September 2026" title with two independently-tappable
+  segments built from the same `month.toString("MMMM"/"yyyy")` calls
+  the library's own default header uses internally.
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep
