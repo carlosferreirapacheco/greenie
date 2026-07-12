@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -13,6 +13,9 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { createProgressReport, type CommentPolicy } from "../lib/supabase/plant_progress";
+import { getPlant } from "../lib/supabase/plants";
+import { getProfile } from "../lib/supabase/profiles";
+import { supabase } from "../lib/supabase/client";
 import { ChipGroup } from "../components/ChipGroup";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
@@ -26,12 +29,47 @@ export default function LogProgressScreen() {
   const [notes, setNotes] = useState("");
   const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
   const [sharedToFeed, setSharedToFeed] = useState(true);
+  // Whether this plant's owner (relevant only when logging as a
+  // sitter) allows sharing to a feed at all -- see
+  // can_share_progress_to_feed() RLS. Defaults true so the form isn't
+  // blocked while this resolves; RLS is the real backstop either way.
+  const [shareAllowed, setShareAllowed] = useState(true);
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Same synchronous-guard pattern as app/add-plant.tsx and app/profile.tsx.
   const isSaving = useRef(false);
+
+  useEffect(() => {
+    if (!plantId) {
+      return;
+    }
+    let cancelled = false;
+
+    Promise.all([getPlant(plantId), supabase.auth.getUser().then(({ data }) => data.user?.id)])
+      .then(async ([plant, currentUserId]) => {
+        if (cancelled || plant.owner_id === currentUserId) {
+          return;
+        }
+        const owner = await getProfile(plant.owner_id);
+        if (cancelled) {
+          return;
+        }
+        if (owner.plant_sitter_attribution === "disabled") {
+          setShareAllowed(false);
+          setSharedToFeed(false);
+        }
+      })
+      .catch(() => {
+        // Non-critical -- if this fails, the form stays as if sharing
+        // is allowed and RLS rejects an actual disallowed save.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [plantId]);
 
   const canSave = notes.trim().length > 0 && saveStatus !== "saving";
 
@@ -116,21 +154,30 @@ export default function LogProgressScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Feed</Text>
-          <ChipGroup
-            fonts={fonts}
-            value={sharedToFeed ? "share" : "unlisted"}
-            onChange={(value) => setSharedToFeed(value === "share")}
-            options={[
-              { value: "share", label: "Share to feed" },
-              { value: "unlisted", label: "Don't share" },
-            ]}
-          />
-          {!sharedToFeed ? (
+          {shareAllowed ? (
+            <>
+              <ChipGroup
+                fonts={fonts}
+                value={sharedToFeed ? "share" : "unlisted"}
+                onChange={(value) => setSharedToFeed(value === "share")}
+                options={[
+                  { value: "share", label: "Share to feed" },
+                  { value: "unlisted", label: "Don't share" },
+                ]}
+              />
+              {!sharedToFeed ? (
+                <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                  Won't appear in anyone's feed; it stays on this plant's own history, and its link keeps
+                  working for anyone who can see the report.
+                </Text>
+              ) : null}
+            </>
+          ) : (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Won't appear in anyone's feed; it stays on this plant's own history, and its link keeps
-              working for anyone who can see the report.
+              This plant's owner keeps sitter reports out of feeds -- this will only appear in the
+              plant's own history.
             </Text>
-          ) : null}
+          )}
         </View>
 
         {saveStatus === "error" ? (

@@ -131,8 +131,36 @@ sharing them socially with other users.
   follow is removed. New account-wide `profiles.plant_sitter_attribution`
   column (`allowed`/`disabled`, matches the other three privacy columns'
   shape, defaults to the open position like the rest) drives a new
-  Settings "Plant-sitters" toggle controlling whether a sitter's shared
-  report credits the owner by name.
+  Settings "Plant-sitters" toggle. **Corrected in a follow-up fix**: it
+  originally shipped documented as controlling whether a sitter's
+  shared report credits the owner by name, but nothing ever actually
+  read the column — the credit sentence always rendered and the toggle
+  had no effect. Redefined instead of wiring up the original spec: it
+  now gates whether a sitter's report on the owner's plant can be
+  shared to the sitter's own feed **at all** — `disabled` forces the
+  report to stay unlisted (reachable only via the plant's own history
+  or a direct link, same as any other unlisted report), enforced at
+  the RLS layer via a new `can_share_progress_to_feed()` helper
+  (migration `0016_plant_sitter_share_gate.sql`) added to both
+  `plant_progress_insert_own`'s and `plant_progress_update_own`'s
+  `with check` (the update policy needed an explicit `with check` for
+  the first time, since a sitter could otherwise log unlisted then
+  flip `shared_to_feed` on afterward via
+  `updateProgressReportSettings()`, bypassing the insert-time gate).
+  The owner's own reports on their own plants are never restricted by
+  their own setting. `FeedItem` gained `plant_owner_share_allowed`
+  (from a `hydrateReports()` owner-profile fetch that's now
+  unconditional rather than skipped when author === owner, since it
+  needs to read the *owner's* attribution setting specifically — a
+  distinction that matters exactly in the sitter case this field
+  exists for); `app/log-progress.tsx` and `app/progress/[id].tsx` both
+  replace the Feed sharing control with a static explanatory line
+  instead of letting a sitter pick an option the RLS layer will
+  reject. Verified live: with the setting disabled, a sitter's Log
+  Progress screen hides the Feed toggle and saves unlisted; flipping
+  the owner's setting to allowed brings the toggle back and a shared
+  report renders correctly with the existing "Logged progress on
+  {Owner}'s {Plant}" credit line.
   New `lib/supabase/plant_sitting.ts` (request/accept/decline/cancel,
   `getMyActiveAssignmentOwnerIds()`, and the pure, tested
   `computeSittingAccessState()` state machine handling the
