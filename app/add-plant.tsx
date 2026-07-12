@@ -15,6 +15,7 @@ import { router, Stack } from "expo-router";
 import { lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
+import { DatePickerField } from "../components/DatePickerField";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
 
@@ -40,15 +41,12 @@ export default function AddPlantScreen() {
   const isLookingUp = useRef(false);
   const isSaving = useRef(false);
 
-  const acquiredAtIsValid = acquiredAt.trim().length === 0 || /^\d{4}-\d{2}-\d{2}$/.test(acquiredAt.trim());
-
   const canSave =
     name.trim().length > 0 &&
     species.trim().length > 0 &&
     wateringFrequencyDays.trim().length > 0 &&
     Number.isFinite(Number(wateringFrequencyDays)) &&
     Number(wateringFrequencyDays) > 0 &&
-    acquiredAtIsValid &&
     saveStatus !== "saving";
 
   async function handleLookup() {
@@ -203,18 +201,7 @@ export default function AddPlantScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Acquired date (optional)
           </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={acquiredAt}
-            onChangeText={setAcquiredAt}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.inkSoft}
-          />
-          {!acquiredAtIsValid ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-              Use YYYY-MM-DD format
-            </Text>
-          ) : null}
+          <DatePickerField value={acquiredAt} onChange={setAcquiredAt} fonts={fonts} />
         </View>
 
         {saveStatus === "error" ? (

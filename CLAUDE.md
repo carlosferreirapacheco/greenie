@@ -628,11 +628,32 @@ sharing them socially with other users.
   `expo-image-picker` (or `expo-camera`) plus a Supabase Storage bucket and
   upload wiring, picked once and reused everywhere a photo is needed,
   rather than each feature re-deciding it ad hoc
-- Date picker UI — change all date-related inputs from plain text boxes
-  to a real calendar/date picker component. Currently a plain
-  `YYYY-MM-DD` text input on both `app/add-plant.tsx` and the acquired-date
-  editor on `app/plant/[id].tsx`; apply to any future date field too, not
-  just these two
+- Date picker UI — done. New `components/DatePickerField.tsx` replaces
+  the plain `YYYY-MM-DD` text boxes on `app/add-plant.tsx` (Acquired
+  date), `app/plant/[id].tsx` (the acquired-date inline editor), and
+  `app/request-sitting.tsx` (Start/End date) — every hand-rolled
+  `/^\d{4}-\d{2}-\d{2}$/` regex/validity flag was deleted along with
+  them, since a calendar can't produce an invalid string.
+  New dependency **`react-native-calendars`** (installed via `npx expo
+  install`): a **custom in-app calendar**, chosen over the native OS
+  picker (`@react-native-community/datetimepicker`) so it renders
+  identically and on-brand on web, iOS, and Android alike, rather than
+  falling back to an unstyled browser `<input type=date>` on
+  web — a deliberate choice given this app's eventual native target,
+  made knowingly trading away each platform's native picker feel for
+  that consistency. Its `onDayPress` callback hands back a
+  `dateString` already in `YYYY-MM-DD` form, so no `Date`/
+  `toISOString()` conversion was needed anywhere — every existing save
+  handler and `request-sitting.tsx`'s string-based
+  `startsAt <= endsAt` range check kept working unchanged.
+  **Gotcha worth remembering**: React Native Web's `Modal` component
+  doesn't reliably hide/unmount its content when only its `visible`
+  prop is toggled false (confirmed via React Fiber inspection — the
+  underlying state was correctly `false` while the modal stayed
+  visually open); the fix is to conditionally render the `Modal`
+  element itself (`{isOpen ? <Modal visible transparent>...</Modal> :
+  null}`) rather than trust `visible={isOpen}` alone. Applies to any
+  future `Modal` usage in this codebase, not just this component.
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep

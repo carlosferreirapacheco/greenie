@@ -7,17 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { requestPlantSitting } from "../lib/supabase/plant_sitting";
 import { getProfile, type Profile } from "../lib/supabase/profiles";
+import { DatePickerField } from "../components/DatePickerField";
 import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { getErrorMessage } from "../lib/errors";
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function RequestSittingScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -46,12 +44,10 @@ export default function RequestSittingScreen() {
   // Same synchronous-guard pattern as app/add-plant.tsx and app/log-progress.tsx.
   const isSaving = useRef(false);
 
-  const startsAtIsValid = startsAt.trim().length === 0 || DATE_PATTERN.test(startsAt.trim());
-  const endsAtIsValid = endsAt.trim().length === 0 || DATE_PATTERN.test(endsAt.trim());
   const rangeIsValid =
     startsAt.trim().length === 0 || endsAt.trim().length === 0 || startsAt.trim() <= endsAt.trim();
 
-  const canSave = startsAtIsValid && endsAtIsValid && rangeIsValid && saveStatus !== "saving";
+  const canSave = rangeIsValid && saveStatus !== "saving";
 
   async function handleSend() {
     if (!canSave || isSaving.current || !userId) {
@@ -94,40 +90,15 @@ export default function RequestSittingScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Start date (optional)
           </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={startsAt}
-            onChangeText={setStartsAt}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.inkSoft}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {!startsAtIsValid ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-              Use YYYY-MM-DD format
-            </Text>
-          ) : null}
+          <DatePickerField value={startsAt} onChange={setStartsAt} fonts={fonts} />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             End date (optional)
           </Text>
-          <TextInput
-            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-            value={endsAt}
-            onChangeText={setEndsAt}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.inkSoft}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {!endsAtIsValid ? (
-            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-              Use YYYY-MM-DD format
-            </Text>
-          ) : !rangeIsValid ? (
+          <DatePickerField value={endsAt} onChange={setEndsAt} fonts={fonts} />
+          {!rangeIsValid ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
               End date must be on or after the start date
             </Text>
@@ -178,13 +149,6 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
     lineHeight: 16,
-  },
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 10,
-    fontSize: 16,
   },
   errorText: {
     fontSize: 13,
