@@ -152,8 +152,10 @@ export async function getMySittingAssignments(): Promise<(PlantSittingAssignment
   return hydrated.map(({ profile, ...rest }) => ({ ...rest, owner: profile }));
 }
 
-// As owner: every request I've sent, excluding ones I've cancelled.
-export async function getMySentRequests(): Promise<(PlantSittingAssignment & { sitter: Profile })[]> {
+// As owner: live sitters -- requests still pending my sitter's response,
+// or accepted (regardless of whether their date window has opened,
+// closed, or was never set -- see computeSittingAccessState).
+export async function getMySitters(): Promise<(PlantSittingAssignment & { sitter: Profile })[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -166,7 +168,7 @@ export async function getMySentRequests(): Promise<(PlantSittingAssignment & { s
     .from("plant_sitting_assignments")
     .select("*")
     .eq("owner_id", user.id)
-    .neq("status", "cancelled")
+    .in("status", ["pending", "accepted"])
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -175,6 +177,66 @@ export async function getMySentRequests(): Promise<(PlantSittingAssignment & { s
 
   const hydrated = await hydrateWithProfiles(data, "sitter");
   return hydrated.map(({ profile, ...rest }) => ({ ...rest, sitter: profile }));
+}
+
+// "Sitting date" for sorting history: when the period was scheduled to
+// start, falling back to when the request was made if no period was
+// set. Kept as a pure function since Supabase's query builder can't
+// express a COALESCE-based order().
+export function sittingSortKey(assignment: Pick<PlantSittingAssignment, "starts_at" | "created_at">): string {
+  return assignment.starts_at ?? assignment.created_at;
+}
+
+// As owner: relationships explicitly closed -- declined by the sitter,
+// or cancelled by the owner. An accepted assignment whose ends_at has
+// simply passed without being cancelled stays in getMySitters() (still
+// "live", just showing as "Ended"), not here.
+export async function getSittersHistory(): Promise<(PlantSittingAssignment & { sitter: Profile })[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("plant_sitting_assignments")
+    .select("*")
+    .eq("owner_id", user.id)
+    .in("status", ["declined", "cancelled"]);
+
+  if (error) {
+    throw error;
+  }
+
+  const sorted = [...data].sort(
+    (a, b) => new Date(sittingSortKey(b)).getTime() - new Date(sittingSortKey(a)).getTime()
+  );
+
+  const hydrated = await hydrateWithProfiles(sorted, "sitter");
+  return hydrated.map(({ profile, ...rest }) => ({ ...rest, sitter: profile }));
+}
+
+const sittingDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+
+// Pure -- null when no period was set (callers should render nothing),
+// otherwise a short human range using the same date format as
+// app/feed.tsx.
+export function formatSittingPeriod(startsAt: string | null, endsAt: string | null): string | null {
+  if (!startsAt && !endsAt) {
+    return null;
+  }
+
+  if (startsAt && endsAt) {
+    return `${sittingDateFormatter.format(new Date(startsAt))} – ${sittingDateFormatter.format(new Date(endsAt))}`;
+  }
+
+  if (startsAt) {
+    return `From ${sittingDateFormatter.format(new Date(startsAt))}`;
+  }
+
+  return `Until ${sittingDateFormatter.format(new Date(endsAt as string))}`;
 }
 
 export async function acceptSittingRequest(id: string): Promise<void> {
