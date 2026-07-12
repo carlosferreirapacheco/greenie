@@ -3,10 +3,12 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { searchProfiles, type Profile } from "../lib/supabase/profiles";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
+  const { colors } = useTheme();
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${profile.id}`)}>
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
@@ -36,6 +38,7 @@ export default function SearchUsersScreen() {
 
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   function handleSearchChange(text: string) {
     setSearchQuery(text);

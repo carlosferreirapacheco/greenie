@@ -4,10 +4,12 @@ import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getMutualFollowers } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 function SitterRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       style={[styles.row, { borderBottomColor: colors.line }]}
@@ -27,6 +29,7 @@ export default function SelectSitterScreen() {
   const [mutualFollowers, setMutualFollowers] = useState<Profile[]>([]);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const fetchMutualFollowers = useCallback(() => {
     getMutualFollowers()

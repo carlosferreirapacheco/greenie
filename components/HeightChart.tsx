@@ -1,7 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Polyline } from "react-native-svg";
 import { computeChartPoints } from "../lib/chart";
-import { colors, getFonts, spacing } from "../lib/theme";
+import { getFonts, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 100;
@@ -17,6 +18,7 @@ export function HeightChart({
   entries: { created_at: string; height_cm: number }[];
   fonts: ReturnType<typeof getFonts>;
 }) {
+  const { colors } = useTheme();
   const points = computeChartPoints(
     entries.map((entry) => entry.height_cm),
     CHART_WIDTH,

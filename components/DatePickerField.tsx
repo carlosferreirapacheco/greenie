@@ -11,7 +11,8 @@ import {
   shiftMonth,
   todayISO,
 } from "../lib/dateGrid";
-import { colors, getFonts, radius, spacing } from "../lib/theme";
+import { getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -44,6 +45,7 @@ export function DatePickerField({
   minDate?: string;
   maxDate?: string;
 }) {
+  const { colors } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"days" | "months" | "years">("days");
   // The month currently being browsed -- independent from `value` so

@@ -13,7 +13,8 @@ import {
   type PlantCareStatus,
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
-import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
+import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
 import { getErrorMessage } from "../../lib/errors";
 
 function statusText(status: PlantCareStatus): string {
@@ -28,7 +29,8 @@ function statusText(status: PlantCareStatus): string {
 }
 
 function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
-  const palette = statusColors[status];
+  const { colors } = useTheme();
+  const palette = getStatusColors(colors)[status];
   return (
     <View style={[styles.pill, { backgroundColor: palette.bg }]}>
       <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
@@ -43,6 +45,7 @@ export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);

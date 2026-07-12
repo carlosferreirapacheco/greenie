@@ -36,11 +36,13 @@ import {
 } from "../lib/supabase/profiles";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors, themePreference, setThemePreference } = useTheme();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -397,6 +399,23 @@ export default function SettingsScreen() {
       <Stack.Screen options={{ title: "Settings" }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.sectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          Appearance
+        </Text>
+        <ChipGroup
+          fonts={fonts}
+          value={themePreference}
+          onChange={setThemePreference}
+          options={[
+            { value: "system", label: "System" },
+            { value: "light", label: "Light" },
+            { value: "dark", label: "Dark" },
+          ]}
+        />
+        <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          System matches your device's setting.
+        </Text>
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           Change password
         </Text>
 

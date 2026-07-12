@@ -701,10 +701,47 @@ sharing them socially with other users.
   `isMonthOutOfRange()`/`isYearOutOfRange()` (string-prefix
   comparisons, no `Date` parsing needed), `shiftMonth()` (pure
   month-arithmetic with year wraparound), and `clampMonthToYear()`.
-- Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
-  just needs `useColorScheme()` wired up to switch which palette is active
-  (deliberately deferred when the design system was first applied, to keep
-  that change scoped to light mode only)
+- Dark mode — done. A System/Light/Dark preference, activated in Settings
+  (new "Appearance" section, first on the screen), not just silent
+  OS-detection. `lib/theme.ts`'s `colors`/`statusColors` were static,
+  module-level constants bound to `palettes.light`, imported directly in
+  ~25 files (604 usages) — making theme switching real meant turning
+  `colors` into something reactive and touching every one of those call
+  sites. New `lib/ThemeContext.tsx` (`ThemeProvider`/`useTheme()`)
+  computes the active palette each render via a new pure, tested
+  `resolveScheme(preference, systemScheme)` in `lib/theme.ts`
+  (`"system"` reads `useColorScheme()`, defaulting light if the OS
+  reports nothing); `statusColors` became `getStatusColors(colors)`,
+  parameterized instead of closed over the light palette. Every screen
+  and component that used the static `colors` import now calls
+  `const { colors } = useTheme()` instead (same call-site shape as the
+  existing per-component `fonts = getFonts(...)` pattern); components
+  with their own sibling sub-components (e.g. `StatusPill` in
+  `app/index.tsx`/`app/user/[id].tsx`) call `useTheme()` independently
+  since each function component is its own context consumer.
+  **Persistence is `AsyncStorage`-backed (device-local), not a
+  `profiles` column** — deliberate: every other user setting in this
+  app is account-wide and synced, but theme is conventionally a
+  per-device preference (a phone and tablet could reasonably want
+  different themes), and CLAUDE.md's own schema-change caution argues
+  against an unneeded migration for this. `ThemeProvider` gates on a
+  `loaded` flag (folded into `app/_layout.tsx`'s existing
+  fonts/session loading gate) so an explicit dark preference doesn't
+  flash light on cold start. `app/_layout.tsx` also gained
+  `<StatusBar style={scheme === "dark" ? "light" : "dark"}>`
+  (`expo-status-bar`, previously unused) so status bar icons stay
+  legible against a dark background, and `app.json`'s
+  `userInterfaceStyle` changed from `"light"` to `"automatic"` so
+  native OS chrome can follow the resolved scheme too — native-chrome
+  verification is deferred to a real device/simulator (not testable in
+  the web preview), same as the native-share-sheet item below.
+  Verified live: System correctly follows the browser's
+  `prefers-color-scheme`, Light/Dark apply instantly across screens
+  (Settings, Plants list including `getStatusColors`-driven status
+  pills, Add Plant's `DatePickerField` calendar — enabled days render
+  legible near-white text, disabled days stay appropriately muted),
+  and an explicit choice persists (`AsyncStorage`) across a reload with
+  no light-then-dark flash.
 - Real authentication — email/password sign-up (`app/sign-up.tsx`),
   sign-in (`app/sign-in.tsx`), and sign-out (on `app/profile.tsx`) are
   built, replacing the old hardcoded dev-user auto-login. A

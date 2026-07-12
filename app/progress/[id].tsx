@@ -24,7 +24,8 @@ import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../.
 import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
 import { getFollowStatus } from "../../lib/supabase/follows";
 import { supabase } from "../../lib/supabase/client";
-import { colors, fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
 import { getErrorMessage } from "../../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
@@ -33,6 +34,7 @@ export default function ProgressDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -258,7 +260,7 @@ export default function ProgressDetailScreen() {
 
         {isOwner ? (
           <>
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: colors.line }]} />
 
             <View style={styles.ownerSetting}>
               <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
@@ -306,7 +308,7 @@ export default function ProgressDetailScreen() {
           </>
         ) : null}
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.line }]} />
 
         {report.comment_policy === "disabled" ? (
           <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
@@ -432,7 +434,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.line,
     marginVertical: spacing.sm,
   },
   commentsHeading: {

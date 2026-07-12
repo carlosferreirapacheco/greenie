@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { getFonts } from "./theme";
+import { getFonts, resolveScheme } from "./theme";
 
 describe("getFonts", () => {
   it("returns the loaded Google Font family names when fontsLoaded is true", () => {
@@ -29,5 +29,31 @@ describe("getFonts", () => {
       bodyMedium: expectedBody,
       bodySemiBold: expectedBody,
     });
+  });
+});
+
+describe("resolveScheme", () => {
+  it("resolves system to dark when the OS reports dark", () => {
+    expect(resolveScheme("system", "dark")).toBe("dark");
+  });
+
+  it("resolves system to light when the OS reports light", () => {
+    expect(resolveScheme("system", "light")).toBe("light");
+  });
+
+  it("defaults system to light when the OS reports null", () => {
+    expect(resolveScheme("system", null)).toBe("light");
+  });
+
+  it("defaults system to light when the OS reports undefined", () => {
+    expect(resolveScheme("system", undefined)).toBe("light");
+  });
+
+  it("passes light through regardless of system scheme", () => {
+    expect(resolveScheme("light", "dark")).toBe("light");
+  });
+
+  it("passes dark through regardless of system scheme", () => {
+    expect(resolveScheme("dark", "light")).toBe("dark");
   });
 });

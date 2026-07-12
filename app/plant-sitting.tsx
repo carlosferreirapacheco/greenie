@@ -16,7 +16,8 @@ import {
   type SittingAccessState,
 } from "../lib/supabase/plant_sitting";
 import { type Profile } from "../lib/supabase/profiles";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 function accessStateLabel(state: SittingAccessState): string {
@@ -49,6 +50,7 @@ function RequestRow({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.owner.id}`)}>
@@ -84,6 +86,7 @@ function AssignmentRow({
   assignment: PlantSittingAssignment & { owner: Profile };
   fonts: ReturnType<typeof getFonts>;
 }) {
+  const { colors } = useTheme();
   const state = computeSittingAccessState(assignment);
   return (
     <Pressable
@@ -120,6 +123,7 @@ function SentRequestRow({
   onConfirmCancel: () => void;
   onCancelCancel: () => void;
 }) {
+  const { colors } = useTheme();
   const canCancel = assignment.status === "pending" || assignment.status === "accepted";
   const period = formatSittingPeriod(assignment.starts_at, assignment.ends_at);
   return (
@@ -175,6 +179,7 @@ function HistoryRow({
   assignment: PlantSittingAssignment & { sitter: Profile };
   fonts: ReturnType<typeof getFonts>;
 }) {
+  const { colors } = useTheme();
   const period = formatSittingPeriod(assignment.starts_at, assignment.ends_at);
   return (
     <Pressable
@@ -197,6 +202,7 @@ function HistoryRow({
 export default function PlantSittingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);

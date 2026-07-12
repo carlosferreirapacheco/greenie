@@ -4,7 +4,8 @@ import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getBlockedUsers, unblockUser } from "../lib/supabase/blocks";
 import { type Profile } from "../lib/supabase/profiles";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 function BlockedRow({
@@ -18,6 +19,7 @@ function BlockedRow({
   busy: boolean;
   onUnblock: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.profileLink} onPress={() => router.push(`/user/${profile.id}`)}>
@@ -49,6 +51,7 @@ export default function BlockedUsersScreen() {
   const busyRef = useRef<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const fetchBlockedUsers = useCallback(() => {
     getBlockedUsers()

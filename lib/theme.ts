@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, type ColorSchemeName } from "react-native";
 import { Lora_400Regular_Italic, Lora_500Medium, Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from "@expo-google-fonts/work-sans";
 import type { PlantCareStatus } from "./supabase/care_tasks";
@@ -14,7 +14,7 @@ export const fontAssets = {
   WorkSans_600SemiBold,
 };
 
-type Palette = {
+export type Palette = {
   ink: string;
   inkSoft: string;
   moss: string;
@@ -60,10 +60,18 @@ export const palettes: { light: Palette; dark: Palette } = {
   },
 };
 
-// Light mode only for now — see lib/theme.ts plan notes. Swapping to
-// useColorScheme()-driven theming later just means picking between
-// palettes.light / palettes.dark here.
-export const colors = palettes.light;
+export type ThemeScheme = "light" | "dark";
+export type ThemePreference = ThemeScheme | "system";
+
+// "system" defaults to light when the OS reports null/undefined (e.g. web
+// browsers that don't expose prefers-color-scheme). Pure so it's testable
+// independent of the ThemeContext plumbing that calls it.
+export function resolveScheme(preference: ThemePreference, systemScheme: ColorSchemeName | null | undefined): ThemeScheme {
+  if (preference === "system") {
+    return systemScheme === "dark" ? "dark" : "light";
+  }
+  return preference;
+}
 
 export const spacing = {
   xs: 8,
@@ -121,8 +129,10 @@ export function getFonts(fontsLoaded: boolean): Fonts {
   };
 }
 
-export const statusColors: Record<PlantCareStatus, { bg: string; fg: string; dot: string }> = {
-  healthy: { bg: colors.sage, fg: colors.mossStrong, dot: colors.moss },
-  due_soon: { bg: colors.goldSoft, fg: colors.gold, dot: colors.gold },
-  overdue: { bg: colors.coralSoft, fg: colors.coral, dot: colors.coral },
-};
+export function getStatusColors(colors: Palette): Record<PlantCareStatus, { bg: string; fg: string; dot: string }> {
+  return {
+    healthy: { bg: colors.sage, fg: colors.mossStrong, dot: colors.moss },
+    due_soon: { bg: colors.goldSoft, fg: colors.gold, dot: colors.gold },
+    overdue: { bg: colors.coralSoft, fg: colors.coral, dot: colors.coral },
+  };
+}
