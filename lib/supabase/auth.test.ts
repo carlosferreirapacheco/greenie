@@ -15,11 +15,33 @@ import {
   confirmAccountDeletion,
   confirmPasswordlessAccountDeletion,
   accountHasPassword,
+  requestCurrentEmailConfirmationCode,
+  verifyCurrentEmailConfirmationCode,
+  isGoogleLinked,
+  changeAccountEmail,
+  linkGoogleAccount,
+  completePendingGoogleLinkSync,
 } from "./auth";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
 >;
+
+// jest-expo's environment has no browser localStorage -- a tiny
+// in-memory stub for the web-only linkGoogleAccount()/
+// completePendingGoogleLinkSync() tests.
+function createLocalStorageStub() {
+  const store = new Map<string, string>();
+  return {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+  };
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -150,6 +172,202 @@ describe("accountHasPassword", () => {
     mockSupabase.auth.getUserIdentities.mockResolvedValue({ data: null, error: err });
 
     await expect(accountHasPassword()).rejects.toBe(err);
+  });
+});
+
+describe("requestCurrentEmailConfirmationCode", () => {
+  it("throws Not signed in without sending anything when there's no session email", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(requestCurrentEmailConfirmationCode()).rejects.toThrow("Not signed in");
+    expect(mockSupabase.auth.signInWithOtp).not.toHaveBeenCalled();
+  });
+
+  it("sends the OTP to the session's own email without creating users", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    mockSupabase.auth.signInWithOtp.mockResolvedValue({ data: {}, error: null });
+
+    await requestCurrentEmailConfirmationCode();
+
+    expect(mockSupabase.auth.signInWithOtp).toHaveBeenCalledWith({
+      email: "a@b.com",
+      options: { shouldCreateUser: false },
+    });
+  });
+});
+
+describe("verifyCurrentEmailConfirmationCode", () => {
+  it("throws Not signed in without verifying anything when there's no session email", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(verifyCurrentEmailConfirmationCode("123456")).rejects.toThrow("Not signed in");
+    expect(mockSupabase.auth.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("verifies the trimmed code against the session's own email", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
+
+    await verifyCurrentEmailConfirmationCode(" 123456 ");
+
+    expect(mockSupabase.auth.verifyOtp).toHaveBeenCalledWith({ email: "a@b.com", token: "123456", type: "email" });
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { email: "a@b.com" } } });
+    const err = { message: "Token has expired or is invalid" };
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: err });
+
+    await expect(verifyCurrentEmailConfirmationCode("000000")).rejects.toBe(err);
+  });
+});
+
+describe("isGoogleLinked", () => {
+  it("is true when the account has a google identity", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "email" }, { provider: "google" }] },
+      error: null,
+    });
+
+    await expect(isGoogleLinked()).resolves.toBe(true);
+  });
+
+  it("is false for a password-only account", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "email" }] },
+      error: null,
+    });
+
+    await expect(isGoogleLinked()).resolves.toBe(false);
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "network error" };
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({ data: null, error: err });
+
+    await expect(isGoogleLinked()).rejects.toBe(err);
+  });
+});
+
+describe("changeAccountEmail", () => {
+  it("calls updateUser with the new email", async () => {
+    mockSupabase.auth.updateUser.mockResolvedValue({ data: {}, error: null });
+
+    await changeAccountEmail("new@b.com");
+
+    expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({ email: "new@b.com" });
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "Email already registered" };
+    mockSupabase.auth.updateUser.mockResolvedValue({ data: {}, error: err });
+
+    await expect(changeAccountEmail("taken@b.com")).rejects.toBe(err);
+  });
+});
+
+describe("linkGoogleAccount", () => {
+  it("throws on native without starting an OAuth flow (jest-expo runs as iOS)", async () => {
+    await expect(linkGoogleAccount()).rejects.toThrow("only available on the web");
+    expect(mockSupabase.auth.linkIdentity).not.toHaveBeenCalled();
+  });
+
+  describe("on web", () => {
+    let platformSpy: { restore: () => void };
+    let localStorageStub: ReturnType<typeof createLocalStorageStub>;
+
+    beforeEach(() => {
+      platformSpy = jest.replaceProperty(Platform, "OS", "web");
+      (globalThis as { location?: unknown }).location = { origin: "http://localhost:8081" };
+      localStorageStub = createLocalStorageStub();
+      (globalThis as { localStorage?: unknown }).localStorage = localStorageStub;
+    });
+
+    afterEach(() => {
+      platformSpy.restore();
+      delete (globalThis as { location?: unknown }).location;
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    });
+
+    it("sets the pending-sync flag and redirects back to Settings specifically", async () => {
+      mockSupabase.auth.linkIdentity.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+
+      await linkGoogleAccount();
+
+      expect(localStorageStub.getItem("greenie_pending_google_link_sync")).toBe("1");
+      expect(mockSupabase.auth.linkIdentity).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: "http://localhost:8081/settings" },
+      });
+    });
+
+    it("clears the pending-sync flag and throws on failure", async () => {
+      const err = { message: "Unsupported provider: provider is not enabled" };
+      mockSupabase.auth.linkIdentity.mockResolvedValue({ data: {}, error: err });
+
+      await expect(linkGoogleAccount()).rejects.toBe(err);
+      expect(localStorageStub.getItem("greenie_pending_google_link_sync")).toBeNull();
+    });
+  });
+});
+
+describe("completePendingGoogleLinkSync", () => {
+  it("is a no-op on native (jest-expo runs as iOS)", async () => {
+    await expect(completePendingGoogleLinkSync()).resolves.toBeNull();
+    expect(mockSupabase.auth.getUserIdentities).not.toHaveBeenCalled();
+  });
+
+  describe("on web", () => {
+    let platformSpy: { restore: () => void };
+    let localStorageStub: ReturnType<typeof createLocalStorageStub>;
+
+    beforeEach(() => {
+      platformSpy = jest.replaceProperty(Platform, "OS", "web");
+      localStorageStub = createLocalStorageStub();
+      (globalThis as { localStorage?: unknown }).localStorage = localStorageStub;
+    });
+
+    afterEach(() => {
+      platformSpy.restore();
+      delete (globalThis as { localStorage?: unknown }).localStorage;
+    });
+
+    it("is a no-op when nothing is pending", async () => {
+      await expect(completePendingGoogleLinkSync()).resolves.toBeNull();
+      expect(mockSupabase.auth.getUserIdentities).not.toHaveBeenCalled();
+    });
+
+    it("syncs the account email to the linked Google identity and clears the flag", async () => {
+      localStorageStub.setItem("greenie_pending_google_link_sync", "1");
+      mockSupabase.auth.getUserIdentities.mockResolvedValue({
+        data: {
+          identities: [
+            { provider: "email" },
+            { provider: "google", identity_data: { email: "carlos@gmail.com" } },
+          ],
+        },
+        error: null,
+      });
+      mockSupabase.auth.updateUser.mockResolvedValue({ data: {}, error: null });
+
+      await expect(completePendingGoogleLinkSync()).resolves.toBe("carlos@gmail.com");
+
+      expect(mockSupabase.auth.updateUser).toHaveBeenCalledWith({ email: "carlos@gmail.com" });
+      expect(localStorageStub.getItem("greenie_pending_google_link_sync")).toBeNull();
+    });
+
+    it("returns null and still clears the flag when no Google identity is found", async () => {
+      localStorageStub.setItem("greenie_pending_google_link_sync", "1");
+      mockSupabase.auth.getUserIdentities.mockResolvedValue({
+        data: { identities: [{ provider: "email" }] },
+        error: null,
+      });
+
+      await expect(completePendingGoogleLinkSync()).resolves.toBeNull();
+
+      expect(mockSupabase.auth.updateUser).not.toHaveBeenCalled();
+      expect(localStorageStub.getItem("greenie_pending_google_link_sync")).toBeNull();
+    });
   });
 });
 

@@ -287,6 +287,51 @@ sharing them socially with other users.
       Templates → Magic Link) so real deletion emails carry the
       6-digit code. Pairs with the SMTP setup item under Real
       authentication.
+  - Change account email / link Google account — done. Built to unblock
+    real-email SMTP testing: every seed/test account had a fake or
+    placeholder email, so the account-deletion OTP (and any future
+    email) had nowhere real to land. Settings gained an "Email & linked
+    accounts" section (between Change password and Privacy) with two
+    actions, both gated the same way: a "Send code to current email"
+    step (new `requestCurrentEmailConfirmationCode()`/
+    `verifyCurrentEmailConfirmationCode()` in `lib/supabase/auth.ts`,
+    factored out of the existing account-deletion OTP mechanism via a
+    shared internal `sendCurrentEmailOtp()` — same
+    `signInWithOtp`/`verifyOtp` pair, no new DB table) must succeed
+    before either the email change or the Google link proceeds — proof
+    of mailbox control before a change that redirects account recovery.
+    **Change email**: `changeAccountEmail()` calls
+    `supabase.auth.updateUser({ email })`; in this project's current
+    Auth config the change lands immediately (no separate new-email
+    confirmation click needed — noted here since Supabase's own
+    "Secure email change"/new-email-confirmation settings can make this
+    behave differently, so a future config change could reintroduce a
+    pending step). **Link Google account**: `linkGoogleAccount()`
+    mirrors `signInWithGoogle()`'s web-only redirect shape but calls
+    `supabase.auth.linkIdentity()` against the *current* session
+    instead of starting a new sign-in, redirecting specifically back to
+    `/settings` (not the plain origin `signInWithGoogle()` uses) so the
+    sync step below has a screen to land on. Required a one-time owner
+    action: Supabase's "Manual linking" setting (Authentication → Sign
+    In / Providers) is off by default and must be enabled for
+    `linkIdentity()` to work at all — discovered live when the first
+    attempt failed with "Manual linking is disabled." Once linked, "the
+    previous email is disregarded" is implemented by
+    `completePendingGoogleLinkSync()`: a `localStorage` flag (web-only,
+    matching the existing `detectSessionInUrl` pattern) set right
+    before the redirect survives the full-page round-trip, and on
+    return the Settings screen looks up the newly-linked Google
+    identity's email and calls `changeAccountEmail()` with it,
+    overwriting whatever the account's email was before — verified live
+    end-to-end on the dev seed account (`dev-dummy-user@greenie.local`
+    → linked to and now showing the real Gmail address). A temporary,
+    explicitly-commented `DEV_TEST_ACCOUNT_EMAIL` carve-out let that one
+    fake-email account skip the current-email-confirm step (impossible
+    to satisfy against an address that doesn't exist) for this one-time
+    bootstrap; it was deleted from both `auth.ts` and `settings.tsx`
+    immediately after the link succeeded — no standing per-account
+    exception shipped, both actions always require the confirm-code
+    step now.
 - Usernames — done. Every profile has a mandatory, unique `username`
   (migration `0009_usernames.sql`): lowercase letters/digits/dot/
   underscore, starts with a letter, ends with a letter or digit, 3–20
@@ -583,10 +628,18 @@ sharing them socially with other users.
   sends/hour, too low to test signup repeatedly) — needs to be revisited
   before real users sign up, since a permanently-disabled confirmation
   step lets anyone sign up with an email they don't own.
-  - Lookup free SMTP services — the built-in Supabase email sender's rate
-    limit is too low for real usage. Research free/cheap SMTP providers
-    (Resend, Postmark, SendGrid free tiers, etc.) usable via Supabase's
-    custom SMTP setting.
+  - Lookup free SMTP services — provider chosen (Resend, over Brevo/
+    Postmark/Mailgun/SendGrid — see the SMTP provider decision) and
+    custom SMTP configured in the Supabase dashboard (host
+    `smtp.resend.com`, sender `onboarding@resend.dev` — Resend's free
+    test domain, which can only deliver to the address the Resend
+    account itself was signed up with, not arbitrary real users).
+    Delivery testing stalled because every seed/test account had a
+    fake or placeholder email with nowhere real to land — resolved by
+    the "Change account email / link Google account" feature above,
+    which gives test accounts a real address to test against. Actual
+    end-to-end delivery testing (does a real inbox receive the emailed
+    OTP) is the next step once resumed.
   - Re-enable "Confirm email" in the Supabase Auth dashboard once a real
     SMTP provider is set up (see above) — it's off right now purely as a
     development workaround for the built-in sender's rate limit, and

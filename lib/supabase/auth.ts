@@ -64,6 +64,21 @@ export async function signOut(): Promise<void> {
   }
 }
 
+// Emails a one-time code to prove control of an address, without
+// creating a new account if it doesn't already belong to one. Shared
+// by every flow that needs to confirm mailbox control of the
+// signed-in user's *current* email before a sensitive change.
+async function sendCurrentEmailOtp(email: string): Promise<void> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 // Emails a one-time confirmation code to the account's own address --
 // the first half of account deletion's proof of mailbox control.
 export async function requestAccountDeletionCode(): Promise<void> {
@@ -75,9 +90,37 @@ export async function requestAccountDeletionCode(): Promise<void> {
     throw new Error("Not signed in");
   }
 
-  const { error } = await supabase.auth.signInWithOtp({
+  await sendCurrentEmailOtp(user.email);
+}
+
+// Same emailed-code mechanism as account deletion, reused as a general
+// "prove you control the current session's email" gate before changing
+// the account's email or linking a new sign-in identity to it.
+export async function requestCurrentEmailConfirmationCode(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  await sendCurrentEmailOtp(user.email);
+}
+
+export async function verifyCurrentEmailConfirmationCode(code: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    throw new Error("Not signed in");
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
     email: user.email,
-    options: { shouldCreateUser: false },
+    token: code.trim(),
+    type: "email",
   });
 
   if (error) {
@@ -96,6 +139,91 @@ export async function accountHasPassword(): Promise<boolean> {
   }
 
   return (data?.identities ?? []).some((identity) => identity.provider === "email");
+}
+
+// Mirrors accountHasPassword() for the Google identity specifically --
+// drives whether Settings offers "Link Google account" at all.
+export async function isGoogleLinked(): Promise<boolean> {
+  const { data, error } = await supabase.auth.getUserIdentities();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data?.identities ?? []).some((identity) => identity.provider === "google");
+}
+
+// Changes the account's email. Supabase's own confirmation link to the
+// *new* address still applies on top of this -- untouched, since that's
+// the separate, desired proof that the new address is real and owned.
+export async function changeAccountEmail(newEmail: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
+
+  if (error) {
+    throw error;
+  }
+}
+
+const PENDING_GOOGLE_LINK_SYNC_KEY = "greenie_pending_google_link_sync";
+
+// Web-only, mirrors signInWithGoogle()'s redirect shape: links a Google
+// identity to the *currently signed-in* account rather than signing
+// into a new/existing one. A localStorage flag (matching the existing
+// web-only detectSessionInUrl pattern in ./client) survives the
+// full-page redirect so the app knows to sync the account's email to
+// the newly-linked Google identity once it lands back here -- see
+// completePendingGoogleLinkSync().
+export async function linkGoogleAccount(): Promise<void> {
+  if (Platform.OS !== "web") {
+    throw new Error("Linking a Google account is only available on the web for now");
+  }
+
+  const origin = (globalThis as { location?: { origin: string } }).location?.origin;
+
+  globalThis.localStorage?.setItem(PENDING_GOOGLE_LINK_SYNC_KEY, "1");
+
+  const { error } = await supabase.auth.linkIdentity({
+    provider: "google",
+    // Returns to Settings specifically (unlike signInWithGoogle()'s
+    // plain origin redirect) since that's where
+    // completePendingGoogleLinkSync() runs and the sync banner shows.
+    options: { redirectTo: origin ? `${origin}/settings` : undefined },
+  });
+
+  if (error) {
+    globalThis.localStorage?.removeItem(PENDING_GOOGLE_LINK_SYNC_KEY);
+    throw error;
+  }
+}
+
+// Called on Settings mount. If linkGoogleAccount() was used and the
+// redirect has landed back here, sets the account's email to the newly
+// linked Google identity's email (the previous email is disregarded,
+// per the linking flow's intent) and returns it so the caller can show
+// a confirmation banner. No-op (null) on native or when nothing is
+// pending.
+export async function completePendingGoogleLinkSync(): Promise<string | null> {
+  if (Platform.OS !== "web" || globalThis.localStorage?.getItem(PENDING_GOOGLE_LINK_SYNC_KEY) !== "1") {
+    return null;
+  }
+
+  globalThis.localStorage.removeItem(PENDING_GOOGLE_LINK_SYNC_KEY);
+
+  const { data, error } = await supabase.auth.getUserIdentities();
+
+  if (error) {
+    throw error;
+  }
+
+  const googleIdentity = (data?.identities ?? []).find((identity) => identity.provider === "google");
+  const googleEmail = googleIdentity?.identity_data?.email as string | undefined;
+
+  if (!googleEmail) {
+    return null;
+  }
+
+  await changeAccountEmail(googleEmail);
+  return googleEmail;
 }
 
 // Deleting an account requires BOTH the current password and the emailed
