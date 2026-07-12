@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors, getFonts, radius, spacing } from "../lib/theme";
+import { getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 
 // Single-select chip row, extracted from app/settings.tsx once
 // per-report settings (app/log-progress.tsx, app/progress/[id].tsx)
@@ -15,6 +16,7 @@ export function ChipGroup<T extends string>({
   onChange: (value: T) => void;
   fonts: ReturnType<typeof getFonts>;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.chipRow}>
       {options.map((option) => (

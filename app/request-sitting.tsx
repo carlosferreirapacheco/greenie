@@ -15,13 +15,15 @@ import { requestPlantSitting } from "../lib/supabase/plant_sitting";
 import { getProfile, type Profile } from "../lib/supabase/profiles";
 import { DatePickerField } from "../components/DatePickerField";
 import { addYears, todayISO } from "../lib/dateGrid";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function RequestSittingScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [sitter, setSitter] = useState<Profile | null>(null);
 

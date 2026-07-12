@@ -13,12 +13,14 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { signInWithEmail, signInWithGoogle } from "../lib/supabase/auth";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function SignInScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

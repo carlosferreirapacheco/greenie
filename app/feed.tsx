@@ -5,12 +5,14 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
 import { plantCommonNameSubtitle, plantPrimaryName } from "../lib/supabase/plants";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
 function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof getFonts> }) {
+  const { colors } = useTheme();
   const [liked, setLiked] = useState(item.liked_by_me);
   const [likeCount, setLikeCount] = useState(item.like_count);
   const [isToggling, setIsToggling] = useState(false);
@@ -150,6 +152,7 @@ export default function FeedScreen() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const fetchFeed = useCallback(() => {
     getFeed()

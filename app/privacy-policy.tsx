@@ -1,7 +1,8 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 
 // Plain-English draft describing what the app actually does today.
 // DRAFT: needs proper (legal) review before the app has real users --
@@ -53,6 +54,7 @@ const sections: { heading: string; body: string }[] = [
 export default function PrivacyPolicyScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>

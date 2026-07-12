@@ -20,7 +20,8 @@ import {
   validateUsername,
 } from "../lib/supabase/usernames";
 import { signOut } from "../lib/supabase/auth";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 const cooldownDateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -32,6 +33,7 @@ const cooldownDateFormatter = new Intl.DateTimeFormat(undefined, {
 export default function ProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);

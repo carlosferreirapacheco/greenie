@@ -14,12 +14,14 @@ import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { signInWithGoogle, signUpWithEmail } from "../lib/supabase/auth";
 import { isUsernameAvailable, normalizeUsername, validateUsername } from "../lib/supabase/usernames";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function SignUpScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");

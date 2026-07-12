@@ -34,7 +34,8 @@ import {
   type CareTaskType,
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
-import { colors, fontAssets, getFonts, radius, spacing, statusColors } from "../../lib/theme";
+import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
 import { getErrorMessage } from "../../lib/errors";
 
 const ALL_TASK_TYPES: CareTaskType[] = ["water", "fertilize", "repot"];
@@ -63,6 +64,8 @@ export default function PlantProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
+  const statusColors = getStatusColors(colors);
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);

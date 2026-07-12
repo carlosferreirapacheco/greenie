@@ -2,13 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { Redirect, Stack, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
+import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase/client";
 import { getPrivacyPolicyUpdatedAt, isConsentCurrent } from "../lib/supabase/consent";
 import { onConsentAccepted } from "../lib/consentEvents";
-import { colors, fontAssets, getFonts } from "../lib/theme";
+import { fontAssets, getFonts } from "../lib/theme";
+import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
 export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutNav />
+    </ThemeProvider>
+  );
+}
+
+function RootLayoutNav() {
+  const { colors, scheme, loaded: themeLoaded } = useTheme();
   const [session, setSession] = useState<Session | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   // null = never accepted; undefined = not yet known. Compared against
@@ -100,11 +111,13 @@ export default function RootLayout() {
 
   if (
     !sessionLoaded ||
+    !themeLoaded ||
     (!fontsLoaded && !fontError) ||
     (session && (consentedAt === undefined || policyUpdatedAt === undefined))
   ) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -146,7 +159,12 @@ export default function RootLayout() {
     return <Redirect href="/" />;
   }
 
-  return <Stack screenOptions={screenOptions} />;
+  return (
+    <>
+      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      <Stack screenOptions={screenOptions} />
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

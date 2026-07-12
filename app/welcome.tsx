@@ -16,7 +16,8 @@ import { acceptPrivacyPolicy, getMyProfile, updateMyProfile, type MyProfile } fr
 import { normalizeUsername, validateUsername } from "../lib/supabase/usernames";
 import { signOut } from "../lib/supabase/auth";
 import { emitConsentAccepted } from "../lib/consentEvents";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 // Two modes, both driven by the root layout's consent gate:
@@ -30,6 +31,7 @@ import { getErrorMessage } from "../lib/errors";
 export default function WelcomeScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);

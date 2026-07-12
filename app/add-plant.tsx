@@ -17,12 +17,14 @@ import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { DatePickerField } from "../components/DatePickerField";
 import { todayISO } from "../lib/dateGrid";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function AddPlantScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");

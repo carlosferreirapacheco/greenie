@@ -17,13 +17,15 @@ import { getPlant } from "../lib/supabase/plants";
 import { getProfile } from "../lib/supabase/profiles";
 import { supabase } from "../lib/supabase/client";
 import { ChipGroup } from "../components/ChipGroup";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function LogProgressScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const [heightCm, setHeightCm] = useState("");
   const [notes, setNotes] = useState("");

@@ -4,7 +4,8 @@ import { useFonts } from "expo-font";
 import { Stack, useFocusEffect } from "expo-router";
 import { acceptFollowRequest, declineFollowRequest, getPendingFollowRequests } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
-import { colors, fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
 
 function RequestRow({
@@ -20,6 +21,7 @@ function RequestRow({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
@@ -51,6 +53,7 @@ export default function FollowRequestsScreen() {
   const busyRef = useRef<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
+  const { colors } = useTheme();
 
   const fetchRequests = useCallback(() => {
     getPendingFollowRequests()
