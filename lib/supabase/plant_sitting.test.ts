@@ -9,7 +9,10 @@ import {
   requestPlantSitting,
   getMySittingRequests,
   getMySittingAssignments,
-  getMySentRequests,
+  getMySitters,
+  getSittersHistory,
+  sittingSortKey,
+  formatSittingPeriod,
   acceptSittingRequest,
   declineSittingRequest,
   cancelSittingRequest,
@@ -162,8 +165,8 @@ describe("getMySittingAssignments", () => {
   });
 });
 
-describe("getMySentRequests", () => {
-  it("queries non-cancelled assignments where I'm the owner and hydrates the sitter profile", async () => {
+describe("getMySitters", () => {
+  it("queries pending/accepted assignments where I'm the owner and hydrates the sitter profile", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "owner1" } } });
     const assignmentsChain = createChainableQueryMock({
       data: [{ id: "a1", owner_id: "owner1", sitter_id: "sitter1", status: "accepted" }],
@@ -172,11 +175,75 @@ describe("getMySentRequests", () => {
     const profilesChain = createChainableQueryMock({ data: [{ id: "sitter1", display_name: "Sitter One" }], error: null });
     mockSupabase.from.mockReturnValueOnce(assignmentsChain).mockReturnValueOnce(profilesChain);
 
-    const result = await getMySentRequests();
+    const result = await getMySitters();
 
     expect(assignmentsChain.eq).toHaveBeenCalledWith("owner_id", "owner1");
-    expect(assignmentsChain.neq).toHaveBeenCalledWith("status", "cancelled");
+    expect(assignmentsChain.in).toHaveBeenCalledWith("status", ["pending", "accepted"]);
     expect(result[0].sitter).toEqual({ id: "sitter1", display_name: "Sitter One" });
+  });
+});
+
+describe("sittingSortKey", () => {
+  it("uses starts_at when set", () => {
+    expect(sittingSortKey({ starts_at: "2026-08-01", created_at: "2026-01-01" })).toBe("2026-08-01");
+  });
+
+  it("falls back to created_at when starts_at is null", () => {
+    expect(sittingSortKey({ starts_at: null, created_at: "2026-01-01" })).toBe("2026-01-01");
+  });
+});
+
+describe("getSittersHistory", () => {
+  it("queries declined/cancelled assignments where I'm the owner", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "owner1" } } });
+    const assignmentsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValueOnce(assignmentsChain);
+
+    await getSittersHistory();
+
+    expect(assignmentsChain.eq).toHaveBeenCalledWith("owner_id", "owner1");
+    expect(assignmentsChain.in).toHaveBeenCalledWith("status", ["declined", "cancelled"]);
+  });
+
+  it("sorts by sittingSortKey descending (starts_at, falling back to created_at)", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "owner1" } } });
+    const assignmentsChain = createChainableQueryMock({
+      data: [
+        { id: "no-period", owner_id: "owner1", sitter_id: "s1", status: "cancelled", starts_at: null, created_at: "2026-02-01" },
+        { id: "earliest", owner_id: "owner1", sitter_id: "s2", status: "declined", starts_at: "2026-01-01", created_at: "2025-12-01" },
+        { id: "latest", owner_id: "owner1", sitter_id: "s3", status: "cancelled", starts_at: "2026-06-01", created_at: "2025-11-01" },
+      ],
+      error: null,
+    });
+    const profilesChain = createChainableQueryMock({
+      data: [{ id: "s1" }, { id: "s2" }, { id: "s3" }],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(assignmentsChain).mockReturnValueOnce(profilesChain);
+
+    const result = await getSittersHistory();
+
+    expect(result.map((a) => a.id)).toEqual(["latest", "no-period", "earliest"]);
+  });
+});
+
+describe("formatSittingPeriod", () => {
+  it("returns null when neither date is set", () => {
+    expect(formatSittingPeriod(null, null)).toBeNull();
+  });
+
+  it("formats a range when both dates are set", () => {
+    const result = formatSittingPeriod("2026-07-20T00:00:00.000Z", "2026-07-27T00:00:00.000Z");
+    expect(result).toContain(" – ");
+    expect(result?.indexOf(" – ")).toBeGreaterThan(0);
+  });
+
+  it("formats a start-only period", () => {
+    expect(formatSittingPeriod("2026-07-20T00:00:00.000Z", null)).toMatch(/^From /);
+  });
+
+  it("formats an end-only period", () => {
+    expect(formatSittingPeriod(null, "2026-07-27T00:00:00.000Z")).toMatch(/^Until /);
   });
 });
 

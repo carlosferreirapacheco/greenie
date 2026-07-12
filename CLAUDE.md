@@ -159,8 +159,25 @@ sharing them socially with other users.
   signed-in user is sitting for (deep-links to the existing
   `app/user/[id].tsx` profile screen and its Plants list — no dedicated
   "sitting session" screen needed, since a mutual follower already has
-  full RLS-granted visibility into that list), and requests sent as an
-  owner (two-tap Cancel, matching Remove follower/Block).
+  full RLS-granted visibility into that list), and sitters requested as
+  an owner. That last section is itself split in two: "My sitters" (live
+  only — `getMySitters()`, `status in ('pending','accepted')`, two-tap
+  Cancel matching Remove follower/Block) and a read-only "Plant sitters
+  history" below it (`getSittersHistory()`, `status in
+  ('declined','cancelled')`, sorted desc by the pure `sittingSortKey()`
+  — `starts_at` if set, else `created_at` — since Supabase's query
+  builder can't express a `COALESCE`-based `order()`; no status label or
+  actions, just the sitter's name linking to their profile and the
+  period if any). An `accepted` assignment whose `ends_at` has simply
+  passed without an explicit cancel stays in "My sitters" (shown as
+  "Ended" via the existing `computeSittingAccessState`), not history —
+  history is reserved for relationships explicitly closed by an action,
+  not ones that merely lapsed. Both "My sitters" rows and history rows
+  show the sitting period, if one was set, via a new pure
+  `formatSittingPeriod(startsAt, endsAt)` (`null` when neither is set →
+  no line rendered; otherwise `"{start} – {end}"` / `"From {start}"` /
+  `"Until {end}"`, same `Intl.DateTimeFormat` short-date pattern as
+  `app/feed.tsx`).
   `hydrateReports()` in `lib/supabase/plant_progress.ts` now also
   resolves each plant's owner (reusing already-known author info when
   author === owner, the common case) so `app/feed.tsx` and

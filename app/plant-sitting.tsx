@@ -7,9 +7,11 @@ import {
   cancelSittingRequest,
   computeSittingAccessState,
   declineSittingRequest,
-  getMySentRequests,
+  formatSittingPeriod,
+  getMySitters,
   getMySittingAssignments,
   getMySittingRequests,
+  getSittersHistory,
   type PlantSittingAssignment,
   type SittingAccessState,
 } from "../lib/supabase/plant_sitting";
@@ -119,6 +121,7 @@ function SentRequestRow({
   onCancelCancel: () => void;
 }) {
   const canCancel = assignment.status === "pending" || assignment.status === "accepted";
+  const period = formatSittingPeriod(assignment.starts_at, assignment.ends_at);
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.sitter.id}`)}>
@@ -130,6 +133,9 @@ function SentRequestRow({
           <Text style={[styles.stateText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
             {accessStateLabel(computeSittingAccessState(assignment))}
           </Text>
+          {period ? (
+            <Text style={[styles.periodText, { fontFamily: fonts.body, color: colors.inkSoft }]}>{period}</Text>
+          ) : null}
         </View>
       </Pressable>
       {canCancel ? (
@@ -160,6 +166,34 @@ function SentRequestRow({
   );
 }
 
+// Read-only -- no status label, no actions, per spec: just who sat for
+// you and when.
+function HistoryRow({
+  assignment,
+  fonts,
+}: {
+  assignment: PlantSittingAssignment & { sitter: Profile };
+  fonts: ReturnType<typeof getFonts>;
+}) {
+  const period = formatSittingPeriod(assignment.starts_at, assignment.ends_at);
+  return (
+    <Pressable
+      style={[styles.row, { borderBottomColor: colors.line }]}
+      onPress={() => router.push(`/user/${assignment.sitter.id}`)}
+    >
+      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      <View style={styles.rowText}>
+        <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
+          {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}
+        </Text>
+        {period ? (
+          <Text style={[styles.periodText, { fontFamily: fonts.body, color: colors.inkSoft }]}>{period}</Text>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}
+
 export default function PlantSittingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
@@ -169,6 +203,7 @@ export default function PlantSittingScreen() {
   const [requests, setRequests] = useState<(PlantSittingAssignment & { owner: Profile })[]>([]);
   const [assignments, setAssignments] = useState<(PlantSittingAssignment & { owner: Profile })[]>([]);
   const [sentRequests, setSentRequests] = useState<(PlantSittingAssignment & { sitter: Profile })[]>([]);
+  const [history, setHistory] = useState<(PlantSittingAssignment & { sitter: Profile })[]>([]);
 
   const [requestActionError, setRequestActionError] = useState<string | null>(null);
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
@@ -180,11 +215,12 @@ export default function PlantSittingScreen() {
   const busySentRef = useRef<string | null>(null);
 
   const fetchAll = useCallback(() => {
-    Promise.all([getMySittingRequests(), getMySittingAssignments(), getMySentRequests()])
-      .then(([requestsData, assignmentsData, sentData]) => {
+    Promise.all([getMySittingRequests(), getMySittingAssignments(), getMySitters(), getSittersHistory()])
+      .then(([requestsData, assignmentsData, sittersData, historyData]) => {
         setRequests(requestsData);
         setAssignments(assignmentsData);
-        setSentRequests(sentData);
+        setSentRequests(sittersData);
+        setHistory(historyData);
         setStatus("ready");
       })
       .catch((err) => {
@@ -250,6 +286,9 @@ export default function PlantSittingScreen() {
     try {
       await cancelSittingRequest(id);
       setSentRequests((prev) => prev.filter((assignment) => assignment.id !== id));
+      // Cancelling moves the assignment into history, so refetch that
+      // section rather than just dropping it from "My sitters".
+      fetchAll();
     } catch (err) {
       setSentActionError(getErrorMessage(err));
     } finally {
@@ -351,6 +390,17 @@ export default function PlantSittingScreen() {
           />
         ))
       )}
+
+      <Text style={[styles.sectionTitle, styles.sectionSpacing, { fontFamily: fonts.display, color: colors.ink }]}>
+        Plant sitters history
+      </Text>
+      {history.length === 0 ? (
+        <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          No past plant-sitters yet
+        </Text>
+      ) : (
+        history.map((assignment) => <HistoryRow key={assignment.id} assignment={assignment} fonts={fonts} />)
+      )}
     </ScrollView>
   );
 }
@@ -414,6 +464,10 @@ const styles = StyleSheet.create({
   },
   stateText: {
     fontSize: 12.5,
+    marginTop: 2,
+  },
+  periodText: {
+    fontSize: 12,
     marginTop: 2,
   },
   actions: {
