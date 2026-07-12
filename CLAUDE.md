@@ -332,6 +332,25 @@ sharing them socially with other users.
     immediately after the link succeeded — no standing per-account
     exception shipped, both actions always require the confirm-code
     step now.
+    - Linked-account email visibility — done, a follow-up fix.
+      `changeAccountEmail()` only ever touches `auth.users.email`; it
+      never touches the linked Google identity, so a manual "Change
+      email" on an account with Google linked can silently drift the
+      two apart (the identity keeps whatever email it had when linked;
+      Google sign-in still resolves to the same account regardless,
+      since Supabase matches identities by provider + provider user id,
+      not by email — so this drift isn't a functional break, just an
+      invisible one). Considered requiring an unlink before allowing a
+      manual change instead, but rejected: there's no unlink flow yet,
+      and a Google-only (passwordless) account can't unlink at all
+      without first having a password to fall back to, which is out of
+      scope per the existing "no set-a-password option for OAuth users"
+      decision. Went with the cheaper fix — `isGoogleLinked()` replaced
+      by `getLinkedGoogleEmail(): Promise<string | null>` (the linked
+      identity's own email, not just a boolean), and the "Linked
+      accounts" row now reads "Google account linked (<email>)" so any
+      divergence from the primary email above it is visible at a
+      glance instead of silent.
 - Usernames — done. Every profile has a mandatory, unique `username`
   (migration `0009_usernames.sql`): lowercase letters/digits/dot/
   underscore, starts with a letter, ends with a letter or digit, 3–20

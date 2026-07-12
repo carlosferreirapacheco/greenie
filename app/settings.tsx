@@ -18,7 +18,7 @@ import {
   completePendingGoogleLinkSync,
   confirmAccountDeletion,
   confirmPasswordlessAccountDeletion,
-  isGoogleLinked,
+  getLinkedGoogleEmail,
   linkGoogleAccount,
   requestAccountDeletionCode,
   requestCurrentEmailConfirmationCode,
@@ -111,7 +111,11 @@ export default function SettingsScreen() {
   const isSendingEmailCode = useRef(false);
   const isChangingEmail = useRef(false);
 
-  const [googleLinked, setGoogleLinked] = useState<boolean | null>(null);
+  // null = not linked; otherwise the linked Google identity's own
+  // email, shown alongside the primary email so a manual change
+  // (which never touches the linked identity) doesn't silently drift
+  // out of sync -- see getLinkedGoogleEmail().
+  const [googleLinkedEmail, setGoogleLinkedEmail] = useState<string | null>(null);
   const [googleLinkCodeStatus, setGoogleLinkCodeStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [googleLinkCodeError, setGoogleLinkCodeError] = useState<string | null>(null);
   const [googleLinkCode, setGoogleLinkCode] = useState("");
@@ -141,9 +145,9 @@ export default function SettingsScreen() {
       .then(setHasPassword)
       .catch(() => setHasPassword(null));
 
-    isGoogleLinked()
-      .then(setGoogleLinked)
-      .catch(() => setGoogleLinked(null));
+    getLinkedGoogleEmail()
+      .then(setGoogleLinkedEmail)
+      .catch(() => setGoogleLinkedEmail(null));
 
     // If linkGoogleAccount() redirected away and just landed back here,
     // this picks up where it left off -- see completePendingGoogleLinkSync().
@@ -575,9 +579,9 @@ export default function SettingsScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Linked accounts
           </Text>
-          {googleLinked ? (
+          {googleLinkedEmail ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Google account linked.
+              Google account linked ({googleLinkedEmail}).
             </Text>
           ) : Platform.OS !== "web" ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>

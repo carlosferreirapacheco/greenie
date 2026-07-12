@@ -17,7 +17,7 @@ import {
   accountHasPassword,
   requestCurrentEmailConfirmationCode,
   verifyCurrentEmailConfirmationCode,
-  isGoogleLinked,
+  getLinkedGoogleEmail,
   changeAccountEmail,
   linkGoogleAccount,
   completePendingGoogleLinkSync,
@@ -222,30 +222,44 @@ describe("verifyCurrentEmailConfirmationCode", () => {
   });
 });
 
-describe("isGoogleLinked", () => {
-  it("is true when the account has a google identity", async () => {
+describe("getLinkedGoogleEmail", () => {
+  it("returns the google identity's email when linked", async () => {
     mockSupabase.auth.getUserIdentities.mockResolvedValue({
-      data: { identities: [{ provider: "email" }, { provider: "google" }] },
+      data: {
+        identities: [
+          { provider: "email" },
+          { provider: "google", identity_data: { email: "carlos@gmail.com" } },
+        ],
+      },
       error: null,
     });
 
-    await expect(isGoogleLinked()).resolves.toBe(true);
+    await expect(getLinkedGoogleEmail()).resolves.toBe("carlos@gmail.com");
   });
 
-  it("is false for a password-only account", async () => {
+  it("returns null for a password-only account", async () => {
     mockSupabase.auth.getUserIdentities.mockResolvedValue({
       data: { identities: [{ provider: "email" }] },
       error: null,
     });
 
-    await expect(isGoogleLinked()).resolves.toBe(false);
+    await expect(getLinkedGoogleEmail()).resolves.toBeNull();
+  });
+
+  it("returns null when the google identity has no email", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "google", identity_data: {} }] },
+      error: null,
+    });
+
+    await expect(getLinkedGoogleEmail()).resolves.toBeNull();
   });
 
   it("throws the Supabase error on failure", async () => {
     const err = { message: "network error" };
     mockSupabase.auth.getUserIdentities.mockResolvedValue({ data: null, error: err });
 
-    await expect(isGoogleLinked()).rejects.toBe(err);
+    await expect(getLinkedGoogleEmail()).rejects.toBe(err);
   });
 });
 

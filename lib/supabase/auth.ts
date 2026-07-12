@@ -142,15 +142,21 @@ export async function accountHasPassword(): Promise<boolean> {
 }
 
 // Mirrors accountHasPassword() for the Google identity specifically --
-// drives whether Settings offers "Link Google account" at all.
-export async function isGoogleLinked(): Promise<boolean> {
+// null means not linked (drives whether Settings offers "Link Google
+// account" at all), otherwise the linked identity's own email. Changing
+// the account's primary email via changeAccountEmail() never touches
+// this -- the two can drift apart, so Settings shows this value
+// alongside the primary email rather than just a linked/not-linked
+// boolean, to make that drift visible instead of silent.
+export async function getLinkedGoogleEmail(): Promise<string | null> {
   const { data, error } = await supabase.auth.getUserIdentities();
 
   if (error) {
     throw error;
   }
 
-  return (data?.identities ?? []).some((identity) => identity.provider === "google");
+  const googleIdentity = (data?.identities ?? []).find((identity) => identity.provider === "google");
+  return (googleIdentity?.identity_data?.email as string | undefined) ?? null;
 }
 
 // Changes the account's email. Supabase's own confirmation link to the
