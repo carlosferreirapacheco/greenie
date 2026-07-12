@@ -258,7 +258,20 @@ export default function PlantSittingScreen() {
     }
   }
 
-  const screen = <Stack.Screen options={{ title: "Plant Sitting" }} />;
+  const screen = (
+    <Stack.Screen
+      options={{
+        title: "Plant Sitting",
+        headerRight: () => (
+          <Pressable onPress={() => router.push("/select-sitter")} hitSlop={8} style={styles.requestButtonWrap}>
+            <Text style={[styles.requestButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+              + Request
+            </Text>
+          </Pressable>
+        ),
+      }}
+    />
+  );
 
   if (status === "loading") {
     return (
@@ -353,6 +366,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  requestButtonWrap: {
+    marginRight: spacing.md,
+  },
+  requestButton: {
+    fontSize: 15,
   },
   sectionTitle: {
     fontSize: 18,
