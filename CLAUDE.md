@@ -628,11 +628,79 @@ sharing them socially with other users.
   `expo-image-picker` (or `expo-camera`) plus a Supabase Storage bucket and
   upload wiring, picked once and reused everywhere a photo is needed,
   rather than each feature re-deciding it ad hoc
-- Date picker UI — change all date-related inputs from plain text boxes
-  to a real calendar/date picker component. Currently a plain
-  `YYYY-MM-DD` text input on both `app/add-plant.tsx` and the acquired-date
-  editor on `app/plant/[id].tsx`; apply to any future date field too, not
-  just these two
+- Date picker UI — done. New `components/DatePickerField.tsx` replaces
+  the plain `YYYY-MM-DD` text boxes on `app/add-plant.tsx` (Acquired
+  date), `app/plant/[id].tsx` (the acquired-date inline editor), and
+  `app/request-sitting.tsx` (Start/End date) — every hand-rolled
+  `/^\d{4}-\d{2}-\d{2}$/` regex/validity flag was deleted along with
+  them, since a calendar can't produce an invalid string.
+  New dependency **`react-native-calendars`** (installed via `npx expo
+  install`): a **custom in-app calendar**, chosen over the native OS
+  picker (`@react-native-community/datetimepicker`) so it renders
+  identically and on-brand on web, iOS, and Android alike, rather than
+  falling back to an unstyled browser `<input type=date>` on
+  web — a deliberate choice given this app's eventual native target,
+  made knowingly trading away each platform's native picker feel for
+  that consistency. Its `onDayPress` callback hands back a
+  `dateString` already in `YYYY-MM-DD` form, so no `Date`/
+  `toISOString()` conversion was needed anywhere — every existing save
+  handler and `request-sitting.tsx`'s string-based
+  `startsAt <= endsAt` range check kept working unchanged.
+  **Gotcha worth remembering**: React Native Web's `Modal` component
+  doesn't reliably hide/unmount its content when only its `visible`
+  prop is toggled false (confirmed via React Fiber inspection — the
+  underlying state was correctly `false` while the modal stayed
+  visually open); the fix is to conditionally render the `Modal`
+  element itself (`{isOpen ? <Modal visible transparent>...</Modal> :
+  null}`) rather than trust `visible={isOpen}` alone. Applies to any
+  future `Modal` usage in this codebase, not just this component.
+  **Month/year quick-navigation — done.** Tapping the month name in the
+  picker's header opens a Jan–Dec grid for the year shown; tapping the
+  year opens a 12-year grid (current year centered, paged ±12). Picking
+  either jumps `DatePickerField`'s internal `viewDate` there and
+  returns to the day view; a "‹ Back to calendar" link bails out of
+  either grid unchanged. New `lib/dateGrid.ts` (pure, tested) holds the
+  three small helpers this needed — `getYearMonth`/`buildMonthDate`
+  (string-split YYYY-MM-DD parsing/building, same no-`Date()` reasoning
+  as the rest of this component) and `getYearPage` (centers a 12-year
+  window on a given year for stable ± 12 paging). The day view's
+  `renderHeader` prop (from `react-native-calendars`) replaces the
+  default "September 2026" title with two independently-tappable
+  segments built from the same `month.toString("MMMM"/"yyyy")` calls
+  the library's own default header uses internally.
+  **Min/max date limits — done.** `DatePickerField` gained optional
+  `minDate`/`maxDate` props, passed straight through to `Calendar`
+  (which already grays out/disables out-of-range days natively).
+  `acquired_at` (`app/add-plant.tsx`, `app/plant/[id].tsx`) gets
+  `maxDate={todayISO()}` — no future acquisition dates.
+  `request-sitting.tsx`'s Start date gets `minDate={today}
+  maxDate={addYears(today, 1)}`; End date gets the same `maxDate` plus
+  a `minDate` that dynamically tracks the picked Start date (falling
+  back to today), so the End-date calendar can't go earlier than the
+  Start date already chosen. Disabled dates are never just grayed —
+  they're kept unreachable entirely, per an explicit user requirement:
+  the month/year grids **omit** out-of-range months/years from
+  rendering rather than showing them disabled, and the day view's own
+  `react-native-calendars` prev/next-month arrows
+  (`disableArrowLeft`/`disableArrowRight`, computed against the
+  adjacent month — `react-native-calendars` doesn't wire these to
+  `minDate`/`maxDate` itself, confirmed by reading its source) stop
+  working the moment the neighboring month would be entirely out of
+  range, so you can't arrow/swipe into an all-disabled month either.
+  The month/year grids' own page/year-nav arrows still disable when an
+  entire adjacent page/year is out of range (prevents landing on an
+  empty grid), and picking a year clamps the currently-browsed month
+  into that year's valid range (`clampMonthToYear()`) — without this,
+  browsing August with a July cutoff and then jumping a year forward
+  would land on an entirely-invalid month, exactly the bug this
+  feature exists to prevent. `lib/dateGrid.ts` gained `todayISO()`
+  (moved out of the component; reimplemented with local `Date` getters
+  instead of `toISOString()`, which converts to UTC and can report the
+  wrong calendar day near midnight — matters now that this drives an
+  inclusive date limit, not just a view default), `addYears()`,
+  `isMonthOutOfRange()`/`isYearOutOfRange()` (string-prefix
+  comparisons, no `Date` parsing needed), `shiftMonth()` (pure
+  month-arithmetic with year wraparound), and `clampMonthToYear()`.
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep

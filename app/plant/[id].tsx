@@ -21,6 +21,8 @@ import {
 import { getProgressReportsForPlant, type ProgressReport } from "../../lib/supabase/plant_progress";
 import { getMyActiveAssignmentOwnerIds } from "../../lib/supabase/plant_sitting";
 import { HeightChart } from "../../components/HeightChart";
+import { DatePickerField } from "../../components/DatePickerField";
+import { todayISO } from "../../lib/dateGrid";
 import {
   createCareTask,
   deleteCareTask,
@@ -134,11 +136,8 @@ export default function PlantProfileScreen() {
     setIsEditingDate(true);
   }
 
-  const acquiredAtIsValid =
-    acquiredAtInput.trim().length === 0 || /^\d{4}-\d{2}-\d{2}$/.test(acquiredAtInput.trim());
-
   async function handleSaveDate() {
-    if (!id || !acquiredAtIsValid || isSaving.current) {
+    if (!id || isSaving.current) {
       return;
     }
     isSaving.current = true;
@@ -409,18 +408,7 @@ export default function PlantProfileScreen() {
         <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Acquired date</Text>
         {isEditingDate ? (
           <>
-            <TextInput
-              style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-              value={acquiredAtInput}
-              onChangeText={setAcquiredAtInput}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.inkSoft}
-            />
-            {!acquiredAtIsValid ? (
-              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-                Use YYYY-MM-DD format
-              </Text>
-            ) : null}
+            <DatePickerField value={acquiredAtInput} onChange={setAcquiredAtInput} fonts={fonts} maxDate={todayISO()} />
             {saveStatus === "error" ? (
               <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
             ) : null}
@@ -431,12 +419,9 @@ export default function PlantProfileScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                style={[
-                  styles.saveButton,
-                  { backgroundColor: acquiredAtIsValid ? colors.moss : colors.line },
-                ]}
+                style={[styles.saveButton, { backgroundColor: colors.moss }]}
                 onPress={handleSaveDate}
-                disabled={!acquiredAtIsValid || saveStatus === "saving"}
+                disabled={saveStatus === "saving"}
               >
                 {saveStatus === "saving" ? (
                   <ActivityIndicator color={colors.paper} />
