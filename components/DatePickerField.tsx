@@ -3,10 +3,12 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Calendar, type DateData } from "react-native-calendars";
 import {
   buildMonthDate,
+  clampMonthToYear,
   getYearMonth,
   getYearPage,
   isMonthOutOfRange,
   isYearOutOfRange,
+  shiftMonth,
   todayISO,
 } from "../lib/dateGrid";
 import { colors, getFonts, radius, spacing } from "../lib/theme";
@@ -83,11 +85,17 @@ export function DatePickerField({
   }
 
   function pickYear(year: number) {
-    setViewDate(buildMonthDate(year, getYearMonth(viewDate).month0));
+    // The currently-browsed month might not exist in the target year's
+    // valid range (e.g. browsing August with maxDate capped at July of
+    // that year) -- clamp so this never lands on an out-of-range month.
+    const month0 = clampMonthToYear(getYearMonth(viewDate).month0, year, minDate, maxDate);
+    setViewDate(buildMonthDate(year, month0));
     setPickerMode("days");
   }
 
   const { year: viewYear, month0: viewMonth0 } = getYearMonth(viewDate);
+  const prevMonth = shiftMonth(viewYear, viewMonth0, -1);
+  const nextMonth = shiftMonth(viewYear, viewMonth0, 1);
 
   return (
     <>
@@ -109,6 +117,8 @@ export function DatePickerField({
                   current={viewDate}
                   minDate={minDate}
                   maxDate={maxDate}
+                  disableArrowLeft={isMonthOutOfRange(prevMonth.year, prevMonth.month0, minDate, maxDate)}
+                  disableArrowRight={isMonthOutOfRange(nextMonth.year, nextMonth.month0, minDate, maxDate)}
                   onDayPress={handleDayPress}
                   onMonthChange={(day) => setViewDate(day.dateString)}
                   markedDates={
@@ -192,34 +202,30 @@ export function DatePickerField({
                     </Text>
                   </Pressable>
                   <View style={styles.grid}>
-                    {MONTH_NAMES.map((name, month0) => {
-                      const isCurrent = month0 === viewMonth0;
-                      const isDisabled = isMonthOutOfRange(viewYear, month0, minDate, maxDate);
-                      return (
-                        <Pressable
-                          key={name}
-                          style={[
-                            styles.gridChip,
-                            { borderColor: colors.line, backgroundColor: isCurrent && !isDisabled ? colors.moss : "transparent" },
-                          ]}
-                          onPress={() => pickMonth(viewYear, month0)}
-                          disabled={isDisabled}
-                        >
-                          <Text
+                    {MONTH_NAMES.map((name, month0) => ({ name, month0 }))
+                      .filter(({ month0 }) => !isMonthOutOfRange(viewYear, month0, minDate, maxDate))
+                      .map(({ name, month0 }) => {
+                        const isCurrent = month0 === viewMonth0;
+                        return (
+                          <Pressable
+                            key={name}
                             style={[
-                              styles.gridChipText,
-                              {
-                                fontFamily: fonts.bodyMedium,
-                                color: isDisabled ? colors.inkSoft : isCurrent ? colors.paperRaised : colors.ink,
-                                opacity: isDisabled ? 0.5 : 1,
-                              },
+                              styles.gridChip,
+                              { borderColor: colors.line, backgroundColor: isCurrent ? colors.moss : "transparent" },
                             ]}
+                            onPress={() => pickMonth(viewYear, month0)}
                           >
-                            {name.slice(0, 3)}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              style={[
+                                styles.gridChipText,
+                                { fontFamily: fonts.bodyMedium, color: isCurrent ? colors.paperRaised : colors.ink },
+                              ]}
+                            >
+                              {name.slice(0, 3)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
                   </View>
                 </View>
               ) : null}
@@ -274,34 +280,30 @@ export function DatePickerField({
                         </Text>
                       </Pressable>
                       <View style={styles.grid}>
-                        {Array.from({ length: 12 }, (_, i) => yearPageStart + i).map((year) => {
-                          const isCurrent = year === viewYear;
-                          const isDisabled = isYearOutOfRange(year, minDate, maxDate);
-                          return (
-                            <Pressable
-                              key={year}
-                              style={[
-                                styles.gridChip,
-                                { borderColor: colors.line, backgroundColor: isCurrent && !isDisabled ? colors.moss : "transparent" },
-                              ]}
-                              onPress={() => pickYear(year)}
-                              disabled={isDisabled}
-                            >
-                              <Text
+                        {Array.from({ length: 12 }, (_, i) => yearPageStart + i)
+                          .filter((year) => !isYearOutOfRange(year, minDate, maxDate))
+                          .map((year) => {
+                            const isCurrent = year === viewYear;
+                            return (
+                              <Pressable
+                                key={year}
                                 style={[
-                                  styles.gridChipText,
-                                  {
-                                    fontFamily: fonts.bodyMedium,
-                                    color: isDisabled ? colors.inkSoft : isCurrent ? colors.paperRaised : colors.ink,
-                                    opacity: isDisabled ? 0.5 : 1,
-                                  },
+                                  styles.gridChip,
+                                  { borderColor: colors.line, backgroundColor: isCurrent ? colors.moss : "transparent" },
                                 ]}
+                                onPress={() => pickYear(year)}
                               >
-                                {year}
-                              </Text>
-                            </Pressable>
-                          );
-                        })}
+                                <Text
+                                  style={[
+                                    styles.gridChipText,
+                                    { fontFamily: fonts.bodyMedium, color: isCurrent ? colors.paperRaised : colors.ink },
+                                  ]}
+                                >
+                                  {year}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
                       </View>
                     </View>
                   );

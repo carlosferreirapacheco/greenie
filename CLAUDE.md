@@ -670,24 +670,37 @@ sharing them socially with other users.
   the library's own default header uses internally.
   **Min/max date limits — done.** `DatePickerField` gained optional
   `minDate`/`maxDate` props, passed straight through to `Calendar`
-  (which already grays out/disables out-of-range days natively) and
-  also respected by the custom month/year grids (disabled chips +
-  disabled page/year-nav arrows when the entire adjacent page/year
-  would be out of range, so navigating there never lands on an
-  all-disabled dead end). `acquired_at` (`app/add-plant.tsx`,
-  `app/plant/[id].tsx`) gets `maxDate={todayISO()}` — no future
-  acquisition dates. `request-sitting.tsx`'s Start date gets
-  `minDate={today} maxDate={addYears(today, 1)}`; End date gets the
-  same `maxDate` plus a `minDate` that dynamically tracks the picked
-  Start date (falling back to today), so the End-date calendar can't
-  go earlier than the Start date already chosen. `lib/dateGrid.ts`
-  gained `todayISO()` (moved out of the component; reimplemented with
-  local `Date` getters instead of `toISOString()`, which converts to
-  UTC and can report the wrong calendar day near midnight — matters
-  now that this drives an inclusive date limit, not just a view
-  default), `addYears()`, and `isMonthOutOfRange()`/
-  `isYearOutOfRange()` (string-prefix comparisons, no `Date` parsing
-  needed).
+  (which already grays out/disables out-of-range days natively).
+  `acquired_at` (`app/add-plant.tsx`, `app/plant/[id].tsx`) gets
+  `maxDate={todayISO()}` — no future acquisition dates.
+  `request-sitting.tsx`'s Start date gets `minDate={today}
+  maxDate={addYears(today, 1)}`; End date gets the same `maxDate` plus
+  a `minDate` that dynamically tracks the picked Start date (falling
+  back to today), so the End-date calendar can't go earlier than the
+  Start date already chosen. Disabled dates are never just grayed —
+  they're kept unreachable entirely, per an explicit user requirement:
+  the month/year grids **omit** out-of-range months/years from
+  rendering rather than showing them disabled, and the day view's own
+  `react-native-calendars` prev/next-month arrows
+  (`disableArrowLeft`/`disableArrowRight`, computed against the
+  adjacent month — `react-native-calendars` doesn't wire these to
+  `minDate`/`maxDate` itself, confirmed by reading its source) stop
+  working the moment the neighboring month would be entirely out of
+  range, so you can't arrow/swipe into an all-disabled month either.
+  The month/year grids' own page/year-nav arrows still disable when an
+  entire adjacent page/year is out of range (prevents landing on an
+  empty grid), and picking a year clamps the currently-browsed month
+  into that year's valid range (`clampMonthToYear()`) — without this,
+  browsing August with a July cutoff and then jumping a year forward
+  would land on an entirely-invalid month, exactly the bug this
+  feature exists to prevent. `lib/dateGrid.ts` gained `todayISO()`
+  (moved out of the component; reimplemented with local `Date` getters
+  instead of `toISOString()`, which converts to UTC and can report the
+  wrong calendar day near midnight — matters now that this drives an
+  inclusive date limit, not just a view default), `addYears()`,
+  `isMonthOutOfRange()`/`isYearOutOfRange()` (string-prefix
+  comparisons, no `Date` parsing needed), `shiftMonth()` (pure
+  month-arithmetic with year wraparound), and `clampMonthToYear()`.
 - Dark mode — `lib/theme.ts` already has `palettes.dark` fully populated;
   just needs `useColorScheme()` wired up to switch which palette is active
   (deliberately deferred when the design system was first applied, to keep

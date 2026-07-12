@@ -58,3 +58,28 @@ export function isYearOutOfRange(year: number, minDate?: string, maxDate?: strin
   if (maxDate && year > Number(maxDate.slice(0, 4))) return true;
   return false;
 }
+
+// Pure integer math, not a Date object -- delta months from (year,
+// month0) with correct year wraparound in either direction.
+export function shiftMonth(year: number, month0: number, delta: number): { year: number; month0: number } {
+  const total = month0 + delta;
+  return { year: year + Math.floor(total / 12), month0: ((total % 12) + 12) % 12 };
+}
+
+// Picking a year in the year grid keeps whatever month was already
+// being browsed -- but that month might not exist in the new year's
+// valid range (e.g. browsing August, maxDate caps at July of the next
+// year: jumping there would land on an entirely-out-of-range month).
+// Clamps to the nearest valid month for that specific year.
+export function clampMonthToYear(month0: number, year: number, minDate?: string, maxDate?: string): number {
+  let clamped = month0;
+  if (minDate) {
+    const min = getYearMonth(minDate);
+    if (year === min.year) clamped = Math.max(clamped, min.month0);
+  }
+  if (maxDate) {
+    const max = getYearMonth(maxDate);
+    if (year === max.year) clamped = Math.min(clamped, max.month0);
+  }
+  return clamped;
+}

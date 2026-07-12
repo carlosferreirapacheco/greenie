@@ -1,4 +1,13 @@
-import { addYears, buildMonthDate, getYearMonth, getYearPage, isMonthOutOfRange, isYearOutOfRange } from "./dateGrid";
+import {
+  addYears,
+  buildMonthDate,
+  clampMonthToYear,
+  getYearMonth,
+  getYearPage,
+  isMonthOutOfRange,
+  isYearOutOfRange,
+  shiftMonth,
+} from "./dateGrid";
 
 describe("getYearMonth", () => {
   it("parses year and 0-indexed month", () => {
@@ -72,5 +81,43 @@ describe("isYearOutOfRange", () => {
 
   it("is false within range", () => {
     expect(isYearOutOfRange(2026, "2020-01-01", "2030-01-01")).toBe(false);
+  });
+});
+
+describe("shiftMonth", () => {
+  it("shifts forward within the same year", () => {
+    expect(shiftMonth(2026, 6, 1)).toEqual({ year: 2026, month0: 7 });
+  });
+
+  it("shifts backward within the same year", () => {
+    expect(shiftMonth(2026, 6, -1)).toEqual({ year: 2026, month0: 5 });
+  });
+
+  it("rolls over December into January of the next year", () => {
+    expect(shiftMonth(2026, 11, 1)).toEqual({ year: 2027, month0: 0 });
+  });
+
+  it("rolls over January into December of the previous year", () => {
+    expect(shiftMonth(2026, 0, -1)).toEqual({ year: 2025, month0: 11 });
+  });
+});
+
+describe("clampMonthToYear", () => {
+  it("leaves the month unchanged when no bounds are set", () => {
+    expect(clampMonthToYear(7, 2027)).toBe(7);
+  });
+
+  it("clamps down to maxDate's month when the browsed month is later in maxDate's year", () => {
+    // Browsing August (7) in 2027, maxDate caps at July (6) 2027.
+    expect(clampMonthToYear(7, 2027, undefined, "2027-07-12")).toBe(6);
+  });
+
+  it("clamps up to minDate's month when the browsed month is earlier in minDate's year", () => {
+    // Browsing January (0) in 2026, minDate starts at July (6) 2026.
+    expect(clampMonthToYear(0, 2026, "2026-07-12")).toBe(6);
+  });
+
+  it("does not clamp a year that isn't minDate's or maxDate's own year", () => {
+    expect(clampMonthToYear(7, 2026, "2026-07-12", "2027-07-12")).toBe(7);
   });
 });
