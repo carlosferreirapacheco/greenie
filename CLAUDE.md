@@ -96,7 +96,12 @@ sharing them socially with other users.
   "Share" link in the Plants screen header (`app/index.tsx`, next to
   "+ Add") gathers plants + `getCareTasksForPlants()` (both pre-existing)
   and hands the text to React Native's built-in `Share.share()` — no new
-  dependency, no schema impact.
+  dependency, no schema impact. Verified on web (button renders, click
+  gathers plants/tasks and calls `Share.share()`, which correctly
+  reports "not supported in this browser" there, caught by the
+  existing error-banner pattern); real-device verification that the
+  native iOS/Android share sheet actually opens is deferred — see
+  Technical follow-ups.
   **In-app delegated plant-sitting (mutual follows) — done.** Migration
   `0015_plant_sitting.sql`: new `plant_sitting_assignments` table
   (`owner_id`, `sitter_id`, `status` [pending/accepted/declined/cancelled],
@@ -478,6 +483,13 @@ sharing them socially with other users.
     Access policy or hosted as a separate public project.
 
 ### Technical follow-ups
+- Real-device verification of native share — the Share care
+  instructions feature (see Plant-sitting above) calls React Native's
+  `Share.share()`; only verified on web so far, where the browser
+  reports "not supported" instead of actually opening a share sheet.
+  Confirm the native iOS/Android share sheet opens with correctly
+  formatted text on a real device or simulator before considering this
+  fully verified.
 - Screen/component-level tests — unit testing (Jest + `jest-expo`) now
   covers the `lib/` layer (pure logic + Supabase call layer, see
   Conventions), but no screens under `app/` are tested yet. Deferred
