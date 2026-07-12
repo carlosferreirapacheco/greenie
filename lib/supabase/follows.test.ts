@@ -8,6 +8,7 @@ import { createChainableQueryMock } from "./testUtils/mockClient";
 import {
   getFollowing,
   getFollowers,
+  getMutualFollowers,
   getFollowStatus,
   amIFollowedBy,
   followUser,
@@ -87,6 +88,52 @@ describe("getFollowers", () => {
     expect(followChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
     expect(profilesChain.in).toHaveBeenCalledWith("id", ["u2", "u3"]);
     expect(result).toEqual([{ id: "u2" }, { id: "u3" }]);
+  });
+});
+
+describe("getMutualFollowers", () => {
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(getMutualFollowers()).rejects.toThrow("Not signed in");
+  });
+
+  it("returns an empty array without a profile query when there's no overlap", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const followingChain = createChainableQueryMock({ data: [{ followee_id: "a" }], error: null });
+    const followersChain = createChainableQueryMock({ data: [{ follower_id: "d" }], error: null });
+    mockSupabase.from.mockReturnValueOnce(followingChain).mockReturnValueOnce(followersChain);
+
+    const result = await getMutualFollowers();
+
+    expect(result).toEqual([]);
+    expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+  });
+
+  it("intersects who I follow with who follows me, and resolves the overlap to profiles", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const followingChain = createChainableQueryMock({
+      data: [{ followee_id: "a" }, { followee_id: "b" }, { followee_id: "c" }],
+      error: null,
+    });
+    const followersChain = createChainableQueryMock({
+      data: [{ follower_id: "b" }, { follower_id: "c" }, { follower_id: "d" }],
+      error: null,
+    });
+    const profilesChain = createChainableQueryMock({ data: [{ id: "b" }, { id: "c" }], error: null });
+    mockSupabase.from
+      .mockReturnValueOnce(followingChain)
+      .mockReturnValueOnce(followersChain)
+      .mockReturnValueOnce(profilesChain);
+
+    const result = await getMutualFollowers();
+
+    expect(followingChain.eq).toHaveBeenNthCalledWith(1, "follower_id", "u1");
+    expect(followingChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
+    expect(followersChain.eq).toHaveBeenNthCalledWith(1, "followee_id", "u1");
+    expect(followersChain.eq).toHaveBeenNthCalledWith(2, "status", "accepted");
+    expect(profilesChain.in).toHaveBeenCalledWith("id", ["b", "c"]);
+    expect(result).toEqual([{ id: "b" }, { id: "c" }]);
   });
 });
 

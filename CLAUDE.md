@@ -140,12 +140,20 @@ sharing them socially with other users.
   isn't necessarily currently active if a date window hasn't opened yet
   or has passed, with no scheduled job needed since both RLS and the UI
   just compare against `now()`). `follows.ts` gained `amIFollowedBy()`
-  (the reverse of `getFollowStatus()`) to client-side-gate a new "Request
-  plant-sitting" link on `app/user/[id].tsx` (shown only when the
-  relationship is mutual) linking to the new `app/request-sitting.tsx`
-  form (optional start/end dates, reusing the existing plain
-  `YYYY-MM-DD` text-input pattern). New `app/plant-sitting.tsx` hub
-  (linked from the Plants header) has three sections: pending requests to
+  (the reverse of `getFollowStatus()`) and `getMutualFollowers()`
+  (intersects `getFollowing()`/`getFollowers()` client-side). Requesting
+  plant-sitting lives entirely inside the Plant Sitting flow, not on a
+  target's profile: a "+ Request" header button on `app/plant-sitting.tsx`
+  opens the new `app/select-sitter.tsx` (lists mutual followers, reusing
+  `app/following.tsx`'s row pattern) which links to
+  `app/request-sitting.tsx` (optional start/end dates, reusing the
+  existing plain `YYYY-MM-DD` text-input pattern) — an earlier version
+  put the request link on `app/user/[id].tsx` itself, which turned out
+  too hard to discover (you had to already be on the right person's
+  profile), so it moved into the Plant Sitting section; `amIFollowedBy()`
+  stays in `follows.ts` as a general-purpose primitive even though
+  nothing calls it from `user/[id].tsx` anymore. New `app/plant-sitting.tsx`
+  hub (linked from the Plants header) has three sections: pending requests to
   respond to (single-tap Accept/Decline, matching
   `app/follow-requests.tsx`'s no-confirm pattern), assignments the
   signed-in user is sitting for (deep-links to the existing

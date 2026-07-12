@@ -71,6 +71,47 @@ export async function getFollowers(): Promise<Profile[]> {
   return data;
 }
 
+// People the signed-in user follows AND who follow back, both accepted
+// -- the precondition for requesting plant-sitting from them. Fetches
+// both directions in parallel, then intersects client-side; mirrors
+// getFollowing()/getFollowers()'s fetch-then-hydrate shape.
+export async function getMutualFollowers(): Promise<Profile[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const [followingResult, followersResult] = await Promise.all([
+    supabase.from("follows").select("followee_id").eq("follower_id", user.id).eq("status", "accepted"),
+    supabase.from("follows").select("follower_id").eq("followee_id", user.id).eq("status", "accepted"),
+  ]);
+
+  if (followingResult.error) {
+    throw followingResult.error;
+  }
+  if (followersResult.error) {
+    throw followersResult.error;
+  }
+
+  const followingIds = new Set(followingResult.data.map((row) => row.followee_id));
+  const mutualIds = followersResult.data.map((row) => row.follower_id).filter((id) => followingIds.has(id));
+
+  if (mutualIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase.from("profiles").select("*").in("id", mutualIds);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getFollowStatus(userId: string): Promise<FollowStatus> {
   const {
     data: { user },
