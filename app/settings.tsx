@@ -14,10 +14,16 @@ import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import {
   accountHasPassword,
+  changeAccountEmail,
+  completePendingGoogleLinkSync,
   confirmAccountDeletion,
   confirmPasswordlessAccountDeletion,
+  getLinkedGoogleEmail,
+  linkGoogleAccount,
   requestAccountDeletionCode,
+  requestCurrentEmailConfirmationCode,
   updatePasswordWithReauth,
+  verifyCurrentEmailConfirmationCode,
 } from "../lib/supabase/auth";
 import { collectMyData } from "../lib/supabase/gdpr";
 import {
@@ -96,6 +102,29 @@ export default function SettingsScreen() {
   // account no worse off than before this check existed.
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
 
+  const [newEmail, setNewEmail] = useState("");
+  const [emailCodeStatus, setEmailCodeStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [emailCodeError, setEmailCodeError] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState("");
+  const [emailChangeStatus, setEmailChangeStatus] = useState<"idle" | "changing" | "changed" | "error">("idle");
+  const [emailChangeError, setEmailChangeError] = useState<string | null>(null);
+  const isSendingEmailCode = useRef(false);
+  const isChangingEmail = useRef(false);
+
+  // null = not linked; otherwise the linked Google identity's own
+  // email, shown alongside the primary email so a manual change
+  // (which never touches the linked identity) doesn't silently drift
+  // out of sync -- see getLinkedGoogleEmail().
+  const [googleLinkedEmail, setGoogleLinkedEmail] = useState<string | null>(null);
+  const [googleLinkCodeStatus, setGoogleLinkCodeStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [googleLinkCodeError, setGoogleLinkCodeError] = useState<string | null>(null);
+  const [googleLinkCode, setGoogleLinkCode] = useState("");
+  const [googleLinkStatus, setGoogleLinkStatus] = useState<"idle" | "linking" | "error">("idle");
+  const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
+  const [googleSyncBanner, setGoogleSyncBanner] = useState<string | null>(null);
+  const isSendingGoogleLinkCode = useRef(false);
+  const isLinkingGoogle = useRef(false);
+
   const fetchPrivacySettings = useCallback(() => {
     getMyProfile()
       .then((profile) => {
@@ -115,6 +144,25 @@ export default function SettingsScreen() {
     accountHasPassword()
       .then(setHasPassword)
       .catch(() => setHasPassword(null));
+
+    getLinkedGoogleEmail()
+      .then(setGoogleLinkedEmail)
+      .catch(() => setGoogleLinkedEmail(null));
+
+    // If linkGoogleAccount() redirected away and just landed back here,
+    // this picks up where it left off -- see completePendingGoogleLinkSync().
+    completePendingGoogleLinkSync()
+      .then((syncedEmail) => {
+        if (syncedEmail) {
+          setGoogleSyncBanner(
+            `Google account linked — check ${syncedEmail} for a confirmation link to finish switching your account email.`
+          );
+        }
+      })
+      .catch(() => {
+        // Non-critical -- the identity is already linked either way, and
+        // the user can still change their email manually if this failed.
+      });
   }, []);
 
   useFocusEffect(
@@ -253,6 +301,94 @@ export default function SettingsScreen() {
     }
   }
 
+  const canSendEmailCode = newEmail.trim().length > 0 && emailCodeStatus !== "sending";
+
+  async function handleSendEmailChangeCode() {
+    if (!canSendEmailCode || isSendingEmailCode.current) {
+      return;
+    }
+    isSendingEmailCode.current = true;
+
+    setEmailCodeStatus("sending");
+    setEmailCodeError(null);
+
+    try {
+      await requestCurrentEmailConfirmationCode();
+      setEmailCodeStatus("sent");
+    } catch (err) {
+      setEmailCodeError(getErrorMessage(err));
+      setEmailCodeStatus("error");
+    } finally {
+      isSendingEmailCode.current = false;
+    }
+  }
+
+  async function handleChangeEmail() {
+    if (isChangingEmail.current) {
+      return;
+    }
+    isChangingEmail.current = true;
+
+    setEmailChangeStatus("changing");
+    setEmailChangeError(null);
+
+    try {
+      await verifyCurrentEmailConfirmationCode(emailCode);
+      await changeAccountEmail(newEmail.trim());
+      setEmailChangeStatus("changed");
+      setEmailCodeStatus("idle");
+      setEmailCode("");
+    } catch (err) {
+      setEmailChangeError(getErrorMessage(err));
+      setEmailChangeStatus("error");
+    } finally {
+      isChangingEmail.current = false;
+    }
+  }
+
+  async function handleSendGoogleLinkCode() {
+    if (isSendingGoogleLinkCode.current) {
+      return;
+    }
+    isSendingGoogleLinkCode.current = true;
+
+    setGoogleLinkCodeStatus("sending");
+    setGoogleLinkCodeError(null);
+
+    try {
+      await requestCurrentEmailConfirmationCode();
+      setGoogleLinkCodeStatus("sent");
+    } catch (err) {
+      setGoogleLinkCodeError(getErrorMessage(err));
+      setGoogleLinkCodeStatus("error");
+    } finally {
+      isSendingGoogleLinkCode.current = false;
+    }
+  }
+
+  // linkGoogleAccount() redirects away on success, so there's no "linked"
+  // state to set here -- completePendingGoogleLinkSync() (in
+  // fetchPrivacySettings) picks up the result once the redirect returns.
+  async function handleLinkGoogle() {
+    if (isLinkingGoogle.current) {
+      return;
+    }
+    isLinkingGoogle.current = true;
+
+    setGoogleLinkStatus("linking");
+    setGoogleLinkError(null);
+
+    try {
+      await verifyCurrentEmailConfirmationCode(googleLinkCode);
+      await linkGoogleAccount();
+    } catch (err) {
+      setGoogleLinkError(getErrorMessage(err));
+      setGoogleLinkStatus("error");
+    } finally {
+      isLinkingGoogle.current = false;
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
@@ -341,6 +477,172 @@ export default function SettingsScreen() {
             </Pressable>
           </>
         )}
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          Email &amp; linked accounts
+        </Text>
+
+        {googleSyncBanner ? (
+          <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {googleSyncBanner}
+          </Text>
+        ) : null}
+
+        <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          Current email: {accountEmail ?? "—"}
+        </Text>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>New email</Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={newEmail}
+            onChangeText={setNewEmail}
+            placeholder="you@example.com"
+            placeholderTextColor={colors.inkSoft}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+          />
+        </View>
+
+        {emailCodeStatus === "sent" ? (
+          <>
+            <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+              Code sent to {accountEmail ?? "your email"}
+            </Text>
+            <View style={styles.field}>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                Confirmation code
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={emailCode}
+                onChangeText={setEmailCode}
+                placeholder="123456"
+                placeholderTextColor={colors.inkSoft}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+            {emailChangeStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {emailChangeError}
+              </Text>
+            ) : null}
+            {emailChangeStatus === "changed" ? (
+              <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Check {newEmail} for a confirmation link to finish the change.
+              </Text>
+            ) : null}
+            <Pressable
+              style={[
+                styles.saveButton,
+                { backgroundColor: newEmail.trim().length > 0 && emailCode.trim().length > 0 ? colors.moss : colors.line },
+              ]}
+              onPress={handleChangeEmail}
+              disabled={newEmail.trim().length === 0 || emailCode.trim().length === 0 || emailChangeStatus === "changing"}
+            >
+              {emailChangeStatus === "changing" ? (
+                <ActivityIndicator color={colors.paper} />
+              ) : (
+                <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                  Confirm &amp; change email
+                </Text>
+              )}
+            </Pressable>
+          </>
+        ) : (
+          <>
+            {emailCodeStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {emailCodeError}
+              </Text>
+            ) : null}
+            <Pressable
+              style={[styles.dangerOutlineButton, { borderColor: colors.moss }]}
+              onPress={handleSendEmailChangeCode}
+              disabled={!canSendEmailCode}
+            >
+              {emailCodeStatus === "sending" ? (
+                <ActivityIndicator color={colors.moss} />
+              ) : (
+                <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  Send code to current email
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
+
+        <View style={[styles.field, styles.linkedAccountsField]}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Linked accounts
+          </Text>
+          {googleLinkedEmail ? (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              Google account linked ({googleLinkedEmail}).
+            </Text>
+          ) : Platform.OS !== "web" ? (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              Linking a Google account is available on the web for now.
+            </Text>
+          ) : googleLinkCodeStatus === "sent" ? (
+            <>
+              <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Code sent to {accountEmail ?? "your email"}
+              </Text>
+              <TextInput
+                style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+                value={googleLinkCode}
+                onChangeText={setGoogleLinkCode}
+                placeholder="123456"
+                placeholderTextColor={colors.inkSoft}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {googleLinkStatus === "error" ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                  {googleLinkError}
+                </Text>
+              ) : null}
+              <Pressable
+                style={[styles.saveButton, { backgroundColor: googleLinkCode.trim().length > 0 ? colors.moss : colors.line }]}
+                onPress={handleLinkGoogle}
+                disabled={googleLinkCode.trim().length === 0 || googleLinkStatus === "linking"}
+              >
+                {googleLinkStatus === "linking" ? (
+                  <ActivityIndicator color={colors.paper} />
+                ) : (
+                  <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                    Confirm &amp; link Google account
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              {googleLinkCodeStatus === "error" ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                  {googleLinkCodeError}
+                </Text>
+              ) : null}
+              <Pressable
+                style={[styles.dangerOutlineButton, { borderColor: colors.moss }]}
+                onPress={handleSendGoogleLinkCode}
+                disabled={googleLinkCodeStatus === "sending"}
+              >
+                {googleLinkCodeStatus === "sending" ? (
+                  <ActivityIndicator color={colors.moss} />
+                ) : (
+                  <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                    Send code to current email
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          )}
+        </View>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           Privacy
@@ -692,5 +994,8 @@ const styles = StyleSheet.create({
   },
   confirmAction: {
     fontSize: 14,
+  },
+  linkedAccountsField: {
+    marginTop: spacing.sm,
   },
 });
