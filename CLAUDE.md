@@ -292,12 +292,9 @@ sharing them socially with other users.
       it proves control of the same Google account the emailed code
       already proves. Linked accounts (Google + password) keep the
       password flow. Per user decision, no "set a password" option
-      for OAuth users.
-    - Owner dashboard TODO: the default Magic Link email template only
-      contains a link — add `{{ .Token }}` to it (Auth → Email
-      Templates → Magic Link) so real deletion emails carry the
-      6-digit code. Pairs with the SMTP setup item under Real
-      authentication.
+      for OAuth users. (Owner dashboard action needed for real deletion
+      emails to carry a code — see Public launch / production
+      readiness below.)
   - Change account email / link Google account — done. Built to unblock
     real-email SMTP testing: every seed/test account had a fake or
     placeholder email, so the account-deletion OTP (and any future
@@ -415,11 +412,9 @@ sharing them socially with other users.
     hardcoded "Last updated" line (the screen is public/pre-auth, so
     it can't read app_config) AND ships a migration bumping
     `privacy_policy_updated_at` — every user is then re-prompted once
-    on their next visit.
-  - Native data export — the JSON download uses a web Blob + anchor;
-    native needs `expo-file-system`/share-sheet wiring (fold into the
-    photo-capture/native pass).
-  - Legal review of the privacy policy draft before any public launch.
+    on their next visit. (Native data export and legal review of the
+    policy draft are tracked under Public launch / production
+    readiness below.)
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete
@@ -608,10 +603,8 @@ sharing them socially with other users.
   - Custom domain — later, free on Cloudflare Pages.
   - Access seat count — the free Zero Trust plan covers 50 users;
     revisit if the invite list approaches that.
-  - Store-required public pages — when a mobile release happens, the
-    privacy-policy URL (and Google Play's required account-deletion
-    web link) must be *publicly* reachable, i.e. carved out of the
-    Access policy or hosted as a separate public project.
+  - (Store-required public pages for a mobile release are tracked
+    under Public launch / production readiness below.)
 
 ### Technical follow-ups
 - Real device deployment (Android) — done. First-ever real-device pass,
@@ -893,25 +886,8 @@ sharing them socially with other users.
   `profiles` row for every new signup, so this is no longer a gap.
   "Confirm email" was temporarily disabled in the Supabase Auth dashboard
   during development (built-in email sender's rate limit is a couple
-  sends/hour, too low to test signup repeatedly) — needs to be revisited
-  before real users sign up, since a permanently-disabled confirmation
-  step lets anyone sign up with an email they don't own.
-  - Lookup free SMTP services — provider chosen (Resend, over Brevo/
-    Postmark/Mailgun/SendGrid — see the SMTP provider decision) and
-    custom SMTP configured in the Supabase dashboard (host
-    `smtp.resend.com`, sender `onboarding@resend.dev` — Resend's free
-    test domain, which can only deliver to the address the Resend
-    account itself was signed up with, not arbitrary real users).
-    Delivery testing stalled because every seed/test account had a
-    fake or placeholder email with nowhere real to land — resolved by
-    the "Change account email / link Google account" feature above,
-    which gives test accounts a real address to test against. Actual
-    end-to-end delivery testing (does a real inbox receive the emailed
-    OTP) is the next step once resumed.
-  - Re-enable "Confirm email" in the Supabase Auth dashboard once a real
-    SMTP provider is set up (see above) — it's off right now purely as a
-    development workaround for the built-in sender's rate limit, and
-    leaving it off lets anyone sign up with an email they don't own.
+  sends/hour, too low to test signup repeatedly) — see Public launch /
+  production readiness below for re-enabling it and finishing SMTP setup.
   - Google OAuth — done for web (the platform the app is developed,
     verified, and demoed on). "Continue with Google" on sign-in/sign-up
     uses `signInWithOAuth` (full-page redirect through Supabase to
@@ -971,6 +947,46 @@ sharing them socially with other users.
       layout via `lib/consentEvents.ts` to avoid a refetch race.
       Email is never editable; avatar stays out of scope until real
       photo upload exists.
+
+### Public launch / production readiness
+Everything below is a real, still-open gap between the current dev/demo
+state and a real public or store launch — pulled out of the feature
+write-ups above so it's scannable as one checklist instead of buried in
+unrelated history.
+- Re-enable "Confirm email" in the Supabase Auth dashboard — it's off
+  right now purely as a development workaround for the built-in email
+  sender's low rate limit (a couple sends/hour, too low to test signup
+  repeatedly). Leaving it off lets anyone sign up with an email they
+  don't own.
+- Finish SMTP setup so real email actually delivers. Provider chosen
+  (Resend, over Brevo/Postmark/Mailgun/SendGrid — see the SMTP provider
+  decision) and custom SMTP configured in the Supabase dashboard (host
+  `smtp.resend.com`, sender `onboarding@resend.dev` — Resend's free
+  test domain, which can only deliver to the address the Resend account
+  itself was signed up with, not arbitrary real users). Delivery
+  testing stalled because every seed/test account had a fake or
+  placeholder email with nowhere real to land — resolved by the
+  "Change account email / link Google account" feature (Product
+  features), which gives test accounts a real address to test against.
+  Actual end-to-end delivery testing (does a real inbox receive the
+  emailed OTP) is the next step once resumed. Re-enabling "Confirm
+  email" above should happen once this is done.
+- Owner dashboard action: the default Magic Link email template only
+  contains a link — add `{{ .Token }}` to it (Auth → Email Templates →
+  Magic Link) so real account-deletion emails carry the 6-digit code,
+  not just a link. Pairs with the SMTP item above.
+- Native GDPR data export — the "Your data" download (Settings →
+  `collectMyData()` in `lib/supabase/gdpr.ts`) uses a web Blob + anchor
+  and is web-only; native needs `expo-file-system`/share-sheet wiring
+  before a mobile release can offer the same portability right.
+- Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
+  currently marked "requires review before public launch") before any
+  public launch.
+- Store-required public pages — when a mobile release happens, the
+  privacy-policy URL (and Google Play's required account-deletion web
+  link) must be *publicly* reachable, i.e. carved out of the online
+  demo's Cloudflare Access gate (see Online demo, Product features) or
+  hosted as a separate public project.
 
 ### Later
 - Payments / monetization
