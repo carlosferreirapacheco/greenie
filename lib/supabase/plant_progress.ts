@@ -37,6 +37,11 @@ export type FeedItem = ProgressReport & {
   plant_owner_id: string;
   plant_owner_display_name: string | null;
   plant_owner_username: string | null;
+  // The plant's current main photo (plants.photo_urls[0]), so a viewer
+  // who owns the plant can tell whether this report's own photo_url is
+  // already the plant's photo -- drives the "Set as plant's photo"
+  // action on the report detail screen.
+  plant_photo_url: string | null;
   // Whether the plant's owner currently allows a sitter's report on
   // their plant to be shared to the sitter's own feed (see
   // can_share_progress_to_feed() RLS, migration 0016). Fails open
@@ -67,7 +72,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   const plantIds = [...new Set(reports.map((report) => report.plant_id))];
   const { data: plants, error: plantsError } = await supabase
     .from("plants")
-    .select("id, name, species, nickname, owner_id")
+    .select("id, name, species, nickname, owner_id, photo_urls")
     .in("id", plantIds);
 
   if (plantsError) {
@@ -146,6 +151,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       plant_owner_id: plantOwnerId,
       plant_owner_display_name: plantOwnerInfo?.display_name ?? null,
       plant_owner_username: plantOwnerInfo?.username ?? null,
+      plant_photo_url: plant?.photo_urls?.[0] ?? null,
       plant_owner_share_allowed: shareAllowedByOwnerId.get(plantOwnerId) ?? true,
       like_count: likeCountsById.get(report.id) ?? 0,
       liked_by_me: likedByMeIds.has(report.id),
