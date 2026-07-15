@@ -707,12 +707,25 @@ sharing them socially with other users.
   file-picker dialog the web `<input type="file">` opens; that upload
   path is covered instead by `lib/supabase/storage.test.ts`'s mocked
   call-layer tests plus the live RLS proof above.
-  - **Real-device pass (Take Photo) — deferred.** Camera capture can't
-    be verified on web at all; needs the Android EAS dev-client build
-    (see Real device deployment below) to confirm the native camera
-    opens and a captured photo uploads/displays correctly. Same
-    deferred-until-a-device-pass pattern as native share and native
-    OAuth were before their own real-device verification.
+  - **Real-device pass (Take Photo) — done, with a real bug found and
+    fixed first.** `expo-image-picker` had been installed (PR 1) but
+    never added to `app.json`'s `plugins` array, and — more importantly
+    — the Android app already on the test device had been built via EAS
+    *before* `expo-image-picker` was ever installed. Since this project
+    uses Expo's managed workflow (no `/android` or `/ios` directories),
+    that native module simply didn't exist in the installed APK; every
+    screen touching `PhotoPicker` errored. Fixed by adding the plugin
+    config (`photosPermission`/`cameraPermission` strings,
+    `microphonePermission: false` since this app never records audio)
+    and triggering a fresh `eas build --platform android --profile
+    development`. Verified live on the rebuilt app: both "Take Photo"
+    and "Choose from Library" now work end-to-end (camera opens, gallery
+    picker opens, photo uploads and displays) across every capture
+    surface.
+    - **Two follow-up bugs found in the same device pass, fixed
+      separately** (see immediately below): a confusing forced crop
+      screen on every capture/selection, and the Plants screen's
+      nav-bar avatar never having been wired to the real photo at all.
   - **PR 2 — done.** Swapped the remaining flat-color avatar
     placeholders to `PhotoThumb` (`uri`/`size={44}`/`radius={radius.sm}`,
     matching every row's pre-existing thumb dimensions) in the seven

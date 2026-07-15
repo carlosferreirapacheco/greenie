@@ -28,7 +28,15 @@
       "expo-router",
       "expo-font",
       "expo-asset",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Greenie to access your photos to attach them to plants and progress reports.",
+          "cameraPermission": "Allow Greenie to access your camera to photograph plants and progress.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "router": {},
