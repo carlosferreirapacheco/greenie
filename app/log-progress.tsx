@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { createProgressReport, type CommentPolicy } from "../lib/supabase/plant_progress";
+import { createProgressReport, effectiveCommentPolicy, type CommentPolicy } from "../lib/supabase/plant_progress";
 import { getPlant, updatePlantPhoto, type Plant } from "../lib/supabase/plants";
 import { getProfile } from "../lib/supabase/profiles";
 import { deletePhotoByUrl } from "../lib/supabase/storage";
@@ -102,7 +102,7 @@ export default function LogProgressScreen() {
         plant_id: plantId,
         height_cm: trimmedHeight.length > 0 ? Number(trimmedHeight) : null,
         notes: notes.trim(),
-        comment_policy: commentPolicy,
+        comment_policy: effectiveCommentPolicy(sharedToFeed, commentPolicy),
         shared_to_feed: sharedToFeed,
         photo_url: photoUrl,
       });
@@ -190,6 +190,7 @@ export default function LogProgressScreen() {
             fonts={fonts}
             value={commentPolicy}
             onChange={setCommentPolicy}
+            disabled={!sharedToFeed}
             options={[
               { value: "public", label: "Anyone" },
               { value: "followers", label: "Followers only" },
@@ -205,7 +206,13 @@ export default function LogProgressScreen() {
               <ChipGroup
                 fonts={fonts}
                 value={sharedToFeed ? "share" : "unlisted"}
-                onChange={(value) => setSharedToFeed(value === "share")}
+                onChange={(value) => {
+                  const nextShared = value === "share";
+                  setSharedToFeed(nextShared);
+                  if (!nextShared) {
+                    setCommentPolicy("disabled");
+                  }
+                }}
                 options={[
                   { value: "share", label: "Share to feed" },
                   { value: "unlisted", label: "Don't share" },
@@ -213,8 +220,8 @@ export default function LogProgressScreen() {
               />
               {!sharedToFeed ? (
                 <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  Won't appear in anyone's feed; it stays on this plant's own history, and its link keeps
-                  working for anyone who can see the report.
+                  Won't appear in anyone's feed, and comments will be off — this can't be undone once
+                  saved.
                 </Text>
               ) : null}
             </>

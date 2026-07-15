@@ -13,6 +13,7 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
+  effectiveCommentPolicy,
   getProgressReport,
   updateProgressReportSettings,
   type CommentPolicy,
@@ -167,9 +168,10 @@ export default function ProgressDetailScreen() {
     setSettingsError(null);
 
     try {
+      const nextSharedToFeed = patch.shared_to_feed ?? report.shared_to_feed;
       const updated = await updateProgressReportSettings(report.id, {
-        comment_policy: patch.comment_policy ?? report.comment_policy,
-        shared_to_feed: patch.shared_to_feed ?? report.shared_to_feed,
+        comment_policy: effectiveCommentPolicy(nextSharedToFeed, patch.comment_policy ?? report.comment_policy),
+        shared_to_feed: nextSharedToFeed,
       });
       setReport({ ...report, comment_policy: updated.comment_policy, shared_to_feed: updated.shared_to_feed });
       setCanComment(updated.comment_policy !== "disabled");
@@ -321,6 +323,7 @@ export default function ProgressDetailScreen() {
                 fonts={fonts}
                 value={report.comment_policy}
                 onChange={(value) => handleUpdateSettings({ comment_policy: value })}
+                disabled={!report.shared_to_feed}
                 options={[
                   { value: "public", label: "Anyone" },
                   { value: "followers", label: "Followers only" },
@@ -339,15 +342,23 @@ export default function ProgressDetailScreen() {
                   history only.
                 </Text>
               ) : (
-                <ChipGroup
-                  fonts={fonts}
-                  value={report.shared_to_feed ? "share" : "unlisted"}
-                  onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
-                  options={[
-                    { value: "share", label: "Share to feed" },
-                    { value: "unlisted", label: "Don't share" },
-                  ]}
-                />
+                <>
+                  <ChipGroup
+                    fonts={fonts}
+                    value={report.shared_to_feed ? "share" : "unlisted"}
+                    onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
+                    disabled={!report.shared_to_feed}
+                    options={[
+                      { value: "share", label: "Share to feed" },
+                      { value: "unlisted", label: "Don't share" },
+                    ]}
+                  />
+                  {!report.shared_to_feed ? (
+                    <Text style={[styles.settingHint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                      This report is unlisted and can't be shared again; comments stay off.
+                    </Text>
+                  ) : null}
+                </>
               )}
             </View>
 
