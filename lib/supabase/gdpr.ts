@@ -25,6 +25,7 @@ export type MyDataExport = {
   likes: unknown[];
   follows: { following: unknown[]; followers: unknown[] };
   blocks: unknown[];
+  notifications: unknown[];
 };
 
 export async function collectMyData(): Promise<MyDataExport> {
@@ -114,6 +115,17 @@ export async function collectMyData(): Promise<MyDataExport> {
     throw blocksError;
   }
 
+  // notifications_select_own means this returns exactly the rows where
+  // the user is the recipient.
+  const { data: notifications, error: notificationsError } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("recipient_id", user.id);
+
+  if (notificationsError) {
+    throw notificationsError;
+  }
+
   return {
     exported_at: new Date().toISOString(),
     account: {
@@ -139,5 +151,6 @@ export async function collectMyData(): Promise<MyDataExport> {
       followers: follows.filter((row: { followee_id: string }) => row.followee_id === user.id),
     },
     blocks,
+    notifications,
   };
 }

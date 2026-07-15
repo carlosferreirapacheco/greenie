@@ -18,6 +18,26 @@ export type Profile = {
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
   plant_sitter_attribution: PlantSitterAttribution;
+  notify_comments: boolean;
+  notify_likes: boolean;
+  notify_follow_requests: boolean;
+  notify_new_followers: boolean;
+  notify_follow_accepted: boolean;
+  notify_sitting_requests: boolean;
+  notify_sitting_responses: boolean;
+};
+
+// One flag per notification kind (migration 0019). The DB triggers
+// check these before creating a notification row, so a disabled kind
+// never even reaches the recipient's inbox.
+export type NotificationSettings = {
+  notify_comments: boolean;
+  notify_likes: boolean;
+  notify_follow_requests: boolean;
+  notify_new_followers: boolean;
+  notify_follow_accepted: boolean;
+  notify_sitting_requests: boolean;
+  notify_sitting_responses: boolean;
 };
 
 export type MyProfile = Profile & { email: string | null };
@@ -179,6 +199,29 @@ export async function updatePrivacySettings(input: {
   progress_visibility: ProgressVisibility;
   plant_sitter_attribution: PlantSitterAttribution;
 }): Promise<Profile> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(input)
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateNotificationSettings(input: NotificationSettings): Promise<Profile> {
   const {
     data: { user },
   } = await supabase.auth.getUser();

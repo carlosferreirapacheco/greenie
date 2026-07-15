@@ -11,6 +11,7 @@ import {
   getProfile,
   searchProfiles,
   updateMyProfile,
+  updateNotificationSettings,
   updatePrivacySettings,
 } from "./profiles";
 
@@ -188,6 +189,35 @@ describe("updatePrivacySettings", () => {
     mockSupabase.from.mockReturnValue(chain);
 
     await updatePrivacySettings(settings);
+
+    expect(chain.update).toHaveBeenCalledWith(settings);
+    expect(chain.eq).toHaveBeenCalledWith("id", "u1");
+  });
+});
+
+describe("updateNotificationSettings", () => {
+  const settings = {
+    notify_comments: false,
+    notify_likes: true,
+    notify_follow_requests: false,
+    notify_new_followers: true,
+    notify_follow_accepted: false,
+    notify_sitting_requests: true,
+    notify_sitting_responses: false,
+  };
+
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(updateNotificationSettings(settings)).rejects.toThrow("Not signed in");
+  });
+
+  it("updates all seven notification flags for the signed-in user", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { id: "u1", ...settings }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await updateNotificationSettings(settings);
 
     expect(chain.update).toHaveBeenCalledWith(settings);
     expect(chain.eq).toHaveBeenCalledWith("id", "u1");

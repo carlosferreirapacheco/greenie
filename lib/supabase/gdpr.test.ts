@@ -40,7 +40,8 @@ describe("collectMyData", () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1", email: "a@b.com" } } });
 
     // Call order (see gdpr.ts): profile -> plants -> care_tasks ->
-    // progress -> comments -> likes -> follows -> blocks.
+    // progress -> comments -> likes -> follows -> blocks ->
+    // notifications.
     const profileChain = createChainableQueryMock({ data: profileRow, error: null });
     const plantsChain = createChainableQueryMock({ data: [{ id: "pl1", name: "Pothos" }], error: null });
     const careTasksChain = createChainableQueryMock({ data: [{ id: "ct1", plant_id: "pl1" }], error: null });
@@ -55,6 +56,10 @@ describe("collectMyData", () => {
       error: null,
     });
     const blocksChain = createChainableQueryMock({ data: [{ blocker_id: "u1", blocked_id: "u4" }], error: null });
+    const notificationsChain = createChainableQueryMock({
+      data: [{ id: "n1", recipient_id: "u1", type: "like" }],
+      error: null,
+    });
     mockSupabase.from
       .mockReturnValueOnce(profileChain)
       .mockReturnValueOnce(plantsChain)
@@ -63,7 +68,8 @@ describe("collectMyData", () => {
       .mockReturnValueOnce(commentsChain)
       .mockReturnValueOnce(likesChain)
       .mockReturnValueOnce(followsChain)
-      .mockReturnValueOnce(blocksChain);
+      .mockReturnValueOnce(blocksChain)
+      .mockReturnValueOnce(notificationsChain);
 
     const result = await collectMyData();
 
@@ -74,6 +80,7 @@ describe("collectMyData", () => {
     expect(likesChain.eq).toHaveBeenCalledWith("user_id", "u1");
     expect(followsChain.or).toHaveBeenCalledWith("follower_id.eq.u1,followee_id.eq.u1");
     expect(blocksChain.eq).toHaveBeenCalledWith("blocker_id", "u1");
+    expect(notificationsChain.eq).toHaveBeenCalledWith("recipient_id", "u1");
 
     expect(result.account).toEqual(
       expect.objectContaining({ id: "u1", email: "a@b.com", username: "carlos", accepted_privacy_at: "2026-07-01T00:00:00Z" })
@@ -86,6 +93,7 @@ describe("collectMyData", () => {
     expect(result.follows.following).toEqual([{ follower_id: "u1", followee_id: "u2" }]);
     expect(result.follows.followers).toEqual([{ follower_id: "u3", followee_id: "u1" }]);
     expect(result.blocks).toEqual([{ blocker_id: "u1", blocked_id: "u4" }]);
+    expect(result.notifications).toEqual([{ id: "n1", recipient_id: "u1", type: "like" }]);
     expect(typeof result.exported_at).toBe("string");
   });
 
@@ -101,13 +109,14 @@ describe("collectMyData", () => {
       .mockReturnValueOnce(emptyChain()) // comments
       .mockReturnValueOnce(emptyChain()) // likes
       .mockReturnValueOnce(emptyChain()) // follows
-      .mockReturnValueOnce(emptyChain()); // blocks
+      .mockReturnValueOnce(emptyChain()) // blocks
+      .mockReturnValueOnce(emptyChain()); // notifications
 
     const result = await collectMyData();
 
     // profile + plants + progress + comments + likes + follows + blocks
-    // = 7 -- no care_tasks call in between.
-    expect(mockSupabase.from).toHaveBeenCalledTimes(7);
+    // + notifications = 8 -- no care_tasks call in between.
+    expect(mockSupabase.from).toHaveBeenCalledTimes(8);
     expect(mockSupabase.from).not.toHaveBeenCalledWith("care_tasks");
     expect(result.care_tasks).toEqual([]);
     expect(result.blocks).toEqual([]);
