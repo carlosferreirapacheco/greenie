@@ -117,6 +117,57 @@ describe("getProgressReport", () => {
     );
   });
 
+  it("carries the author's and plant owner's avatar_url onto the hydrated report", async () => {
+    const report = {
+      id: "pr4",
+      plant_id: "pl1",
+      user_id: "author1",
+      height_cm: null,
+      notes: "Notes",
+      photo_url: null,
+      created_at: "2026-01-01",
+      comment_policy: "public",
+      shared_to_feed: true,
+    };
+
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: { display_name: "Carlos", username: "carlos", avatar_url: "https://example.com/a.jpg" },
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [{ id: "pl1", name: "Pothos", species: null, nickname: null, owner_id: "author1" }],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [
+            {
+              id: "author1",
+              display_name: "Carlos",
+              username: "carlos",
+              avatar_url: "https://example.com/a.jpg",
+              plant_sitter_attribution: "allowed",
+            },
+          ],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }))
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "viewer1" } } });
+
+    const result = await getProgressReport("pr4");
+
+    expect(result.author_avatar_url).toBe("https://example.com/a.jpg");
+  });
+
   it("fetches the owner's profile separately when the report's author isn't the plant's owner (plant-sitting)", async () => {
     const report = {
       id: "pr3",
@@ -228,7 +279,27 @@ describe("createProgressReport", () => {
       notes: "Growing",
       comment_policy: "disabled",
       shared_to_feed: false,
+      photo_url: null,
     });
+  });
+
+  it("passes through a provided photo_url", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { id: "pr1" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await createProgressReport({
+      plant_id: "pl1",
+      height_cm: 10,
+      notes: "Growing",
+      comment_policy: "public",
+      shared_to_feed: true,
+      photo_url: "https://example.com/photos/u1/progress/x.jpg",
+    });
+
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ photo_url: "https://example.com/photos/u1/progress/x.jpg" })
+    );
   });
 
   it("maps a 42501 rejection to a friendly share-gate message", async () => {

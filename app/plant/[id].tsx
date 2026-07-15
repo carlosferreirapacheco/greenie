@@ -16,12 +16,16 @@ import {
   plantPrimaryName,
   updatePlantAcquiredAt,
   updatePlantNickname,
+  updatePlantPhoto,
   type Plant,
 } from "../../lib/supabase/plants";
 import { getProgressReportsForPlant, type ProgressReport } from "../../lib/supabase/plant_progress";
 import { getMyActiveAssignmentOwnerIds } from "../../lib/supabase/plant_sitting";
+import { deletePhotoByUrl } from "../../lib/supabase/storage";
 import { HeightChart } from "../../components/HeightChart";
 import { DatePickerField } from "../../components/DatePickerField";
+import { PhotoPicker } from "../../components/PhotoPicker";
+import { PhotoThumb } from "../../components/PhotoThumb";
 import { todayISO } from "../../lib/dateGrid";
 import {
   createCareTask,
@@ -80,6 +84,8 @@ export default function PlantProfileScreen() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const isSaving = useRef(false);
+
+  const [photoSaveError, setPhotoSaveError] = useState<string | null>(null);
 
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
@@ -159,6 +165,24 @@ export default function PlantProfileScreen() {
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
+    }
+  }
+
+  async function handlePhotoChange(url: string) {
+    if (!id) {
+      return;
+    }
+    const previousUrl = plant?.photo_urls?.[0] ?? null;
+    setPhotoSaveError(null);
+
+    try {
+      const updated = await updatePlantPhoto(id, url);
+      setPlant(updated);
+      if (previousUrl) {
+        await deletePhotoByUrl(previousUrl);
+      }
+    } catch (err) {
+      setPhotoSaveError(getErrorMessage(err));
     }
   }
 
@@ -339,7 +363,21 @@ export default function PlantProfileScreen() {
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: plantPrimaryName(plant) }} />
-      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      {isOwner ? (
+        <PhotoPicker
+          value={plant.photo_urls?.[0] ?? null}
+          onChange={handlePhotoChange}
+          context="plants"
+          size={88}
+          photoRadius={radius.lg}
+          fonts={fonts}
+        />
+      ) : (
+        <PhotoThumb uri={plant.photo_urls?.[0] ?? null} size={88} radius={radius.lg} />
+      )}
+      {photoSaveError ? (
+        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{photoSaveError}</Text>
+      ) : null}
 
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{plantPrimaryName(plant)}</Text>
       {plantCommonNameSubtitle(plant) ? (
@@ -737,11 +775,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  thumb: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.lg,
   },
   name: {
     fontSize: 20,

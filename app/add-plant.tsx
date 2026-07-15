@@ -16,6 +16,7 @@ import { lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { DatePickerField } from "../components/DatePickerField";
+import { PhotoPicker } from "../components/PhotoPicker";
 import { todayISO } from "../lib/dateGrid";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -27,6 +28,7 @@ export default function AddPlantScreen() {
   const { colors } = useTheme();
 
   const [name, setName] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [species, setSpecies] = useState("");
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
@@ -91,6 +93,7 @@ export default function AddPlantScreen() {
         location: location.trim().length > 0 ? location.trim() : null,
         acquired_at: acquiredAt.trim().length > 0 ? acquiredAt.trim() : null,
         nickname: nickname.trim().length > 0 ? nickname.trim() : null,
+        photo_url: photoUrl,
       });
 
       const frequencyDays = Number(wateringFrequencyDays);
@@ -119,6 +122,13 @@ export default function AddPlantScreen() {
     >
       <Stack.Screen options={{ title: "Add Plant" }} />
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Photo (optional)
+          </Text>
+          <PhotoPicker value={photoUrl} onChange={setPhotoUrl} context="plants" fonts={fonts} />
+        </View>
+
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Name</Text>
           <TextInput

@@ -4,8 +4,8 @@
     {
       "name": "expo-web",
       "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
-      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npx expo start --web"],
-      "port": 8081
+      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npx expo start --web --port 8083"],
+      "port": 8083
     },
     {
       "name": "demo-dist",

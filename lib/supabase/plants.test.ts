@@ -35,7 +35,15 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getMyPlants, getPlantsForUser, getPlant, updatePlantAcquiredAt, updatePlantNickname, createPlant } from "./plants";
+import {
+  getMyPlants,
+  getPlantsForUser,
+  getPlant,
+  updatePlantAcquiredAt,
+  updatePlantNickname,
+  updatePlantPhoto,
+  createPlant,
+} from "./plants";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -167,6 +175,47 @@ describe("createPlant", () => {
       location: "Living room",
       acquired_at: "2026-01-01",
       nickname: "Big Fred",
+      photo_urls: null,
     });
+  });
+
+  it("wraps a provided photo_url as a single-element array", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { id: "p1" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await createPlant({
+      name: "Pothos",
+      species: "Epipremnum aureum",
+      location: null,
+      acquired_at: null,
+      nickname: null,
+      photo_url: "https://example.com/photos/u1/plants/x.jpg",
+    });
+
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ photo_urls: ["https://example.com/photos/u1/plants/x.jpg"] })
+    );
+  });
+});
+
+describe("updatePlantPhoto", () => {
+  it("sets photo_urls to a single-element array when given a URL", async () => {
+    const chain = createChainableQueryMock({ data: { id: "p1" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await updatePlantPhoto("p1", "https://example.com/photos/u1/plants/x.jpg");
+
+    expect(chain.update).toHaveBeenCalledWith({ photo_urls: ["https://example.com/photos/u1/plants/x.jpg"] });
+    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+  });
+
+  it("clears photo_urls when given null", async () => {
+    const chain = createChainableQueryMock({ data: { id: "p1" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await updatePlantPhoto("p1", null);
+
+    expect(chain.update).toHaveBeenCalledWith({ photo_urls: null });
   });
 });

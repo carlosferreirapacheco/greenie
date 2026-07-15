@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { getMyProfile, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
+import { getMyProfile, updateMyAvatar, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
 import {
   getUsernameChangeCooldownDays,
   nextUsernameChangeDate,
@@ -20,6 +20,8 @@ import {
   validateUsername,
 } from "../lib/supabase/usernames";
 import { signOut } from "../lib/supabase/auth";
+import { deletePhotoByUrl } from "../lib/supabase/storage";
+import { PhotoPicker } from "../components/PhotoPicker";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -55,6 +57,8 @@ export default function ProfileScreen() {
   const isSigningOut = useRef(false);
   const [signOutStatus, setSignOutStatus] = useState<"idle" | "signing-out" | "error">("idle");
   const [signOutError, setSignOutError] = useState<string | null>(null);
+
+  const [avatarSaveError, setAvatarSaveError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(() => {
     getMyProfile()
@@ -146,6 +150,21 @@ export default function ProfileScreen() {
     await doSave();
   }
 
+  async function handleAvatarChange(url: string) {
+    const previousUrl = profile?.avatar_url ?? null;
+    setAvatarSaveError(null);
+
+    try {
+      const updated = await updateMyAvatar(url);
+      setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
+      if (previousUrl) {
+        await deletePhotoByUrl(previousUrl);
+      }
+    } catch (err) {
+      setAvatarSaveError(getErrorMessage(err));
+    }
+  }
+
   async function handleSignOut() {
     if (isSigningOut.current) {
       return;
@@ -165,8 +184,6 @@ export default function ProfileScreen() {
       isSigningOut.current = false;
     }
   }
-
-  const initial = (displayName.trim() || profile?.email || "?").charAt(0).toUpperCase();
 
   if (status === "loading") {
     return (
@@ -215,11 +232,17 @@ export default function ProfileScreen() {
     >
       <Stack.Screen options={{ title: "Profile" }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.avatar, { backgroundColor: colors.sage }]}>
-          <Text style={[styles.avatarText, { fontFamily: fonts.display, color: colors.mossStrong }]}>
-            {initial}
-          </Text>
-        </View>
+        <PhotoPicker
+          value={profile?.avatar_url ?? null}
+          onChange={handleAvatarChange}
+          context="avatars"
+          size={88}
+          photoRadius={radius.lg}
+          fonts={fonts}
+        />
+        {avatarSaveError ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{avatarSaveError}</Text>
+        ) : null}
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
@@ -352,16 +375,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 34,
   },
   field: {
     width: "100%",

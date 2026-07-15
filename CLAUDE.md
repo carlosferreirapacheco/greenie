@@ -646,12 +646,78 @@ sharing them socially with other users.
   every former "No display name yet" fallback now shows `@username`
   instead (feed rows, comment previews, progress detail, following
   list, follow requests, user search, user profiles)
-- Photo capture — add-plant, the profile avatar, and progress reports have
-  each separately deferred real photo capture so far (all currently show
-  flat-color placeholders instead). One consolidated item: needs
-  `expo-image-picker` (or `expo-camera`) plus a Supabase Storage bucket and
-  upload wiring, picked once and reused everywhere a photo is needed,
-  rather than each feature re-deciding it ad hoc
+- Photo capture — PR 1 of 2 done: capture + display for the three
+  backlog-named surfaces (Add Plant, profile avatar, Log Progress) plus
+  everywhere those specific photos are immediately visible. One shared
+  public Storage bucket (`photos`, migration `0017_photo_storage.sql`),
+  not three — path convention `<uploader_auth_uid>/<context>/<filename>`
+  (`context` = `plants`/`avatars`/`progress`) lets one RLS policy set
+  (select-all, insert/update/delete scoped to
+  `(storage.foldername(name))[1] = auth.uid()::text`) cover every
+  context; keying by the *uploader's* id (not e.g. a plant's owner)
+  matters once a sitter uploads a progress photo on someone else's
+  plant. Verified live via direct SQL: an insert with a mismatched
+  folder prefix is rejected with `42501`, a matching one succeeds.
+  New `lib/supabase/storage.ts`: `pickImage(source)` wraps
+  `expo-image-picker`'s permission request +
+  `launchCameraAsync`/`launchImageLibraryAsync` (`base64: true` avoids
+  needing `expo-file-system` at all — the deprecated legacy
+  `readAsStringAsync` API some older docs still show), returning
+  `{base64, fileExtension} | null` (`null` on cancel/denied permission,
+  matching this app's established "backing out isn't an error"
+  convention); `uploadPhoto()` decodes via **`base64-arraybuffer`**
+  (new dependency, `decode()` only) and calls Supabase Storage's
+  `upload()`/`getPublicUrl()`; `deletePhotoByUrl()` parses the storage
+  path back out of a public URL and calls `.remove()`, invoked by every
+  "replace photo" flow right after a successful re-upload so repeated
+  edits don't leak storage objects. **Known, accepted gap**: deleting a
+  plant/report/account doesn't cascade-delete its Storage objects
+  (Postgres FK cascades don't reach `storage.objects`) — orphaned
+  objects are left behind; a cleanup job is separate future work, not
+  blocking this PR. New shared display component
+  `components/PhotoThumb.tsx` (`uri`/`size`/`radius` props; renders the
+  photo or the same flat-color placeholder every screen already used)
+  and capture component `components/PhotoPicker.tsx` (current photo +
+  explicit "Take Photo"/"Choose from Library" text links, not one
+  button with an OS action sheet — deliberate, since this app is tested
+  primarily on web where `Alert.alert` is a no-op and camera capture
+  isn't available; inline spinner + error text while uploading).
+  Capture wired into `app/add-plant.tsx` (single-photo v1 into
+  `plants.photo_urls`, the array column staying available for a future
+  gallery), `app/plant/[id].tsx` (owner-only, replaces the old photo on
+  change), `app/profile.tsx` (own avatar — replaced the old
+  initial-letter placeholder with the same flat-color `PhotoThumb`
+  fallback used everywhere else, a deliberate simplification), and
+  `app/log-progress.tsx` (optional report photo). Display wired into
+  `app/index.tsx`/`app/user/[id].tsx`'s plant rows,
+  `app/user/[id].tsx`'s viewed avatar, `app/feed.tsx`'s author avatar,
+  and `app/progress/[id].tsx`'s report photo + author avatar —
+  `lib/supabase/plant_progress.ts`'s `AuthorInfo`/`FeedItem` gained
+  `avatar_url`/`author_avatar_url`, populated in `hydrateReports()` the
+  same way `author_display_name` already is.
+  Verified live on web (signed in as the `dev-dummy-user-2@greenie.local`
+  "Sammy" test account — the original `dev-dummy-user@greenie.local`
+  account's email was changed to a real Gmail address by the earlier
+  "Change account email / link Google account" feature, so its `.env`
+  password no longer resolves to any account): every touched screen
+  (Add Plant, Plants list, plant profile, own Profile, Feed, progress
+  detail) renders cleanly with no console errors. Actual file-selection
+  through "Choose from Library" wasn't completable in this pass — the
+  browser automation used for verification can't drive the native OS
+  file-picker dialog the web `<input type="file">` opens; that upload
+  path is covered instead by `lib/supabase/storage.test.ts`'s mocked
+  call-layer tests plus the live RLS proof above.
+  - **Real-device pass (Take Photo) — deferred.** Camera capture can't
+    be verified on web at all; needs the Android EAS dev-client build
+    (see Real device deployment below) to confirm the native camera
+    opens and a captured photo uploads/displays correctly. Same
+    deferred-until-a-device-pass pattern as native share and native
+    OAuth were before their own real-device verification.
+  - **PR 2 (not started)**: swap the remaining flat-color avatar
+    placeholders in minor list rows (Following/Followers/Search
+    Users/Blocked Users/Plant Sitting/Select Sitter/Follow Requests) to
+    `PhotoThumb` — purely mechanical now that it exists, not worth
+    bloating PR 1.
 - Date picker UI — done. New `components/DatePickerField.tsx` replaces
   the plain `YYYY-MM-DD` text boxes on `app/add-plant.tsx` (Acquired
   date), `app/plant/[id].tsx` (the acquired-date inline editor), and

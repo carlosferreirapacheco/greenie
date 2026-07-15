@@ -17,6 +17,7 @@ import { getPlant } from "../lib/supabase/plants";
 import { getProfile } from "../lib/supabase/profiles";
 import { supabase } from "../lib/supabase/client";
 import { ChipGroup } from "../components/ChipGroup";
+import { PhotoPicker } from "../components/PhotoPicker";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -27,6 +28,7 @@ export default function LogProgressScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
 
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [heightCm, setHeightCm] = useState("");
   const [notes, setNotes] = useState("");
   const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
@@ -92,6 +94,7 @@ export default function LogProgressScreen() {
         notes: notes.trim(),
         comment_policy: commentPolicy,
         shared_to_feed: sharedToFeed,
+        photo_url: photoUrl,
       });
 
       router.back();
@@ -110,6 +113,13 @@ export default function LogProgressScreen() {
     >
       <Stack.Screen options={{ title: "Log Progress" }} />
       <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Photo (optional)
+          </Text>
+          <PhotoPicker value={photoUrl} onChange={setPhotoUrl} context="progress" fonts={fonts} />
+        </View>
+
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             Height (cm, optional)

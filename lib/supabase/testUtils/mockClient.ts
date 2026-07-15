@@ -57,5 +57,8 @@ export function createMockSupabaseClient() {
     functions: {
       invoke: jest.fn(),
     },
+    storage: {
+      from: jest.fn(),
+    },
   };
 }
