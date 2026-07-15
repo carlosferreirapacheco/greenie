@@ -32,7 +32,7 @@ export async function pickImage(source: "camera" | "library"): Promise<{ base64:
 
   const result = await launch({
     mediaTypes: ["images"],
-    allowsEditing: true,
+    allowsEditing: false,
     quality: 0.6,
     base64: true,
   });

@@ -721,12 +721,23 @@ sharing them socially with other users.
   file-picker dialog the web `<input type="file">` opens; that upload
   path is covered instead by `lib/supabase/storage.test.ts`'s mocked
   call-layer tests plus the live RLS proof above.
-  - **Real-device pass (Take Photo) — deferred.** Camera capture can't
-    be verified on web at all; needs the Android EAS dev-client build
-    (see Real device deployment below) to confirm the native camera
-    opens and a captured photo uploads/displays correctly. Same
-    deferred-until-a-device-pass pattern as native share and native
-    OAuth were before their own real-device verification.
+  - **Real-device pass (Take Photo) — done**, after fixing a missing
+    `expo-image-picker` native module on the test build (see the
+    separate fix branch/PR for that). Two more bugs surfaced in the
+    same pass, fixed here:
+    - `pickImage()` (`lib/supabase/storage.ts`) called the picker with
+      `allowsEditing: true`, which forces Android's native crop screen
+      after every capture/selection with no "use as-is" affirmative
+      action — only "Crop", which a user has to invoke manually even to
+      skip cropping. Fixed by turning `allowsEditing` off entirely; the
+      photo is used as captured/selected, no intermediate screen.
+    - `app/index.tsx`'s `headerLeft` (the Plants screen's nav-bar
+      avatar) was never wired to `PhotoThumb`/`avatar_url` at all in
+      PR 1 or PR 2 — it's a `Stack.Screen` render prop, not a screen
+      body or list row, so neither pass's file sweep caught it. Fixed:
+      fetches the signed-in user's own profile (`getMyProfile()`)
+      alongside the existing plant fetch on focus and renders the real
+      avatar (or the placeholder) there too.
   - **PR 2 — done.** Swapped the remaining flat-color avatar
     placeholders to `PhotoThumb` (`uri`/`size={44}`/`radius={radius.sm}`,
     matching every row's pre-existing thumb dimensions) in the seven
