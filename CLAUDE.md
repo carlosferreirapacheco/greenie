@@ -600,13 +600,37 @@ sharing them socially with other users.
     Access policy or hosted as a separate public project.
 
 ### Technical follow-ups
-- Real-device verification of native share — the Share care
-  instructions feature (see Plant-sitting above) calls React Native's
-  `Share.share()`; only verified on web so far, where the browser
-  reports "not supported" instead of actually opening a share sheet.
-  Confirm the native iOS/Android share sheet opens with correctly
-  formatted text on a real device or simulator before considering this
-  fully verified.
+- Real device deployment (Android) — done. First-ever real-device pass,
+  via an **EAS development build** (not Expo Go — Expo Go's Play Store
+  build hadn't caught up to this project's SDK 57 yet when tried, a
+  store-review timing gap, not a real incompatibility). New `eas.json`
+  (`development` profile: `developmentClient: true`, `distribution:
+  "internal"`, Android `buildType: "apk"` for a directly-installable
+  file, `cli.appVersionSource: "remote"` to avoid an interactive
+  first-run prompt), `app.json` gained `android.package:
+  "com.hederahelix.greenie"` plus (from `eas init`, run once
+  interactively — EAS build tokens are treated as restricted "robot
+  users" that can't create a new project) `extra.eas.projectId` and
+  `owner`. New dependency **`expo-dev-client`** (`npx expo install`).
+  New `.easignore` (mirrors `.gitignore` — EAS's uploader replaces
+  `.gitignore` entirely rather than extending it — plus excludes
+  `.claude/`/`.agents/`, which broke the upload with an `EPERM` on a
+  symlink Windows won't recreate). Auth: `eas-cli` runs non-interactively
+  via an `EXPO_TOKEN` personal access token in `.env` (same pattern as
+  every other secret already there, e.g. `SUPABASE_SECRET_KEY`) —
+  `eas login` was deliberately never used, keeping the account password
+  itself out of any tool's hands. Once installed, `npx expo start
+  --dev-client` (not `--web`) serves the same Metro bundler the
+  installed app connects to over LAN, the same as Expo Go would have.
+  This device is also what verified native Google OAuth (see Real
+  authentication below) and closes out native-share/dark-mode-status-bar
+  verification (both below) — a real device was the point of doing this
+  at all, not a Play Store release, which remains out of scope.
+- Real-device verification of native share — done, verified live on
+  the Android EAS development build above: "Share care instructions"
+  (see Plant-sitting above) opens the real Android share sheet with
+  correctly formatted, readable text — previously only verified on web,
+  where the browser reports "not supported" instead.
 - Screen/component-level tests — unit testing (Jest + `jest-expo`) now
   covers the `lib/` layer (pure logic + Supabase call layer, see
   Conventions), but no screens under `app/` are tested yet. Deferred
@@ -732,9 +756,12 @@ sharing them socially with other users.
   (`expo-status-bar`, previously unused) so status bar icons stay
   legible against a dark background, and `app.json`'s
   `userInterfaceStyle` changed from `"light"` to `"automatic"` so
-  native OS chrome can follow the resolved scheme too — native-chrome
-  verification is deferred to a real device/simulator (not testable in
-  the web preview), same as the native-share-sheet item below.
+  native OS chrome can follow the resolved scheme too — verified live on
+  the Android EAS development build (see "Real device deployment"
+  below): cycling System/Light/Dark actually switches the status bar
+  icon color (light icons on dark, dark icons on light), confirming
+  `<StatusBar>` + `userInterfaceStyle: "automatic"` both work as
+  intended outside the web preview.
   Verified live: System correctly follows the browser's
   `prefers-color-scheme`, Light/Dark apply instantly across screens
   (Settings, Plants list including `getStatusColors`-driven status
@@ -783,8 +810,38 @@ sharing them socially with other users.
     rather than duplicating (Supabase automatic identity linking;
     requires the existing email to be verified — always true while
     auto-confirm is on; see docs/google-oauth.md).
-    - Native OAuth — needs `expo-web-browser`/`expo-auth-session` + a
-      custom URL scheme; deferred until the app targets devices.
+    - Native OAuth — done, verified live on a real Android device (EAS
+      development build — see "Real device deployment" below).
+      `signInWithGoogle()` (`lib/supabase/auth.ts`) branches on
+      `Platform.OS`: native opens the same Supabase authorize URL via
+      `expo-web-browser`'s `openAuthSessionAsync()`, redirecting to
+      `expo-auth-session`'s `makeRedirectUri({ path: "redirect" })` —
+      resolves to `greenie://redirect`. The explicit `path` isn't
+      cosmetic: verified live that a bare `scheme://` with no path
+      doesn't get reliably caught by Android's redirect-matching inside
+      `openAuthSessionAsync` (the browser tab never returned control to
+      the app at all). Tokens are parsed from the redirect URL's
+      fragment via `expo-auth-session/build/QueryParams`'s
+      `getQueryParams()` (same implicit-grant shape the web flow's
+      `detectSessionInUrl` already handles) and landed via
+      `supabase.auth.setSession()`. Google Cloud Console needs no
+      change (Google always redirects to Supabase's fixed callback,
+      identical to web); only Supabase's Redirect URLs allowlist needs
+      `greenie://redirect` added once (see `docs/google-oauth.md`) — a
+      real device build gets a stable, scheme-only redirect, unlike
+      Expo Go which would tie it to the dev machine's LAN IP. New
+      `app/redirect.tsx`: Android delivers the same deep link to
+      `expo-router`'s own navigation in parallel with
+      `openAuthSessionAsync` capturing it, and without a matching route
+      that surfaced as an "Unmatched Route" screen even though sign-in
+      had already succeeded underneath it — this route exists purely to
+      give the deep link a harmless landing spot (bounces to `/`,
+      letting `app/_layout.tsx`'s session-based redirect take over); it
+      does no auth work itself. The web-only gate around the "Continue
+      with Google" button on `app/sign-in.tsx`/`app/sign-up.tsx` was
+      removed — both platforms show it now. New dependencies
+      **`expo-web-browser`** and **`expo-auth-session`** (installed via
+      `npx expo install`).
     - Other social providers (Apple etc.) — later.
     - OAuth-user deletion re-auth — done, see Account settings above.
     - Post-Google-signup review screen — done as `app/welcome.tsx`:
@@ -805,7 +862,11 @@ sharing them socially with other users.
 - Revisit prompt design and other UX/UI improvements — a general pass
   over interaction patterns accumulated feature-by-feature (e.g. the
   inline two-tap confirm/prompt style used for delete and the overdue
-  mark-done choice), not tied to one specific screen
+  mark-done choice), not tied to one specific screen. Some issues were
+  visible during the first real Android device pass (see Technical
+  follow-ups) that the browser/web preview hadn't surfaced — not
+  itemized yet, worth a dedicated look rather than folding into
+  whatever feature happens to touch that screen next
 
 ## Environment
 - Supabase URL and anon key go in `.env` (never commit this file)

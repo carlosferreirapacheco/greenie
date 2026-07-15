@@ -1,0 +1,48 @@
+# .easignore replaces .gitignore entirely for EAS Build uploads, so it
+# needs to duplicate every rule from .gitignore, not just add to it.
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# Claude Code tooling -- not needed for the app build, and .agents/skills
+# contains a symlink that fails to package on Windows (EPERM).
+/.claude
+/.agents
