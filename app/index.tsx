@@ -10,6 +10,7 @@ import {
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
 import { getPendingFollowRequests } from "../lib/supabase/follows";
+import { getMyProfile } from "../lib/supabase/profiles";
 import { buildCareInstructionsText } from "../lib/careInstructions";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../lib/theme";
@@ -46,6 +47,7 @@ export default function PlantListScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -79,6 +81,11 @@ export default function PlantListScreen() {
       .then((requests) => setHasPendingRequests(requests.length > 0))
       .catch(() => {
         // Non-critical -- the badge just won't show if this fails.
+      });
+    getMyProfile()
+      .then((profile) => setMyAvatarUrl(profile.avatar_url))
+      .catch(() => {
+        // Non-critical -- the header just keeps the placeholder if this fails.
       });
   }, []);
 
@@ -119,7 +126,7 @@ export default function PlantListScreen() {
         headerLeft: () => (
           <View style={styles.headerLeftRow}>
             <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
-              <View style={[styles.profileAvatar, { backgroundColor: colors.sage }]} />
+              <PhotoThumb uri={myAvatarUrl} size={28} radius={radius.sm} />
             </Pressable>
             <Pressable onPress={() => router.push("/following")} hitSlop={8} style={styles.badgeWrap}>
               <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
@@ -266,11 +273,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.sm,
     marginLeft: spacing.md,
-  },
-  profileAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.sm,
   },
   headerLink: {
     fontSize: 14,
