@@ -490,15 +490,14 @@ sharing them socially with other users.
     commentPolicy)` helper in `lib/supabase/plant_progress.ts` is the
     single source of truth both screens funnel through before saving.
     The one-way lock only applies once a report is actually saved —
-    `app/log-progress.tsx`'s draft form stays fully editable in both
-    directions the whole time you're composing (nothing's persisted
-    yet, so there's nothing to lock): picking "Don't share" directly
-    sets `commentPolicy` to `disabled` too as a convenience default (a
-    real state mutation, not a masked display value), but the user can
-    freely toggle Feed back to "Share to feed" and re-pick Comments
-    afterward — `effectiveCommentPolicy()` at save time is what
-    actually guarantees the saved pair is consistent regardless of
-    whatever the two chips were left showing. `app/progress/[id].tsx`
+    on `app/log-progress.tsx`'s draft form the Feed chips stay
+    toggleable in both directions the whole time you're composing
+    (nothing's persisted yet, so there's nothing to lock), but the
+    Comments chips track the Feed choice live: picking "Don't share"
+    sets `commentPolicy` to `disabled` and disables the Comments
+    group; toggling back to "Share to feed" re-enables picking a
+    comment policy. `effectiveCommentPolicy()` at save time is the
+    actual guarantee that the saved pair is consistent. `app/progress/[id].tsx`
     is different: everything there is already a saved report, so once
     an owner picks "Don't share" it's real and permanent — both the
     Feed and Comments chip groups freeze there (via a new optional
