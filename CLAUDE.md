@@ -7,8 +7,11 @@ sharing them socially with other users.
 ## Stack
 - **Frontend:** Expo (React Native), TypeScript
 - **Backend:** Supabase (Postgres, Auth, Storage, Edge Functions)
-- **AI:** Anthropic API (Claude vision) for plant identification and care
-  suggestions from photos
+- **AI:** Google Gemini API (`gemini-2.5-flash`) for a text-based plant
+  lookup — "Look up with AI" on Add Plant sends the typed name and gets
+  back species + a suggested watering frequency
+  (`supabase/functions/lookup-plant`, `lib/supabase/ai.ts`). Not
+  photo-based yet — no vision call exists in the codebase
 - **Notifications:** expo-notifications (local first, Supabase Edge Function
   + push later for server-scheduled reminders)
 
@@ -40,23 +43,27 @@ sharing them socially with other users.
   accepted_privacy_at [GDPR consent stamp], display_name, bio,
   avatar_url, created_at, plus three account-wide privacy columns from
   migration 0008: profile_visibility, follow_policy,
-  progress_visibility — the fourth, comment_policy, moved to
-  plant_progress as a per-report setting in migration 0012)
+  progress_visibility — a fourth, comment_policy, moved to
+  plant_progress as a per-report setting in migration 0012 — plus
+  plant_sitter_attribution [allowed/disabled, migration 0015, see
+  Plant-sitting below])
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently
   `username_change_cooldown_days` and `privacy_policy_updated_at` (the
   policy's effective date, see Re-consent under GDPR)
 - `plants` (id, owner_id, name, species, photo_urls[], location, acquired_at,
-  created_at) — publicly readable (like every other social table below),
-  write access owner-only
+  created_at, nickname [migration 0007, optional, takes the primary
+  display slot over name when set]) — publicly readable (like every
+  other social table below), write access owner-only
 - `care_tasks` (id, plant_id, type [water/fertilize/repot], frequency_days,
   last_done, next_due)
 - `plant_progress` (id, plant_id, user_id, height_cm, notes, photo_url,
   created_at, comment_policy [public/followers/disabled, per-report],
   shared_to_feed [boolean; false = unlisted, kept out of feeds but
-  reachable by direct link and the future plant history]) — structured
-  per-plant growth log entries ("progress reports"), not generic posts;
-  `photo_url` is nullable until photo capture is built (see Backlog)
+  reachable by direct link and the plant's own Progress history]) —
+  structured per-plant growth log entries ("progress reports"), not
+  generic posts; `photo_url` stays nullable by design (an optional
+  attachment, not a nullable-until-built placeholder)
 - `follows` (follower_id, followee_id, status [pending/accepted,
   server-computed from the target's follow_policy])
 - `likes` (progress_id, user_id)
@@ -64,6 +71,9 @@ sharing them socially with other users.
 - `blocks` (blocker_id, blocked_id, created_at) — only the blocker can
   read/write their own outgoing blocks; see the Block users backlog
   item for the asymmetric-identity/symmetric-content RLS design
+- `plant_sitting_assignments` (id, owner_id, sitter_id, status
+  [pending/accepted/declined/cancelled], starts_at, ends_at, created_at,
+  responded_at, cancelled_at) — migration 0015, see Plant-sitting below
 
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
@@ -100,7 +110,7 @@ sharing them socially with other users.
   gathers plants/tasks and calls `Share.share()`, which correctly
   reports "not supported in this browser" there, caught by the
   existing error-banner pattern); real-device verification that the
-  native iOS/Android share sheet actually opens is deferred — see
+  native Android share sheet actually opens is also done — see
   Technical follow-ups.
   **In-app delegated plant-sitting (mutual follows) — done.** Migration
   `0015_plant_sitting.sql`: new `plant_sitting_assignments` table
@@ -224,7 +234,8 @@ sharing them socially with other users.
   normal owner-always-visible/follower-visibility rules) — only future
   access is cut off.
 - Plant nicknames — done. Owners can set a personal `nickname` on a
-  plant (new nullable column on `plants`, no RLS change needed), separate
+  plant (new nullable column on `plants`, migration `0007_plant_nickname.sql`,
+  no RLS change needed), separate
   from its common name (`plants.name`, e.g. "Pothos") and Latin species.
   Wherever a plant's name is shown, the nickname takes the primary slot
   (falling back to the common name if unset); the common name only shows
@@ -366,8 +377,8 @@ sharing them socially with other users.
   `username_changed_at`; the first customization is always free.
   `handle_new_user()` falls back to a generated `user_<id-prefix>`
   username when signup metadata is missing/invalid/taken, so signup
-  never fails over a username and future OAuth signups (no username
-  field) keep working. Shown as `@username` under the display name on
+  never fails over a username, including OAuth signups (Google sign-in
+  has no username field of its own). Shown as `@username` under the display name on
   user profiles (visible in both public and private modes — it's
   identity, like display name), as a second line in Search Users rows,
   and User search matches username as well as display name. Also
@@ -428,17 +439,19 @@ sharing them socially with other users.
     (no refetch needed), and the Plants list picks up the change on
     return via its existing `useFocusEffect` refetch.
 - Content visibility scoping — done. Settings gained a "Privacy"
-  section with four account-wide controls, each a new `profiles` column
+  section with three account-wide controls, each a new `profiles` column
   enforced at the RLS level (not just client filtering):
   `profile_visibility` (private hides your plant list from
   non-followers; name/avatar/bio stay visible), `follow_policy`
   (`request` makes new follows land as pending requests — a `before
   insert` trigger on `follows` server-computes the new `status` column
-  from the target's policy, so clients can't self-assign accepted),
+  from the target's policy, so clients can't self-assign accepted), and
   `progress_visibility` (private = followers only, closing the old
-  fetch-any-report-by-id gap), and `comment_policy`
-  (public/followers-only; the composer on `app/progress/[id].tsx` is
-  hidden client-side too). Likes/comments SELECT + INSERT policies
+  fetch-any-report-by-id gap). A fourth control, `comment_policy`, shipped
+  here too but moved off `profiles` onto `plant_progress` as a per-report
+  setting in migration 0012 (see "Disable comments entirely" below) —
+  the composer on `app/progress/[id].tsx` is hidden client-side when it
+  resolves to disabled. Likes/comments SELECT + INSERT policies
   follow the parent report's visibility, `follows` rows are only
   visible to the two parties, and a reusable `security definer` helper
   `is_accepted_follower()` drives all follower checks (migration
@@ -463,7 +476,8 @@ sharing them socially with other users.
     report with "Don't share" keeps it out of every feed
     (`getFeed()` filters it) but it stays *unlisted*, not private —
     direct links work for anyone who could already see it, and the
-    future plant-history section will list it.
+    plant's own Progress history (see Plant profile screen below) lists
+    it too, tagged "Unlisted".
   - Remove follower UI — done. `app/followers.tsx` (linked from a
     "Followers" header link on the Following screen) lists accepted
     followers via
@@ -953,6 +967,6 @@ sharing them socially with other users.
 
 ## Environment
 - Supabase URL and anon key go in `.env` (never commit this file)
-- Anthropic API key goes in `.env` as well, used only from Supabase Edge
-  Functions — never call the Claude API directly from the client with a
-  bundled key
+- `GEMINI_API_KEY` (Google Gemini, plant lookup) is a Supabase Edge
+  Function secret, not a client `.env` value — never call it directly
+  from the client with a bundled key
