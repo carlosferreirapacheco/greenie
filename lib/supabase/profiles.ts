@@ -91,6 +91,29 @@ export async function searchProfiles(query: string): Promise<Profile[]> {
   return data;
 }
 
+export async function updateMyAvatar(avatarUrl: string | null): Promise<Profile> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function updateMyProfile(input: {
   username: string;
   display_name: string | null;

@@ -5,6 +5,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
 import { plantCommonNameSubtitle, plantPrimaryName } from "../lib/supabase/plants";
+import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -53,7 +54,7 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <View style={styles.author}>
         <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${item.user_id}`)} hitSlop={4}>
-          <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
+          <PhotoThumb uri={item.author_avatar_url} size={28} radius={radius.sm} />
           <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
             {item.author_display_name ?? `@${item.author_username}`}
           </Text>
@@ -238,11 +239,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.sm,
   },
   authorName: {
     fontSize: 14,

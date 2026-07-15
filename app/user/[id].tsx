@@ -13,6 +13,7 @@ import {
   type PlantCareStatus,
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
+import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { getErrorMessage } from "../../lib/errors";
@@ -207,14 +208,11 @@ export default function UserProfileScreen() {
 
   const displayName = profile?.display_name;
   const atUsername = `@${profile?.username}`;
-  const initial = (displayName ?? profile?.username ?? "?").charAt(0).toUpperCase();
 
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: displayName ?? atUsername }} />
-      <View style={[styles.avatar, { backgroundColor: colors.sage }]}>
-        <Text style={[styles.avatarText, { fontFamily: fonts.display, color: colors.mossStrong }]}>{initial}</Text>
-      </View>
+      <PhotoThumb uri={profile?.avatar_url ?? null} size={88} radius={radius.lg} />
 
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {displayName ?? atUsername}
@@ -332,7 +330,7 @@ export default function UserProfileScreen() {
                 style={[styles.plantRow, { borderBottomColor: colors.line }]}
                 onPress={() => router.push(`/plant/${plant.id}`)}
               >
-                <View style={[styles.plantThumb, { backgroundColor: colors.sage }]} />
+                <PhotoThumb uri={plant.photo_urls?.[0] ?? null} size={56} radius={radius.sm} />
                 <View style={styles.plantRowText}>
                   <Text style={[styles.plantName, { fontFamily: fonts.display, color: colors.ink }]}>
                     {plantPrimaryName(plant)}
@@ -379,16 +377,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarText: {
-    fontSize: 34,
   },
   name: {
     fontSize: 20,
@@ -475,11 +463,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  plantThumb: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
   },
   plantRowText: {
     flex: 1,

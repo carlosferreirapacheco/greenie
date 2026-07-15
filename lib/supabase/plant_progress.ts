@@ -25,6 +25,7 @@ export type ProgressReport = {
 export type FeedItem = ProgressReport & {
   author_display_name: string | null;
   author_username: string | null;
+  author_avatar_url: string | null;
   plant_name: string;
   plant_nickname: string | null;
   plant_species: string | null;
@@ -48,7 +49,7 @@ export type FeedItem = ProgressReport & {
   latest_comment: CommentWithAuthor | null;
 };
 
-type AuthorInfo = { display_name: string | null; username: string };
+type AuthorInfo = { display_name: string | null; username: string; avatar_url: string | null };
 
 // Shared by getFeed (many reports, author info already known from the
 // following list) and getProgressReport (a single report, author info
@@ -86,7 +87,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   if (ownerIds.length > 0) {
     const { data: ownerProfiles, error: ownerProfilesError } = await supabase
       .from("profiles")
-      .select("id, display_name, username, plant_sitter_attribution")
+      .select("id, display_name, username, avatar_url, plant_sitter_attribution")
       .in("id", ownerIds);
 
     if (ownerProfilesError) {
@@ -94,7 +95,11 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
     }
 
     for (const profile of ownerProfiles) {
-      ownerInfoById.set(profile.id, { display_name: profile.display_name, username: profile.username });
+      ownerInfoById.set(profile.id, {
+        display_name: profile.display_name,
+        username: profile.username,
+        avatar_url: profile.avatar_url,
+      });
       shareAllowedByOwnerId.set(profile.id, profile.plant_sitter_attribution === "allowed");
     }
   }
@@ -134,6 +139,7 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       ...report,
       author_display_name: authorInfo?.display_name ?? null,
       author_username: authorInfo?.username ?? null,
+      author_avatar_url: authorInfo?.avatar_url ?? null,
       plant_name: plant?.name ?? "Unknown plant",
       plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
@@ -156,7 +162,10 @@ export async function getFeed(): Promise<FeedItem[]> {
   }
 
   const authorInfoById = new Map<string, AuthorInfo>(
-    following.map((person) => [person.id, { display_name: person.display_name, username: person.username }])
+    following.map((person) => [
+      person.id,
+      { display_name: person.display_name, username: person.username, avatar_url: person.avatar_url },
+    ])
   );
 
   const { data: reports, error: reportsError } = await supabase
@@ -190,7 +199,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
 
   const { data: author, error: authorError } = await supabase
     .from("profiles")
-    .select("display_name, username")
+    .select("display_name, username, avatar_url")
     .eq("id", report.user_id)
     .single();
 
@@ -199,7 +208,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
   }
 
   const authorInfoById = new Map<string, AuthorInfo>([
-    [report.user_id, { display_name: author.display_name, username: author.username }],
+    [report.user_id, { display_name: author.display_name, username: author.username, avatar_url: author.avatar_url }],
   ]);
   const [item] = await hydrateReports([report], authorInfoById);
   return item;
@@ -211,6 +220,7 @@ export async function createProgressReport(input: {
   notes: string;
   comment_policy: CommentPolicy;
   shared_to_feed: boolean;
+  photo_url?: string | null;
 }): Promise<ProgressReport> {
   const {
     data: { user },
@@ -229,6 +239,7 @@ export async function createProgressReport(input: {
       notes: input.notes,
       comment_policy: input.comment_policy,
       shared_to_feed: input.shared_to_feed,
+      photo_url: input.photo_url ?? null,
     })
     .select()
     .single();

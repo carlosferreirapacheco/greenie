@@ -102,12 +102,31 @@ export async function updatePlantNickname(id: string, nickname: string | null): 
   return data;
 }
 
+// Single-photo v1 -- the array column stays available for a future
+// multi-photo gallery without a schema change, but this always writes
+// (or clears) just the one slot.
+export async function updatePlantPhoto(id: string, photoUrl: string | null): Promise<Plant> {
+  const { data, error } = await supabase
+    .from("plants")
+    .update({ photo_urls: photoUrl ? [photoUrl] : null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function createPlant(input: {
   name: string;
   species: string;
   location: string | null;
   acquired_at: string | null;
   nickname: string | null;
+  photo_url?: string | null;
 }): Promise<Plant> {
   const {
     data: { user },
@@ -126,6 +145,7 @@ export async function createPlant(input: {
       location: input.location,
       acquired_at: input.acquired_at,
       nickname: input.nickname,
+      photo_urls: input.photo_url ? [input.photo_url] : null,
     })
     .select()
     .single();

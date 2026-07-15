@@ -11,6 +11,7 @@ import {
 } from "../lib/supabase/care_tasks";
 import { getPendingFollowRequests } from "../lib/supabase/follows";
 import { buildCareInstructionsText } from "../lib/careInstructions";
+import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -198,7 +199,7 @@ export default function PlantListScreen() {
         return (
           <View style={[styles.row, { borderBottomColor: colors.line }]}>
             <Pressable style={styles.plantLink} onPress={() => router.push(`/plant/${item.id}`)}>
-              <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+              <PhotoThumb uri={item.photo_urls?.[0] ?? null} size={56} radius={radius.sm} />
               <View style={styles.rowText}>
                 <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
                   {plantPrimaryName(item)}
@@ -307,11 +308,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.sm,
   },
   rowText: {
     flex: 1,

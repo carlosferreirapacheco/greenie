@@ -24,6 +24,7 @@ import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../.
 import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
 import { getFollowStatus } from "../../lib/supabase/follows";
 import { supabase } from "../../lib/supabase/client";
+import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { getErrorMessage } from "../../lib/errors";
@@ -203,7 +204,7 @@ export default function ProgressDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.author}>
           <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${report.user_id}`)} hitSlop={4}>
-            <View style={[styles.avatar, { backgroundColor: colors.sage }]} />
+            <PhotoThumb uri={report.author_avatar_url} size={28} radius={radius.sm} />
             <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
               {report.author_display_name ?? `@${report.author_username}`}
             </Text>
@@ -238,6 +239,10 @@ export default function ProgressDetailScreen() {
             </Text>
           ) : null}
         </Text>
+
+        {report.photo_url ? (
+          <PhotoThumb uri={report.photo_url} size={220} radius={radius.md} />
+        ) : null}
 
         {report.notes ? (
           <Text style={[styles.notes, { fontFamily: fonts.body, color: colors.ink }]}>{report.notes}</Text>
@@ -406,11 +411,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.xs,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: radius.sm,
   },
   authorName: {
     fontSize: 14,
