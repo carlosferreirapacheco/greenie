@@ -209,24 +209,20 @@ export default function SignUpScreen() {
           )}
         </Pressable>
 
-        {Platform.OS === "web" ? (
-          <>
-            <View style={styles.dividerRow}>
-              <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-              <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
-              <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-            </View>
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
+          <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
+          <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
+        </View>
 
-            <Pressable
-              style={[styles.googleButton, { borderColor: colors.line, backgroundColor: colors.paper }]}
-              onPress={handleGoogleSignIn}
-            >
-              <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                Continue with Google
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
+        <Pressable
+          style={[styles.googleButton, { borderColor: colors.line, backgroundColor: colors.paper }]}
+          onPress={handleGoogleSignIn}
+        >
+          <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+            Continue with Google
+          </Text>
+        </Pressable>
 
         <Pressable onPress={() => router.push("/sign-in")} hitSlop={8}>
           <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>

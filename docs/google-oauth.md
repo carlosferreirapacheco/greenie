@@ -1,15 +1,49 @@
-# Google OAuth (web)
+# Google OAuth (web + native)
 
-"Continue with Google" on the sign-in and sign-up screens uses
-Supabase's web OAuth flow: a full-page redirect through
-`https://<project>.supabase.co/auth/v1/authorize?provider=google` to
-Google's consent screen and back to the app, where supabase-js picks
-the session out of the return URL (`detectSessionInUrl` is enabled on
-web only — see `lib/supabase/client.ts`).
+"Continue with Google" on the sign-in and sign-up screens works on both
+web and native now, via two different mechanisms behind the same
+`signInWithGoogle()` (`lib/supabase/auth.ts`):
 
-**Web only for now.** Native (iOS/Android) needs a different mechanism
-(`expo-web-browser` + `expo-auth-session` + a custom URL scheme) and is
-backlogged until the app targets devices.
+- **Web**: a full-page redirect through
+  `https://<project>.supabase.co/auth/v1/authorize?provider=google` to
+  Google's consent screen and back to the app, where supabase-js picks
+  the session out of the return URL (`detectSessionInUrl` is enabled on
+  web only — see `lib/supabase/client.ts`).
+- **Native (iOS/Android)**: `expo-web-browser`'s `openAuthSessionAsync()`
+  opens the same Supabase authorize URL in an in-app browser tab
+  (`skipBrowserRedirect: true` so Supabase returns the URL instead of
+  trying a web-only redirect). The redirect target is
+  `expo-auth-session`'s `makeRedirectUri({ path: "redirect" })`, which
+  resolves to `greenie://redirect` under this app's own EAS development
+  build (see the "Real device deployment" backlog entry below) — the
+  explicit `path` matters: verified live that a bare `scheme://` with no
+  path doesn't get reliably caught by Android's redirect-matching inside
+  `openAuthSessionAsync` (the browser tab never returned control to the
+  app). Once the browser tab redirects there, the tokens are parsed out
+  of the URL fragment (`expo-auth-session/build/QueryParams`'s
+  `getQueryParams()`, the same implicit-grant shape the web flow's
+  `detectSessionInUrl` already handles) and set via
+  `supabase.auth.setSession()`. Android also delivers this same deep
+  link to `expo-router`'s own navigation in parallel with
+  `openAuthSessionAsync` capturing it for the auth session — without a
+  matching route, that surfaces as an "Unmatched Route" error screen
+  even though the sign-in itself already succeeded underneath it. Fixed
+  by `app/redirect.tsx`, a route that exists purely to give that
+  deep link a harmless landing spot (bounces to `/`, letting
+  `app/_layout.tsx`'s session-based redirect take over) — it does no
+  auth work itself, all of that happens in `signInWithGoogleNative()`.
+
+**Google Cloud Console needs no change for native.** Google's OAuth
+redirect always goes to Supabase's own fixed callback
+(`https://bcmlhuljvuvrpylfdrkk.supabase.co/auth/v1/callback`), identical
+to the web flow — the app-side redirect only matters for the *second*
+hop, from Supabase back into the app.
+
+**Supabase does need an addition: `greenie://redirect`**, added once to
+Authentication → URL Configuration → Redirect URLs (an owner/dashboard
+action). Unlike an Expo Go connection (which would tie this to the dev
+machine's LAN IP, changing across networks), a real device build gets a
+stable, scheme-only redirect that doesn't need re-adding.
 
 ## First sign-in: the welcome screen
 

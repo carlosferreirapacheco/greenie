@@ -1,6 +1,14 @@
 import { Platform } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import { makeRedirectUri } from "expo-auth-session";
+import * as QueryParams from "expo-auth-session/build/QueryParams";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./client";
+
+// Closes the in-app browser tab once it redirects back to the app --
+// a no-op on native until an AuthSession-based flow is actually in
+// progress, safe/recommended to call once at module scope regardless.
+WebBrowser.maybeCompleteAuthSession();
 
 export async function signUpWithEmail(
   email: string,
@@ -24,14 +32,73 @@ export async function signUpWithEmail(
   return { session: data.session };
 }
 
-// Web-only for now: the browser does a full-page redirect through
-// Supabase to Google and back, and the client picks the session out of
-// the return URL (detectSessionInUrl, see ./client). Native needs a
-// different mechanism (expo-web-browser + custom scheme) -- backlogged
-// until the app targets devices.
+// Native counterpart to the web redirect flow below: opens Google's
+// consent screen in an in-app browser tab (expo-web-browser) and waits
+// for Supabase's own callback to redirect back to this device-local
+// build's greenie://redirect URL (expo-auth-session's makeRedirectUri()
+// -- an explicit path matters: verified live that a bare `scheme://`
+// with no path doesn't get reliably caught by Android's redirect
+// matching inside openAuthSessionAsync). Google's Cloud Console
+// redirect URI never changes for this -- it's always Supabase's fixed
+// /auth/v1/callback, identical to the web flow; only Supabase's own
+// Redirect URLs allowlist needs greenie://redirect added. Android also
+// delivers this deep link to expo-router's own navigation in parallel
+// with openAuthSessionAsync capturing it, so app/redirect.tsx exists
+// purely to give it a harmless landing spot instead of an "Unmatched
+// Route" error -- the actual session handling happens entirely here.
+async function signInWithGoogleNative(): Promise<void> {
+  const redirectTo = makeRedirectUri({ path: "redirect" });
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    // skipBrowserRedirect: the web-only auto-navigation this option
+    // guards against doesn't apply here -- we open the URL ourselves.
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+  if (result.type !== "success") {
+    // User backed out of the browser tab -- not an error.
+    return;
+  }
+
+  // Tokens arrive in the redirect URL's fragment (#access_token=...),
+  // the same implicit-grant shape the web flow's detectSessionInUrl
+  // already handles -- getQueryParams() is the helper Supabase's own
+  // Expo guide uses since plain fragment parsing is finicky across RN's
+  // URL polyfill.
+  const { params, errorCode } = QueryParams.getQueryParams(result.url);
+
+  if (errorCode) {
+    throw new Error(errorCode);
+  }
+
+  const { access_token, refresh_token } = params;
+
+  if (!access_token || !refresh_token) {
+    return;
+  }
+
+  const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token });
+
+  if (sessionError) {
+    throw sessionError;
+  }
+}
+
+// Web does a full-page redirect through Supabase to Google and back,
+// picking the session out of the return URL (detectSessionInUrl, see
+// ./client); native opens an in-app browser tab instead -- see
+// signInWithGoogleNative() above.
 export async function signInWithGoogle(): Promise<void> {
   if (Platform.OS !== "web") {
-    throw new Error("Google sign-in is only available on the web for now");
+    await signInWithGoogleNative();
+    return;
   }
 
   const origin = (globalThis as { location?: { origin: string } }).location?.origin;

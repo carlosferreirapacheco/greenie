@@ -3,7 +3,22 @@ jest.mock("./client", () => {
   return { supabase: createMockSupabaseClient() };
 });
 
+jest.mock("expo-web-browser", () => ({
+  maybeCompleteAuthSession: jest.fn(),
+  openAuthSessionAsync: jest.fn(),
+}));
+
+jest.mock("expo-auth-session", () => ({
+  makeRedirectUri: jest.fn(() => "exp://192.168.1.23:8081/--/redirect"),
+}));
+
+jest.mock("expo-auth-session/build/QueryParams", () => ({
+  getQueryParams: jest.fn(),
+}));
+
 import { Platform } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import * as QueryParams from "expo-auth-session/build/QueryParams";
 import { supabase } from "./client";
 import {
   signUpWithEmail,
@@ -26,6 +41,9 @@ import {
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
 >;
+
+const mockOpenAuthSessionAsync = WebBrowser.openAuthSessionAsync as jest.Mock;
+const mockGetQueryParams = QueryParams.getQueryParams as jest.Mock;
 
 // jest-expo's environment has no browser localStorage -- a tiny
 // in-memory stub for the web-only linkGoogleAccount()/
@@ -429,9 +447,74 @@ describe("confirmPasswordlessAccountDeletion", () => {
 });
 
 describe("signInWithGoogle", () => {
-  it("throws on native without starting an OAuth flow (jest-expo runs as iOS)", async () => {
-    await expect(signInWithGoogle()).rejects.toThrow("only available on the web");
-    expect(mockSupabase.auth.signInWithOAuth).not.toHaveBeenCalled();
+  // jest-expo's environment runs as iOS, so these exercise the native
+  // (expo-web-browser + expo-auth-session) branch by default.
+  describe("on native", () => {
+    it("opens the OAuth URL and completes the session on a successful redirect", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
+        data: { url: "https://accounts.google.com/authorize" },
+        error: null,
+      });
+      mockOpenAuthSessionAsync.mockResolvedValue({
+        type: "success",
+        url: "exp://192.168.1.23:8081/--/redirect#access_token=at&refresh_token=rt",
+      });
+      mockGetQueryParams.mockReturnValue({
+        errorCode: null,
+        params: { access_token: "at", refresh_token: "rt" },
+      });
+      mockSupabase.auth.setSession.mockResolvedValue({ data: {}, error: null });
+
+      await signInWithGoogle();
+
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: "exp://192.168.1.23:8081/--/redirect", skipBrowserRedirect: true },
+      });
+      expect(mockOpenAuthSessionAsync).toHaveBeenCalledWith(
+        "https://accounts.google.com/authorize",
+        "exp://192.168.1.23:8081/--/redirect"
+      );
+      expect(mockSupabase.auth.setSession).toHaveBeenCalledWith({ access_token: "at", refresh_token: "rt" });
+    });
+
+    it("does nothing when the user cancels the browser tab", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+      mockOpenAuthSessionAsync.mockResolvedValue({ type: "cancel" });
+
+      await expect(signInWithGoogle()).resolves.toBeUndefined();
+      expect(mockSupabase.auth.setSession).not.toHaveBeenCalled();
+    });
+
+    it("throws the Supabase signInWithOAuth error without opening a browser tab", async () => {
+      const err = { message: "Unsupported provider: provider is not enabled" };
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: err });
+
+      await expect(signInWithGoogle()).rejects.toBe(err);
+      expect(mockOpenAuthSessionAsync).not.toHaveBeenCalled();
+    });
+
+    it("throws when the redirect URL reports an error code", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+      mockOpenAuthSessionAsync.mockResolvedValue({ type: "success", url: "exp://192.168.1.23:8081/--/redirect#error=access_denied" });
+      mockGetQueryParams.mockReturnValue({ errorCode: "access_denied", params: {} });
+
+      await expect(signInWithGoogle()).rejects.toThrow("access_denied");
+      expect(mockSupabase.auth.setSession).not.toHaveBeenCalled();
+    });
+
+    it("throws the Supabase setSession error", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+      mockOpenAuthSessionAsync.mockResolvedValue({
+        type: "success",
+        url: "exp://192.168.1.23:8081/--/redirect#access_token=at&refresh_token=rt",
+      });
+      mockGetQueryParams.mockReturnValue({ errorCode: null, params: { access_token: "at", refresh_token: "rt" } });
+      const err = { message: "Invalid session" };
+      mockSupabase.auth.setSession.mockResolvedValue({ data: {}, error: err });
+
+      await expect(signInWithGoogle()).rejects.toBe(err);
+    });
   });
 
   describe("on web", () => {
