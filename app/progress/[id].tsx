@@ -21,8 +21,9 @@ import {
 import { ChipGroup } from "../../components/ChipGroup";
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { addComment, getCommentsForProgress, type CommentWithAuthor } from "../../lib/supabase/comments";
-import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
+import { plantCommonNameSubtitle, plantPrimaryName, updatePlantPhoto } from "../../lib/supabase/plants";
 import { getFollowStatus } from "../../lib/supabase/follows";
+import { deletePhotoByUrl } from "../../lib/supabase/storage";
 import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
@@ -49,6 +50,11 @@ export default function ProgressDetailScreen() {
 
   const [canComment, setCanComment] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isPlantOwner, setIsPlantOwner] = useState(false);
+
+  const [setPhotoStatus, setSetPhotoStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [setPhotoError, setSetPhotoError] = useState<string | null>(null);
+  const isSettingPhoto = useRef(false);
 
   const [commentText, setCommentText] = useState("");
   const [postStatus, setPostStatus] = useState<"idle" | "posting" | "error">("idle");
@@ -73,6 +79,7 @@ export default function ProgressDetailScreen() {
         setLikeCount(reportData.like_count);
         setComments(commentsData);
         setIsOwner(reportData.user_id === currentUserId);
+        setIsPlantOwner(reportData.plant_owner_id === currentUserId);
 
         // The report's own comment_policy (per-report since migration
         // 0012). 'disabled' silences everyone, the owner included.
@@ -174,6 +181,29 @@ export default function ProgressDetailScreen() {
     }
   }
 
+  async function handleSetAsPlantPhoto() {
+    if (!report?.photo_url || isSettingPhoto.current) {
+      return;
+    }
+    isSettingPhoto.current = true;
+    setSetPhotoStatus("saving");
+    setSetPhotoError(null);
+
+    try {
+      await updatePlantPhoto(report.plant_id, report.photo_url);
+      if (report.plant_photo_url) {
+        await deletePhotoByUrl(report.plant_photo_url);
+      }
+      setReport({ ...report, plant_photo_url: report.photo_url });
+      setSetPhotoStatus("idle");
+    } catch (err) {
+      setSetPhotoError(getErrorMessage(err));
+      setSetPhotoStatus("error");
+    } finally {
+      isSettingPhoto.current = false;
+    }
+  }
+
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
@@ -241,7 +271,23 @@ export default function ProgressDetailScreen() {
         </Text>
 
         {report.photo_url ? (
-          <PhotoThumb uri={report.photo_url} size={220} radius={radius.md} />
+          <>
+            <PhotoThumb uri={report.photo_url} size={220} radius={radius.md} />
+            {isPlantOwner && report.photo_url !== report.plant_photo_url ? (
+              <Pressable onPress={handleSetAsPlantPhoto} disabled={setPhotoStatus === "saving"} hitSlop={8}>
+                {setPhotoStatus === "saving" ? (
+                  <ActivityIndicator color={colors.moss} />
+                ) : (
+                  <Text style={[styles.setPhotoLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                    Set as plant's photo
+                  </Text>
+                )}
+              </Pressable>
+            ) : null}
+            {setPhotoStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{setPhotoError}</Text>
+            ) : null}
+          </>
         ) : null}
 
         {report.notes ? (
@@ -424,6 +470,10 @@ const styles = StyleSheet.create({
   notes: {
     fontSize: 15,
     lineHeight: 21,
+  },
+  setPhotoLink: {
+    fontSize: 13,
+    marginTop: 4,
   },
   height: {
     fontSize: 13,

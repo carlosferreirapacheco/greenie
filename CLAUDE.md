@@ -561,11 +561,43 @@ sharing them socially with other users.
     sparkline); the scaling math lives in `lib/chart.ts`
     (`computeChartPoints()`), kept pure and unit-tested separately from
     the presentational SVG component.
-  - Adding a new photo — ties into the consolidated Photo capture item
-    below; the plant profile screen is one of the places that'll need it
-  - Replace a plant's photo from Log Progress — once photo capture
-    exists, let a new photo taken while logging progress optionally
-    become the plant's new main photo, not just attach to that report
+  - Adding a new photo — done, via the consolidated Photo capture item
+    (Technical follow-ups below); the plant profile screen is
+    owner-editable there.
+  - Replace a plant's photo from Log Progress — done. Two owner-only
+    entry points, both reusing the existing `updatePlantPhoto()`
+    (`lib/supabase/plants.ts`) and `deletePhotoByUrl()`
+    (`lib/supabase/storage.ts`) — no new lib functions needed.
+    **From Log Progress** (`app/log-progress.tsx`): once a photo is
+    picked, a `ChipGroup` ("Just this report" / "Also set as plant's
+    photo") appears for the plant's owner, matching the screen's
+    existing Comments/Feed chip pattern rather than a new checkbox
+    component. On save, if set, the plant-photo update runs after
+    `createProgressReport()` succeeds, wrapped in its own try/catch
+    that fails silently on error (matching this screen's existing
+    non-critical-fetch precedent) — the report itself already saved,
+    and the owner can always set the plant photo manually from its
+    profile if this secondary step fails. **From the plant's Progress
+    history** (`app/progress/[id].tsx`): a new `isPlantOwner` check
+    (`report.plant_owner_id === currentUserId`, distinct from the
+    existing report-authorship `isOwner` that gates the Comments/Feed
+    settings block) drives a "Set as plant's photo" text link under
+    the report's photo, shown only when that photo isn't already the
+    plant's current one. This comparison is powered by a new
+    `plant_photo_url` field added to `FeedItem`
+    (`lib/supabase/plant_progress.ts`'s `hydrateReports()`, riding
+    along on the plants query it already runs — no extra fetch) and
+    updated locally once the action succeeds, so the link disappears
+    immediately rather than needing a refetch. Unlike the Log Progress
+    entry point, this one surfaces errors visibly (its own
+    saving/error state, matching `photoSaveError` on the plant profile
+    screen) since it's a standalone action, not bundled into a larger
+    save flow. Accepted edge case: if a plant is later deleted,
+    `plant_owner_id` falls back to the report's author (existing
+    `hydrateReports()` behavior), which could show the link to a
+    non-owner in that narrow case — not guarded client-side, since the
+    `plants` UPDATE RLS policy is already owner-only and a stray click
+    just fails safely into the visible error state.
 - Plant list on user profiles — done. `app/user/[id].tsx` now fetches
   and lists that user's plants (via new `getPlantsForUser()` in
   `lib/supabase/plants.ts`), with the same status-pill treatment as the

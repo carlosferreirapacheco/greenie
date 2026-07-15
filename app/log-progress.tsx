@@ -13,8 +13,9 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { createProgressReport, type CommentPolicy } from "../lib/supabase/plant_progress";
-import { getPlant } from "../lib/supabase/plants";
+import { getPlant, updatePlantPhoto, type Plant } from "../lib/supabase/plants";
 import { getProfile } from "../lib/supabase/profiles";
+import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { supabase } from "../lib/supabase/client";
 import { ChipGroup } from "../components/ChipGroup";
 import { PhotoPicker } from "../components/PhotoPicker";
@@ -29,6 +30,9 @@ export default function LogProgressScreen() {
   const { colors } = useTheme();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [plant, setPlant] = useState<Plant | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [setAsPlantPhoto, setSetAsPlantPhoto] = useState(false);
   const [heightCm, setHeightCm] = useState("");
   const [notes, setNotes] = useState("");
   const [commentPolicy, setCommentPolicy] = useState<CommentPolicy>("public");
@@ -52,15 +56,21 @@ export default function LogProgressScreen() {
     let cancelled = false;
 
     Promise.all([getPlant(plantId), supabase.auth.getUser().then(({ data }) => data.user?.id)])
-      .then(async ([plant, currentUserId]) => {
-        if (cancelled || plant.owner_id === currentUserId) {
-          return;
-        }
-        const owner = await getProfile(plant.owner_id);
+      .then(async ([plantData, currentUserId]) => {
         if (cancelled) {
           return;
         }
-        if (owner.plant_sitter_attribution === "disabled") {
+        setPlant(plantData);
+        const owner = plantData.owner_id === currentUserId;
+        setIsOwner(owner);
+        if (owner) {
+          return;
+        }
+        const ownerProfile = await getProfile(plantData.owner_id);
+        if (cancelled) {
+          return;
+        }
+        if (ownerProfile.plant_sitter_attribution === "disabled") {
           setShareAllowed(false);
           setSharedToFeed(false);
         }
@@ -97,6 +107,19 @@ export default function LogProgressScreen() {
         photo_url: photoUrl,
       });
 
+      if (setAsPlantPhoto && isOwner && photoUrl) {
+        try {
+          const previousPhotoUrl = plant?.photo_urls?.[0] ?? null;
+          await updatePlantPhoto(plantId, photoUrl);
+          if (previousPhotoUrl) {
+            await deletePhotoByUrl(previousPhotoUrl);
+          }
+        } catch {
+          // Non-critical -- the report itself saved fine; the owner can
+          // still set the plant's photo manually from its profile.
+        }
+      }
+
       router.back();
     } catch (err) {
       setSaveError(getErrorMessage(err));
@@ -118,6 +141,17 @@ export default function LogProgressScreen() {
             Photo (optional)
           </Text>
           <PhotoPicker value={photoUrl} onChange={setPhotoUrl} context="progress" fonts={fonts} />
+          {isOwner && photoUrl ? (
+            <ChipGroup
+              fonts={fonts}
+              value={setAsPlantPhoto ? "yes" : "no"}
+              onChange={(value) => setSetAsPlantPhoto(value === "yes")}
+              options={[
+                { value: "no", label: "Just this report" },
+                { value: "yes", label: "Also set as plant's photo" },
+              ]}
+            />
+          ) : null}
         </View>
 
         <View style={styles.field}>

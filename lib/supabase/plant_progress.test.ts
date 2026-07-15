@@ -54,7 +54,14 @@ describe("getProgressReport", () => {
       .mockReturnValueOnce(
         createChainableQueryMock({
           data: [
-            { id: "pl1", name: "Pothos", species: "Epipremnum aureum", nickname: "Big Fred", owner_id: "author1" },
+            {
+              id: "pl1",
+              name: "Pothos",
+              species: "Epipremnum aureum",
+              nickname: "Big Fred",
+              owner_id: "author1",
+              photo_urls: ["https://example.com/plant.jpg"],
+            },
           ],
           error: null,
         })
@@ -106,6 +113,7 @@ describe("getProgressReport", () => {
     expect(result.plant_owner_display_name).toBe("Carlos");
     expect(result.plant_owner_username).toBe("carlos");
     expect(result.plant_owner_share_allowed).toBe(true);
+    expect(result.plant_photo_url).toBe("https://example.com/plant.jpg");
     // The report's own per-report settings ride through untouched.
     expect(result.comment_policy).toBe("followers");
     expect(result.shared_to_feed).toBe(true);
@@ -247,6 +255,7 @@ describe("getProgressReport", () => {
     expect(result.latest_comment).toBeNull();
     // No plant resolved -> no owner to fetch -> fails open.
     expect(result.plant_owner_share_allowed).toBe(true);
+    expect(result.plant_photo_url).toBeNull();
   });
 });
 
