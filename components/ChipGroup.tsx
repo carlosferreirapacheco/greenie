@@ -10,15 +10,17 @@ export function ChipGroup<T extends string>({
   value,
   onChange,
   fonts,
+  disabled,
 }: {
   options: { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
   fonts: ReturnType<typeof getFonts>;
+  disabled?: boolean;
 }) {
   const { colors } = useTheme();
   return (
-    <View style={styles.chipRow}>
+    <View style={[styles.chipRow, disabled && styles.chipRowDisabled]}>
       {options.map((option) => (
         <Pressable
           key={option.value}
@@ -26,7 +28,8 @@ export function ChipGroup<T extends string>({
             styles.chip,
             { borderColor: colors.line, backgroundColor: value === option.value ? colors.sage : "transparent" },
           ]}
-          onPress={() => onChange(option.value)}
+          onPress={() => !disabled && onChange(option.value)}
+          disabled={disabled}
         >
           <Text
             style={[
@@ -47,6 +50,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.xs,
+  },
+  chipRowDisabled: {
+    opacity: 0.5,
   },
   chip: {
     borderWidth: StyleSheet.hairlineWidth,

@@ -473,25 +473,41 @@ sharing them socially with other users.
     direct links work for anyone who could already see it, and the
     plant's own Progress history (see Plant profile screen below) lists
     it too, tagged "Unlisted".
-  - Tie `comment_policy` to `shared_to_feed` — not yet done.
-    `comment_policy` and `shared_to_feed` are currently fully
-    independent fields (freely combinable via
-    `updateProgressReportSettings()`, no coupling at the RLS or lib
-    layer), so a report can be unlisted (`shared_to_feed: false`) while
-    still accepting comments — an owner can leave "Anyone"/"Followers
-    only" selected on a report they've deliberately kept out of every
-    feed. Requirement: whenever a report is (or becomes) unlisted,
-    `comment_policy` should be forced to `disabled` — it doesn't make
-    sense for an unlisted report to have comments enabled. Touches
-    `app/log-progress.tsx` (Feed chip currently free-standing from the
-    Comments chip) and `app/progress/[id].tsx`'s owner settings block
-    (same independence there), plus likely the `plant_progress`
-    `insert`/`update` RLS `with check`s so this holds even if a client
-    tries to bypass the UI — same enforcement layering as the
-    `can_share_progress_to_feed()` gate (migration 0016). An instance
-    of the still-open "Review interactions between visibility
-    settings" audit below, now with a concrete decided outcome for
-    this specific pair.
+  - Tie `comment_policy` to `shared_to_feed` — done, and unlisting
+    made permanent along the way (migration
+    `0018_couple_comment_policy_to_sharing.sql`). Two DB rules: a
+    same-row CHECK constraint
+    (`plant_progress_unlisted_implies_comments_disabled`, one-
+    directional — `shared_to_feed or comment_policy = 'disabled'` —
+    disabling comments on an otherwise-shared report stays perfectly
+    legal) plus a `before update` trigger
+    (`prevent_reshare_after_unlist`) rejecting any attempt to flip
+    `shared_to_feed` from `false` back to `true`. Together these mean
+    `comment_policy` is transitively locked to `disabled` forever too
+    once a report is unlisted, with no separate one-way rule needed
+    for it; no changes to the sitter-attribution RLS (migration 0016),
+    an orthogonal gate. A new pure `effectiveCommentPolicy(sharedToFeed,
+    commentPolicy)` helper in `lib/supabase/plant_progress.ts` is the
+    single source of truth both screens funnel through before saving.
+    `app/log-progress.tsx`: picking "Don't share" on the Feed chip now
+    directly sets `commentPolicy` to `disabled` too (a real state
+    mutation, not just a masked display value — no attempt to
+    remember/restore a prior comment-policy pick, since there's no
+    path back to "Share to feed" for a report once it's unlisted), and
+    both the Feed and Comments chip groups freeze (via a new optional
+    `disabled` prop on `components/ChipGroup.tsx`) the moment
+    `sharedToFeed` goes false. `app/progress/[id].tsx`'s
+    `handleUpdateSettings()` computes the coupled value before
+    persisting, so a single "Don't share" tap locks both fields in one
+    atomic update; same chip-freezing, plus a new hint line under Feed
+    when unlisted (this screen didn't have one before). Verified live
+    end-to-end: the draft-form lock, the persisted-report lock, and
+    both DB rules (a rolled-back transaction confirmed re-sharing and
+    re-enabling comments on an unlisted row are both rejected). This
+    closes out the specific pair called out in "Review interactions
+    between visibility settings" below as a concrete, decided
+    outcome — the general audit item itself stays open for other
+    setting combinations.
   - Remove follower UI — done. `app/followers.tsx` (linked from a
     "Followers" header link on the Following screen) lists accepted
     followers via

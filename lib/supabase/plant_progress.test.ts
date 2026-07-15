@@ -11,6 +11,7 @@ import {
   createProgressReport,
   updateProgressReportSettings,
   getProgressReportsForPlant,
+  effectiveCommentPolicy,
 } from "./plant_progress";
 import { getFollowing } from "./follows";
 
@@ -403,5 +404,19 @@ describe("getProgressReportsForPlant", () => {
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
 
     await expect(getProgressReportsForPlant("pl1")).rejects.toBe(err);
+  });
+});
+
+describe("effectiveCommentPolicy", () => {
+  it("passes the comment policy through unchanged when shared to the feed", () => {
+    expect(effectiveCommentPolicy(true, "public")).toBe("public");
+    expect(effectiveCommentPolicy(true, "followers")).toBe("followers");
+    expect(effectiveCommentPolicy(true, "disabled")).toBe("disabled");
+  });
+
+  it("forces disabled when unlisted, regardless of the picked policy", () => {
+    expect(effectiveCommentPolicy(false, "public")).toBe("disabled");
+    expect(effectiveCommentPolicy(false, "followers")).toBe("disabled");
+    expect(effectiveCommentPolicy(false, "disabled")).toBe("disabled");
   });
 });

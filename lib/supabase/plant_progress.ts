@@ -17,10 +17,19 @@ export type ProgressReport = {
   created_at: string;
   comment_policy: CommentPolicy;
   // Unlisted, not private: false only keeps the report out of feeds --
-  // direct links (and the future plant-history section) still work for
-  // anyone who can see the report.
+  // direct links still work for anyone who can see the report. Once
+  // false, permanent (migration 0018's trigger rejects flipping it
+  // back to true) -- comment_policy is transitively locked to
+  // 'disabled' too, enforced by that migration's CHECK constraint.
   shared_to_feed: boolean;
 };
+
+// Business rule (migration 0018): an unlisted report can never have
+// comments enabled. Used by both screens to derive the value actually
+// sent/displayed; the DB CHECK constraint is the real backstop.
+export function effectiveCommentPolicy(sharedToFeed: boolean, commentPolicy: CommentPolicy): CommentPolicy {
+  return sharedToFeed ? commentPolicy : "disabled";
+}
 
 export type FeedItem = ProgressReport & {
   author_display_name: string | null;
