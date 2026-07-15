@@ -489,20 +489,27 @@ sharing them socially with other users.
     an orthogonal gate. A new pure `effectiveCommentPolicy(sharedToFeed,
     commentPolicy)` helper in `lib/supabase/plant_progress.ts` is the
     single source of truth both screens funnel through before saving.
-    `app/log-progress.tsx`: picking "Don't share" on the Feed chip now
-    directly sets `commentPolicy` to `disabled` too (a real state
-    mutation, not just a masked display value — no attempt to
-    remember/restore a prior comment-policy pick, since there's no
-    path back to "Share to feed" for a report once it's unlisted), and
-    both the Feed and Comments chip groups freeze (via a new optional
+    The one-way lock only applies once a report is actually saved —
+    `app/log-progress.tsx`'s draft form stays fully editable in both
+    directions the whole time you're composing (nothing's persisted
+    yet, so there's nothing to lock): picking "Don't share" directly
+    sets `commentPolicy` to `disabled` too as a convenience default (a
+    real state mutation, not a masked display value), but the user can
+    freely toggle Feed back to "Share to feed" and re-pick Comments
+    afterward — `effectiveCommentPolicy()` at save time is what
+    actually guarantees the saved pair is consistent regardless of
+    whatever the two chips were left showing. `app/progress/[id].tsx`
+    is different: everything there is already a saved report, so once
+    an owner picks "Don't share" it's real and permanent — both the
+    Feed and Comments chip groups freeze there (via a new optional
     `disabled` prop on `components/ChipGroup.tsx`) the moment
-    `sharedToFeed` goes false. `app/progress/[id].tsx`'s
-    `handleUpdateSettings()` computes the coupled value before
-    persisting, so a single "Don't share" tap locks both fields in one
-    atomic update; same chip-freezing, plus a new hint line under Feed
-    when unlisted (this screen didn't have one before). Verified live
-    end-to-end: the draft-form lock, the persisted-report lock, and
-    both DB rules (a rolled-back transaction confirmed re-sharing and
+    `report.shared_to_feed` is false, `handleUpdateSettings()` computes
+    the coupled value before persisting so a single tap locks both
+    fields in one atomic update, and a new hint line explains the lock
+    under Feed (this screen didn't have one before). Verified live
+    end-to-end: the draft form's free bidirectional toggling before
+    save, the persisted-report lock after, and both DB rules (a
+    rolled-back transaction confirmed re-sharing and
     re-enabling comments on an unlisted row are both rejected). This
     closes out the specific pair called out in "Review interactions
     between visibility settings" below as a concrete, decided

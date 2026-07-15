@@ -190,7 +190,6 @@ export default function LogProgressScreen() {
             fonts={fonts}
             value={commentPolicy}
             onChange={setCommentPolicy}
-            disabled={!sharedToFeed}
             options={[
               { value: "public", label: "Anyone" },
               { value: "followers", label: "Followers only" },
@@ -213,7 +212,6 @@ export default function LogProgressScreen() {
                     setCommentPolicy("disabled");
                   }
                 }}
-                disabled={!sharedToFeed}
                 options={[
                   { value: "share", label: "Share to feed" },
                   { value: "unlisted", label: "Don't share" },
