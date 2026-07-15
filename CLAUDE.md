@@ -713,11 +713,28 @@ sharing them socially with other users.
     opens and a captured photo uploads/displays correctly. Same
     deferred-until-a-device-pass pattern as native share and native
     OAuth were before their own real-device verification.
-  - **PR 2 (not started)**: swap the remaining flat-color avatar
-    placeholders in minor list rows (Following/Followers/Search
-    Users/Blocked Users/Plant Sitting/Select Sitter/Follow Requests) to
-    `PhotoThumb` — purely mechanical now that it exists, not worth
-    bloating PR 1.
+  - **PR 2 — done.** Swapped the remaining flat-color avatar
+    placeholders to `PhotoThumb` (`uri`/`size={44}`/`radius={radius.sm}`,
+    matching every row's pre-existing thumb dimensions) in the seven
+    minor list-row screens: `app/following.tsx`, `app/followers.tsx`,
+    `app/search-users.tsx`, `app/blocked-users.tsx`,
+    `app/select-sitter.tsx`, `app/follow-requests.tsx`, and
+    `app/plant-sitting.tsx` (four separate row components there —
+    `RequestRow`/`AssignmentRow` reading `assignment.owner.avatar_url`,
+    `SentRequestRow`/`HistoryRow` reading `assignment.sitter.avatar_url`).
+    Purely mechanical as expected — every row's `Profile` object already
+    carried `avatar_url` from its existing `select("*")` query, so no
+    query, type, or RLS changes were needed anywhere; each file's
+    now-unused `thumb` style was removed too. Verified live on web
+    (signed in as Sammy, mutually following the primary dev account):
+    all seven screens render cleanly with no console errors, real data
+    exercised on Following/Followers/Search Users/Select Sitter and the
+    empty state exercised on Blocked Users/Follow Requests/Plant
+    Sitting (no test data existed for those relationships). Did not
+    fabricate a real photo on a live profile to screenshot-verify the
+    truthy-`uri` branch specifically — `PhotoThumb`'s `Image` path is
+    already proven live across PR 1's screens, and mutating a real
+    account's `avatar_url` for a test was correctly out of scope.
 - Date picker UI — done. New `components/DatePickerField.tsx` replaces
   the plain `YYYY-MM-DD` text boxes on `app/add-plant.tsx` (Acquired
   date), `app/plant/[id].tsx` (the acquired-date inline editor), and

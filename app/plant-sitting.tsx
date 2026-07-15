@@ -16,6 +16,7 @@ import {
   type SittingAccessState,
 } from "../lib/supabase/plant_sitting";
 import { type Profile } from "../lib/supabase/profiles";
+import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -54,7 +55,7 @@ function RequestRow({
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.owner.id}`)}>
-        <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+        <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} />
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.owner.display_name ?? `@${assignment.owner.username}`}
         </Text>
@@ -93,7 +94,7 @@ function AssignmentRow({
       style={[styles.row, { borderBottomColor: colors.line }]}
       onPress={() => router.push(`/user/${assignment.owner.id}`)}
     >
-      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} />
       <View style={styles.rowText}>
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.owner.display_name ?? `@${assignment.owner.username}`}
@@ -129,7 +130,7 @@ function SentRequestRow({
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.sitter.id}`)}>
-        <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+        <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} />
         <View style={styles.rowText}>
           <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
             {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}
@@ -186,7 +187,7 @@ function HistoryRow({
       style={[styles.row, { borderBottomColor: colors.line }]}
       onPress={() => router.push(`/user/${assignment.sitter.id}`)}
     >
-      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} />
       <View style={styles.rowText}>
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}
@@ -455,11 +456,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-  },
-  thumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
   },
   rowText: {
     flex: 1,

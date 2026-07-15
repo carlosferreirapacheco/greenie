@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { searchProfiles, type Profile } from "../lib/supabase/profiles";
+import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -11,7 +12,7 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   const { colors } = useTheme();
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${profile.id}`)}>
-      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
       <View style={styles.nameColumn}>
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {profile.display_name ?? `@${profile.username}`}
@@ -152,11 +153,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  thumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
   },
   nameColumn: {
     gap: 1,
