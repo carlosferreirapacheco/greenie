@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import { Stack, useFocusEffect } from "expo-router";
 import { acceptFollowRequest, declineFollowRequest, getPendingFollowRequests } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
+import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { getErrorMessage } from "../lib/errors";
@@ -24,7 +25,7 @@ function RequestRow({
   const { colors } = useTheme();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
-      <View style={[styles.thumb, { backgroundColor: colors.sage }]} />
+      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {profile.display_name ?? `@${profile.username}`}
       </Text>
@@ -188,11 +189,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  thumb: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
   },
   name: {
     fontSize: 16,
