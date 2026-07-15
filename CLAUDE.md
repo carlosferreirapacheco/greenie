@@ -473,6 +473,25 @@ sharing them socially with other users.
     direct links work for anyone who could already see it, and the
     plant's own Progress history (see Plant profile screen below) lists
     it too, tagged "Unlisted".
+  - Tie `comment_policy` to `shared_to_feed` — not yet done.
+    `comment_policy` and `shared_to_feed` are currently fully
+    independent fields (freely combinable via
+    `updateProgressReportSettings()`, no coupling at the RLS or lib
+    layer), so a report can be unlisted (`shared_to_feed: false`) while
+    still accepting comments — an owner can leave "Anyone"/"Followers
+    only" selected on a report they've deliberately kept out of every
+    feed. Requirement: whenever a report is (or becomes) unlisted,
+    `comment_policy` should be forced to `disabled` — it doesn't make
+    sense for an unlisted report to have comments enabled. Touches
+    `app/log-progress.tsx` (Feed chip currently free-standing from the
+    Comments chip) and `app/progress/[id].tsx`'s owner settings block
+    (same independence there), plus likely the `plant_progress`
+    `insert`/`update` RLS `with check`s so this holds even if a client
+    tries to bypass the UI — same enforcement layering as the
+    `can_share_progress_to_feed()` gate (migration 0016). An instance
+    of the still-open "Review interactions between visibility
+    settings" audit below, now with a concrete decided outcome for
+    this specific pair.
   - Remove follower UI — done. `app/followers.tsx` (linked from a
     "Followers" header link on the Following screen) lists accepted
     followers via
