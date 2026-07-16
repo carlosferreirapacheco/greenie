@@ -26,6 +26,7 @@ export type MyDataExport = {
   follows: { following: unknown[]; followers: unknown[] };
   blocks: unknown[];
   notifications: unknown[];
+  push_tokens: unknown[];
 };
 
 export async function collectMyData(): Promise<MyDataExport> {
@@ -126,6 +127,17 @@ export async function collectMyData(): Promise<MyDataExport> {
     throw notificationsError;
   }
 
+  // push_tokens RLS is owner-only, so this is exactly the user's own
+  // registered devices.
+  const { data: pushTokens, error: pushTokensError } = await supabase
+    .from("push_tokens")
+    .select("*")
+    .eq("user_id", user.id);
+
+  if (pushTokensError) {
+    throw pushTokensError;
+  }
+
   return {
     exported_at: new Date().toISOString(),
     account: {
@@ -152,5 +164,6 @@ export async function collectMyData(): Promise<MyDataExport> {
     },
     blocks,
     notifications,
+    push_tokens: pushTokens,
   };
 }

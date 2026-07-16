@@ -12,6 +12,7 @@ const CHAIN_METHODS = [
   "select",
   "insert",
   "update",
+  "upsert",
   "delete",
   "eq",
   "neq",

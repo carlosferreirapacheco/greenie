@@ -12,10 +12,12 @@ sharing them socially with other users.
   back species + a suggested watering frequency
   (`supabase/functions/lookup-plant`, `lib/supabase/ai.ts`). Not
   photo-based yet — no vision call exists in the codebase
-- **Notifications:** in-app inbox live (a `notifications` table filled
-  by DB triggers — see the Notifications backlog item); local
-  `expo-notifications` care-task reminders are the next slice, real
-  push (Edge Function + Expo push service) later
+- **Notifications:** in-app inbox (a `notifications` table filled by
+  DB triggers) + real OS push (pg_net webhook trigger → `send-push`
+  Edge Function → Expo push service; care-task reminders ride the same
+  pipeline via an hourly pg_cron scan) — see the Notifications backlog
+  item; Android delivery needs the one-time FCM owner setup in
+  `docs/push-notifications.md`
 
 ## Conventions
 - TypeScript everywhere, strict mode on
@@ -357,9 +359,61 @@ sharing them socially with other users.
     persist, no save button; enabling also fetches plants + tasks and
     schedules immediately; on web the toggle is replaced by a
     "reminders are available in the mobile app" hint).
-    **Later**: real OS push for the social kinds on top of
-    the same table (Expo push service + FCM owner setup + push-token
-    storage + an Edge Function sender).
+    **PR 3 — real OS push (social kinds + care-task reminders) —
+    done** (migration `0020_push_notifications.sql`). Architecture:
+    every `notifications` insert → an `after insert`
+    `push_notification_webhook` trigger → `pg_net` async POST → new
+    `send-push` Edge Function (service role) → recipient's tokens in a
+    new `push_tokens` table (token text pk — a device that switches
+    accounts upserts and re-owns its row, which is why the UPDATE
+    policy is `using (true) with check (auth.uid() = user_id)`; all
+    other ops owner-only) → Expo push API, with `DeviceNotRegistered`
+    tickets deleting their token rows. The trigger authenticates with
+    a bearer secret read from Vault (`push_webhook_secret`) that
+    `send-push` (deployed with JWT verification off) compares against
+    its `PUSH_WEBHOOK_SECRET` function secret — the payload is only a
+    notification id re-read server-side, so a spoofed call can at
+    worst re-send, never fabricate; the trigger swallows every error
+    (a push failure must never break the comment/like that caused it)
+    and no-ops while the secret is missing. **Care-task reminders
+    moved off PR 2's local on-device scheduling onto this pipeline**
+    (per user decision): an hourly pg_cron job (`care-due-scan`)
+    inserts a `care_due` notification (new kind; `actor_id` now
+    nullable, new nullable `plant_id`/`care_task_type` columns) for
+    each task whose `next_due` arrived within the last hour — fires
+    once per due moment, no state; reminders now also appear in the
+    in-app inbox ("Time to water Big Fred", plant-name hydration in
+    `getNotifications()`), survive weeks of not opening the app, and
+    trade exact-minute delivery for within-the-hour. The Settings
+    care toggle became the 8th account-wide per-kind row
+    (`profiles.notify_care_tasks`, works on web too); a device-local
+    "Push notifications" master row (AsyncStorage `pushEnabled`,
+    default on, permission-denial persists off — PR 2's pattern)
+    replaced it, controlling only THIS device's token
+    registration. **Invariant**: the push toggle affects delivery
+    only, never creation — with push off, everything still lands in
+    the in-app inbox; only a per-kind account toggle stops a
+    notification from existing at all. `lib/careReminders.ts` +
+    `lib/careReminderScheduler.ts` were deleted, replaced by
+    `lib/pushNotifications.ts` (pure/tested: `parseStoredFlag`,
+    `notificationTargetPath` — the shared inbox-tap + push-tap
+    deep-link mapping, incl. a transition branch for pre-existing
+    locally-scheduled reminders that carry only `{plantId}`),
+    `lib/pushNotificationManager.ts` (native wrapper: register on app
+    start with a session, unregister on sign-out and on toggle-off),
+    and `lib/supabase/push_tokens.ts` (upsert/delete, mockClient
+    gained `upsert`). `collectMyData()` exports `push_tokens`.
+    Verified: rolled-back SQL (care-scan window/pref/one-shot cases +
+    cron job registered), web pass (Settings hint + 8 toggles, inbox
+    clean). **Remaining setup before pushes actually deliver** (see
+    `docs/push-notifications.md`): create the Vault secret + matching
+    `PUSH_WEBHOOK_SECRET` function secret (classifier-blocked in
+    session, one-time owner/SQL step), then the Firebase/FCM V1 setup
+    (google-services.json + app.json `googleServicesFile` + `eas
+    credentials` service-account upload) and a fresh EAS build; a
+    live end-to-end push test (like → device) is pending those.
+    **Later**: notify active plant sitters of care_due too (scan is
+    owner-only for now).
   - Account deletion — done (see the GDPR item below for the full
     slice). A `delete-account` Edge Function holds the service-role
     key and deletes only the authenticated caller; every user-owned

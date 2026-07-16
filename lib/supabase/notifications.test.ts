@@ -94,6 +94,41 @@ describe("getNotifications", () => {
     expect(result[0].actor_avatar_url).toBeNull();
   });
 
+  it("hydrates the plant's primary name onto care_due rows, skipping the actor fetch when no row has one", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+
+    const rows = [
+      {
+        id: "n1",
+        recipient_id: "me",
+        actor_id: null,
+        type: "care_due",
+        progress_id: null,
+        plant_id: "pl1",
+        care_task_type: "water",
+        read_at: null,
+        created_at: "2026-07-16",
+      },
+    ];
+
+    const rowsChain = createChainableQueryMock({ data: rows, error: null });
+    const plantsChain = createChainableQueryMock({
+      data: [{ id: "pl1", name: "Pothos", nickname: "Big Fred" }],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(rowsChain).mockReturnValueOnce(plantsChain);
+
+    const result = await getNotifications();
+
+    // No actor ids -> only the notifications + plants queries ran.
+    expect(mockSupabase.from).toHaveBeenCalledTimes(2);
+    expect(mockSupabase.from).toHaveBeenNthCalledWith(2, "plants");
+    expect(plantsChain.in).toHaveBeenCalledWith("id", ["pl1"]);
+    expect(result[0]).toEqual(
+      expect.objectContaining({ id: "n1", plant_name: "Big Fred", actor_display_name: null })
+    );
+  });
+
   it("returns empty without an actor fetch when there are no notifications", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));

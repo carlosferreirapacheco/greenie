@@ -25,11 +25,13 @@ export type Profile = {
   notify_follow_accepted: boolean;
   notify_sitting_requests: boolean;
   notify_sitting_responses: boolean;
+  notify_care_tasks: boolean;
 };
 
-// One flag per notification kind (migration 0019). The DB triggers
-// check these before creating a notification row, so a disabled kind
-// never even reaches the recipient's inbox.
+// One flag per notification kind (migrations 0019 + 0020). The DB
+// triggers -- and the hourly care-due cron scan -- check these before
+// creating a notification row, so a disabled kind never even reaches
+// the recipient's inbox.
 export type NotificationSettings = {
   notify_comments: boolean;
   notify_likes: boolean;
@@ -38,6 +40,7 @@ export type NotificationSettings = {
   notify_follow_accepted: boolean;
   notify_sitting_requests: boolean;
   notify_sitting_responses: boolean;
+  notify_care_tasks: boolean;
 };
 
 export type MyProfile = Profile & { email: string | null };

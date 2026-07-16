@@ -204,6 +204,7 @@ describe("updateNotificationSettings", () => {
     notify_follow_accepted: false,
     notify_sitting_requests: true,
     notify_sitting_responses: false,
+    notify_care_tasks: true,
   };
 
   it("throws Not signed in when there's no session", async () => {
@@ -212,7 +213,7 @@ describe("updateNotificationSettings", () => {
     await expect(updateNotificationSettings(settings)).rejects.toThrow("Not signed in");
   });
 
-  it("updates all seven notification flags for the signed-in user", async () => {
+  it("updates all eight notification flags for the signed-in user", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
     const chain = createChainableQueryMock({ data: { id: "u1", ...settings }, error: null });
     mockSupabase.from.mockReturnValue(chain);
