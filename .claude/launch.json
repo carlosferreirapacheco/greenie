@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "expo-dev-client",
+      "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
+      "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npx expo start --dev-client --port 8081"],
+      "port": 8081
+    },
+    {
       "name": "expo-web",
       "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
       "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npx expo start --web --port 8083"],
