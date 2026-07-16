@@ -302,14 +302,25 @@ export default function ProgressDetailScreen() {
           </Text>
         ) : null}
 
-        <Pressable onPress={handleToggleLike} disabled={isToggling} hitSlop={8}>
-          <Text
-            style={[styles.likeButton, { fontFamily: fonts.bodyMedium, color: liked ? colors.coral : colors.inkSoft }]}
-          >
-            {liked ? "♥ Liked" : "♡ Like"}
-            {likeCount > 0 ? ` (${likeCount})` : ""}
-          </Text>
-        </Pressable>
+        <View style={styles.likeRow}>
+          <Pressable onPress={handleToggleLike} disabled={isToggling} hitSlop={8}>
+            <Text
+              style={[
+                styles.likeButton,
+                { fontFamily: fonts.bodyMedium, color: liked ? colors.coral : colors.inkSoft },
+              ]}
+            >
+              {liked ? "♥ Liked" : "♡ Like"}
+            </Text>
+          </Pressable>
+          {likeCount > 0 ? (
+            <Pressable onPress={() => router.push(`/likes/${id}`)} hitSlop={8}>
+              <Text style={[styles.likeButton, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                ({likeCount})
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         {isOwner ? (
           <>
@@ -489,9 +500,14 @@ const styles = StyleSheet.create({
   height: {
     fontSize: 13,
   },
+  likeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
   likeButton: {
     fontSize: 14,
-    marginTop: spacing.xs,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
