@@ -12,8 +12,10 @@ sharing them socially with other users.
   back species + a suggested watering frequency
   (`supabase/functions/lookup-plant`, `lib/supabase/ai.ts`). Not
   photo-based yet — no vision call exists in the codebase
-- **Notifications:** expo-notifications (local first, Supabase Edge Function
-  + push later for server-scheduled reminders)
+- **Notifications:** in-app inbox live (a `notifications` table filled
+  by DB triggers — see the Notifications backlog item); local
+  `expo-notifications` care-task reminders are the next slice, real
+  push (Edge Function + Expo push service) later
 
 ## Conventions
 - TypeScript everywhere, strict mode on
@@ -74,6 +76,14 @@ sharing them socially with other users.
 - `plant_sitting_assignments` (id, owner_id, sitter_id, status
   [pending/accepted/declined/cancelled], starts_at, ends_at, created_at,
   responded_at, cancelled_at) — migration 0015, see Plant-sitting below
+- `notifications` (id, recipient_id, actor_id, type [comment/like/
+  follow_request/new_follower/follow_accepted/sitting_request/
+  sitting_accepted/sitting_declined], progress_id [nullable, set for
+  comment/like], read_at, created_at) — migration 0019; recipient-only
+  SELECT/UPDATE, no client INSERT (rows are created exclusively by
+  security definer triggers, each gated on one of seven
+  `profiles.notify_*` boolean columns added in the same migration —
+  see the Notifications backlog item)
 
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
@@ -268,9 +278,55 @@ sharing them socially with other users.
   deliberate, since `updateUser()` alone never asks for the current
   password and would let anyone with an unlocked session change it with
   no verification. Sign out stays on Profile, unmoved.
-  - Notification preferences — deferred. No notification system exists
-    in the app yet (`expo-notifications` is only listed as future stack
-    work); nothing for a toggle to control until that's built.
+  - Notifications — PR 1 of 2 done: the in-app inbox + per-kind
+    settings toggles (migration `0019_notifications.sql`). A
+    `notifications` table (see Data model) is filled exclusively by
+    `security definer` triggers — no client INSERT policy exists —
+    covering eight kinds: comment, like, follow_request, new_follower
+    (public accounts), follow_accepted, sitting_request,
+    sitting_accepted, sitting_declined. Each trigger skips
+    self-actions and checks the recipient's per-kind
+    `profiles.notify_*` boolean (seven columns, default true) *before
+    inserting*, so a disabled kind is never created — not just hidden.
+    An `after delete on likes` trigger removes the matching
+    notification so like/unlike toggling doesn't leave stale entries.
+    Deliberately no notification on a sitting `cancelled` (it can be a
+    side effect of unfollow/block via `cancel_sitting_on_unfollow`,
+    where notifying would be wrong). Blocks need no extra handling —
+    a blocked user's comment/like/follow inserts are already rejected
+    by RLS, so the triggers never fire. New
+    `lib/supabase/notifications.ts` (`getNotifications()` with
+    hydrateReports-style actor batch-hydration,
+    `getUnreadNotificationCount()`, `markAllNotificationsRead()`);
+    `profiles.ts` gained the `NotificationSettings` type +
+    `updateNotificationSettings()`; the shared `mockClient` gained
+    `is` chaining + an optional `count` on `QueryResult` for the
+    head-count query. UI: an "Alerts" header link on `app/index.tsx`
+    with the existing red-dot pattern (lit on unread, refetched on
+    focus — header crowding on narrow screens noted for the "Revisit
+    UX" item); `app/notifications.tsx` lists rows (actor avatar, a
+    sentence per kind, short date, unread rows tinted sage; an
+    unresolvable actor — block asymmetry — falls back to "Someone"),
+    taps deep-link by kind (comment/like → the report,
+    follow_request → Requests, new_follower/follow_accepted → the
+    actor's profile, sitting_* → Plant Sitting), and opening the
+    screen marks everything read after rendering the unread
+    highlights, so they last for that visit. Settings gained a
+    "Notifications" section (after Privacy, mirroring its
+    ChipGroup-plus-save-button pattern) with seven On/Off rows, one
+    per kind. `collectMyData()` (GDPR export) gained a
+    `notifications` field. Verified: all trigger paths + pref
+    suppression + unlike-cleanup via a rolled-back SQL transaction
+    (10/10 cases), and live on web end-to-end (dot appears → inbox →
+    tap-through → marked read → dot clears; Likes toggled Off in
+    Settings really suppresses creation, then restored).
+    **PR 2 (next slice): local care-task reminders** —
+    `expo-notifications` scheduled locally from `next_due` (needs a
+    fresh EAS build, same native-module lesson as expo-image-picker),
+    a device-local Settings toggle, and a tap-to-plant response
+    listener. **Later**: real OS push for the social kinds on top of
+    the same table (Expo push service + FCM owner setup + push-token
+    storage + an Edge Function sender).
   - Account deletion — done (see the GDPR item below for the full
     slice). A `delete-account` Edge Function holds the service-role
     key and deletes only the authenticated caller; every user-owned

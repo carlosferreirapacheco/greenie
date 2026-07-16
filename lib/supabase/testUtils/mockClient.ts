@@ -6,7 +6,7 @@
 // namespaces. Each test configures return values per call rather than this
 // file re-implementing Supabase's own behavior.
 
-export type QueryResult<T = unknown> = { data: T; error: unknown };
+export type QueryResult<T = unknown> = { data: T; error: unknown; count?: number | null };
 
 const CHAIN_METHODS = [
   "select",
@@ -16,6 +16,7 @@ const CHAIN_METHODS = [
   "eq",
   "neq",
   "in",
+  "is",
   "ilike",
   "or",
   "order",

@@ -10,6 +10,7 @@ import {
   type PlantCareStatus,
 } from "../lib/supabase/care_tasks";
 import { getPendingFollowRequests } from "../lib/supabase/follows";
+import { getUnreadNotificationCount } from "../lib/supabase/notifications";
 import { getMyProfile } from "../lib/supabase/profiles";
 import { buildCareInstructionsText } from "../lib/careInstructions";
 import { PhotoThumb } from "../components/PhotoThumb";
@@ -47,6 +48,7 @@ export default function PlantListScreen() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -79,6 +81,11 @@ export default function PlantListScreen() {
       });
     getPendingFollowRequests()
       .then((requests) => setHasPendingRequests(requests.length > 0))
+      .catch(() => {
+        // Non-critical -- the badge just won't show if this fails.
+      });
+    getUnreadNotificationCount()
+      .then((count) => setHasUnreadNotifications(count > 0))
       .catch(() => {
         // Non-critical -- the badge just won't show if this fails.
       });
@@ -143,6 +150,14 @@ export default function PlantListScreen() {
               <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 Sitting
               </Text>
+            </Pressable>
+            <Pressable onPress={() => router.push("/notifications")} hitSlop={8} style={styles.badgeWrap}>
+              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Alerts
+              </Text>
+              {hasUnreadNotifications ? (
+                <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} />
+              ) : null}
             </Pressable>
           </View>
         ),

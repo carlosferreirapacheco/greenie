@@ -28,8 +28,10 @@ import {
 import { collectMyData } from "../lib/supabase/gdpr";
 import {
   getMyProfile,
+  updateNotificationSettings,
   updatePrivacySettings,
   type FollowPolicy,
+  type NotificationSettings,
   type PlantSitterAttribution,
   type ProfileVisibility,
   type ProgressVisibility,
@@ -38,6 +40,17 @@ import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+
+// One On/Off row per notification kind, in inbox-relevance order.
+const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; label: string }[] = [
+  { key: "notify_comments", label: "Comments" },
+  { key: "notify_likes", label: "Likes" },
+  { key: "notify_follow_requests", label: "Follow requests" },
+  { key: "notify_new_followers", label: "New followers" },
+  { key: "notify_follow_accepted", label: "Follow request accepted" },
+  { key: "notify_sitting_requests", label: "Plant-sitting requests" },
+  { key: "notify_sitting_responses", label: "Plant-sitting responses" },
+];
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -96,6 +109,11 @@ export default function SettingsScreen() {
   const [privacySaveError, setPrivacySaveError] = useState<string | null>(null);
   const isSavingPrivacy = useRef(false);
 
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationSettings | null>(null);
+  const [notifSaveStatus, setNotifSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [notifSaveError, setNotifSaveError] = useState<string | null>(null);
+  const isSavingNotifications = useRef(false);
+
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountUsername, setAccountUsername] = useState<string | null>(null);
 
@@ -134,6 +152,15 @@ export default function SettingsScreen() {
         setFollowPolicy(profile.follow_policy);
         setProgressVisibility(profile.progress_visibility);
         setPlantSitterAttribution(profile.plant_sitter_attribution);
+        setNotificationPrefs({
+          notify_comments: profile.notify_comments,
+          notify_likes: profile.notify_likes,
+          notify_follow_requests: profile.notify_follow_requests,
+          notify_new_followers: profile.notify_new_followers,
+          notify_follow_accepted: profile.notify_follow_accepted,
+          notify_sitting_requests: profile.notify_sitting_requests,
+          notify_sitting_responses: profile.notify_sitting_responses,
+        });
         setAccountEmail(profile.email);
         setAccountUsername(profile.username);
         setPrivacyStatus("ready");
@@ -300,6 +327,26 @@ export default function SettingsScreen() {
       setPrivacySaveStatus("error");
     } finally {
       isSavingPrivacy.current = false;
+    }
+  }
+
+  async function handleSaveNotifications() {
+    if (!notificationPrefs || isSavingNotifications.current) {
+      return;
+    }
+    isSavingNotifications.current = true;
+
+    setNotifSaveStatus("saving");
+    setNotifSaveError(null);
+
+    try {
+      await updateNotificationSettings(notificationPrefs);
+      setNotifSaveStatus("saved");
+    } catch (err) {
+      setNotifSaveError(getErrorMessage(err));
+      setNotifSaveStatus("error");
+    } finally {
+      isSavingNotifications.current = false;
     }
   }
 
@@ -772,6 +819,67 @@ export default function SettingsScreen() {
               ) : (
                 <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
                   Save privacy settings
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          Notifications
+        </Text>
+
+        <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          Choose what shows up in your notifications. Anything turned off is never created — not just
+          hidden.
+        </Text>
+
+        {privacyStatus === "loading" ? (
+          <ActivityIndicator color={colors.moss} />
+        ) : privacyStatus === "error" || !notificationPrefs ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{privacyError}</Text>
+        ) : (
+          <>
+            {NOTIFICATION_PREF_ROWS.map(({ key, label }) => (
+              <View key={key} style={styles.field}>
+                <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                  {label}
+                </Text>
+                <ChipGroup
+                  fonts={fonts}
+                  value={notificationPrefs[key] ? "on" : "off"}
+                  onChange={(value) =>
+                    setNotificationPrefs((prefs) => (prefs ? { ...prefs, [key]: value === "on" } : prefs))
+                  }
+                  options={[
+                    { value: "on", label: "On" },
+                    { value: "off", label: "Off" },
+                  ]}
+                />
+              </View>
+            ))}
+
+            {notifSaveStatus === "error" ? (
+              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                {notifSaveError}
+              </Text>
+            ) : null}
+            {notifSaveStatus === "saved" ? (
+              <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                Notification settings saved
+              </Text>
+            ) : null}
+
+            <Pressable
+              style={[styles.saveButton, { backgroundColor: colors.moss }]}
+              onPress={handleSaveNotifications}
+              disabled={notifSaveStatus === "saving"}
+            >
+              {notifSaveStatus === "saving" ? (
+                <ActivityIndicator color={colors.paper} />
+              ) : (
+                <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                  Save notification settings
                 </Text>
               )}
             </Pressable>
