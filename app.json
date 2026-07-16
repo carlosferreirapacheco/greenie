@@ -36,6 +36,12 @@
           "cameraPermission": "Allow Greenie to access your camera to photograph plants and progress.",
           "microphonePermission": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2F6B4F"
+        }
       ]
     ],
     "extra": {
