@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "722128595798",
+    "project_id": "gen-lang-client-0084777673",
+    "storage_bucket": "gen-lang-client-0084777673.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:722128595798:android:5fd4a6101f171613f644f7",
+        "android_client_info": {
+          "package_name": "com.hederahelix.greenie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "722128595798-psptaqfpe7lqhjm6rcckhfno9n01imkh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAe_xYL5u8KtMWOO6gY80Fa9VaLvOYetAw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "722128595798-psptaqfpe7lqhjm6rcckhfno9n01imkh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
