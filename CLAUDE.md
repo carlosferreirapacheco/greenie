@@ -636,6 +636,19 @@ sharing them socially with other users.
   gap noted in the original Photo capture PR1 write-up below), so
   getting a photo into the Add Plant form for a live UI pass needs a
   manual web session or a real-device pass.
+  - Review Add Plant screen — two loose ends flagged, not built yet.
+    (1) The Nickname field's placeholder text ("e.g. Big Fred") reads
+    as a suggested value rather than a format hint — remove it.
+    (2) Add Plant has no way to record the plant's initial size,
+    unlike `app/log-progress.tsx`'s optional "Height (cm)" field
+    (`plant_progress.height_cm`) — add a matching initial-size input
+    so a plant's height history (`lib/chart.ts`, `HeightChart.tsx`)
+    can start from acquisition instead of only from the first logged
+    progress report. Needs a design decision at implementation time:
+    `plants` has no height column today, so this likely means Add
+    Plant quietly creates an initial `plant_progress` row (unlisted,
+    no photo/notes) rather than adding a new column — to be planned
+    before building.
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete
@@ -1285,7 +1298,12 @@ unrelated history.
 ### Later
 - Payments / monetization
 - Admin dashboard
-- Multi-language support
+- Multi-language support and imperial measurement units (height in
+  inches/feet instead of cm, grouped with multi-language since both
+  are locale/unit-preference concerns touching the same fields —
+  `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
+  and the initial-size field once the Add Plant review item above is
+  built)
 - Revisit prompt design and other UX/UI improvements — a general pass
   over interaction patterns accumulated feature-by-feature (e.g. the
   inline two-tap confirm/prompt style used for delete and the overdue
