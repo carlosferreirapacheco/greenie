@@ -7,11 +7,11 @@ sharing them socially with other users.
 ## Stack
 - **Frontend:** Expo (React Native), TypeScript
 - **Backend:** Supabase (Postgres, Auth, Storage, Edge Functions)
-- **AI:** Google Gemini API (`gemini-2.5-flash`) for a text-based plant
-  lookup — "Look up with AI" on Add Plant sends the typed name and gets
-  back species + a suggested watering frequency
-  (`supabase/functions/lookup-plant`, `lib/supabase/ai.ts`). Not
-  photo-based yet — no vision call exists in the codebase
+- **AI:** Google Gemini API (`gemini-2.5-flash`) for plant lookup on Add
+  Plant (`supabase/functions/lookup-plant`, `lib/supabase/ai.ts`) — a
+  vision call identifies the plant from its (now-required) photo, with
+  a text-only call retained for follow-up name-based lookups; see the
+  Add Plant backlog item for the full flow
 - **Notifications:** in-app inbox (a `notifications` table filled by
   DB triggers) + real OS push (pg_net webhook trigger → `send-push`
   Edge Function → Expo push service; care-task reminders ride the same
@@ -580,6 +580,62 @@ sharing them socially with other users.
     on their next visit. (Native data export and legal review of the
     policy draft are tracked under Public launch / production
     readiness below.)
+- Photo-based AI plant lookup on Add Plant — done. "Look up with AI"
+  moved from a text-only lookup to primarily photo-driven
+  identification: the photo field is now required (it becomes the
+  plant's first photo either way), its label dropped "(optional)", and
+  `canSave` gained a `photoUrl !== null` condition; the lookup button
+  moved from under Name to under Photo and is now gated on the photo
+  being set rather than the name. `supabase/functions/lookup-plant`
+  gained a second input mode alongside the original `{query}` text
+  path (kept exactly as-is, since every follow-up lookup below still
+  reuses it): `{photoUrl, hint?}` fetches the image server-side
+  (`fetch(photoUrl)` — the `photos` bucket is public) and sends it to
+  Gemini as a multimodal `contents` call (`[{text}, {inlineData:
+  {mimeType, data}}]`, base64-encoded via `encode()` from
+  `npm:base64-arraybuffer`, the same package already used client-side
+  in `lib/supabase/storage.ts` for the reverse operation), returning
+  `{status: "found"|"ambiguous"|"not_found", name, species,
+  wateringFrequencyDays, candidateNames}`. `lib/supabase/ai.ts` gained
+  the matching `lookupPlantByPhoto()` alongside the untouched
+  `lookupPlantInfo()`. On `app/add-plant.tsx`, tapping "Look up with
+  AI" always sends the photo (+ whatever's in the optional Name field
+  as a hint) to the vision path, then branches: name empty and a
+  single match → fields fill directly (the original behavior); name
+  filled and it matches the AI's name (trimmed, case-insensitive) →
+  same; name filled but it *doesn't* match → a popup modal offers
+  keeping the typed name (redoes the lookup as a **text-only** query
+  via the unchanged `lookupPlantInfo`) or taking the AI's name/species
+  filled straight from the vision result; `status: "ambiguous"` → a
+  modal lists 2-5 candidate names (tapping one does the same
+  text-only follow-up lookup) plus "Take a new picture" (clears the
+  photo back to empty, ready to re-pick); `status: "not_found"` → a
+  modal explains nothing was recognizable and offers "Take a new
+  picture", the alternative being to just close the modal, type a
+  common name in the still-present Name field, and press "Look up
+  with AI" again (the hint is already wired through on every attempt,
+  so a hint alone can turn a `not_found` into a `found` without any
+  separate input). The modal itself reuses the exact conditionally-
+  rendered `Modal` pattern from `components/DatePickerField.tsx`
+  (`{prompt ? <Modal visible transparent ...>...</Modal> : null}` —
+  React Native Web doesn't reliably unmount `Modal` content on
+  `visible={false}` alone) rather than an inline panel, per explicit
+  user preference to keep the form uncluttered. Verified live against
+  the deployed function (direct authenticated calls, bypassing the
+  UI): a real plant photo returns `status: "found"` with a sensible
+  name/species/watering frequency; passing a hint measurably shifts
+  the identification while the prompt still instructs the model to
+  verify against the photo rather than blindly echo it back; the
+  original `{query}` text path is unchanged and still works; a
+  fetch-failure (bad photo URL) fails gracefully with a friendly
+  error, matching the existing text path's error handling. The modal
+  branches themselves (mismatch/ambiguous/not-found) are implemented
+  and type-checked but **not** click-tested end-to-end in this pass —
+  this environment's browser automation can't drive the native
+  OS file-picker `Choose from Library` opens (the same pre-existing
+  gap noted in the original Photo capture PR1 write-up below), so
+  getting a photo into the Add Plant form for a live UI pass needs a
+  manual web session or a real-device pass.
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete
