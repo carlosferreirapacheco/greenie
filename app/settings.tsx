@@ -36,6 +36,13 @@ import {
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
+import {
+  getCareRemindersEnabled,
+  rescheduleCareReminders,
+  setCareRemindersEnabled,
+} from "../lib/careReminderScheduler";
+import { getMyPlants } from "../lib/supabase/plants";
+import { getCareTasksForPlants } from "../lib/supabase/care_tasks";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -114,6 +121,12 @@ export default function SettingsScreen() {
   const [notifSaveError, setNotifSaveError] = useState<string | null>(null);
   const isSavingNotifications = useRef(false);
 
+  // Device-local (AsyncStorage), not an account setting -- null while
+  // the stored value loads. Instant persist like the theme preference.
+  const [careRemindersOn, setCareRemindersOn] = useState<boolean | null>(null);
+  const [careReminderError, setCareReminderError] = useState<string | null>(null);
+  const isTogglingCareReminders = useRef(false);
+
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountUsername, setAccountUsername] = useState<string | null>(null);
 
@@ -177,6 +190,10 @@ export default function SettingsScreen() {
     getLinkedGoogleEmail()
       .then(setGoogleLinkedEmail)
       .catch(() => setGoogleLinkedEmail(null));
+
+    getCareRemindersEnabled()
+      .then(setCareRemindersOn)
+      .catch(() => setCareRemindersOn(false));
 
     // If linkGoogleAccount() redirected away and just landed back here,
     // this picks up where it left off -- see completePendingGoogleLinkSync().
@@ -327,6 +344,40 @@ export default function SettingsScreen() {
       setPrivacySaveStatus("error");
     } finally {
       isSavingPrivacy.current = false;
+    }
+  }
+
+  async function handleToggleCareReminders(value: "on" | "off") {
+    if (isTogglingCareReminders.current) {
+      return;
+    }
+    isTogglingCareReminders.current = true;
+    setCareReminderError(null);
+
+    try {
+      // Returns the state that actually took effect -- enabling asks
+      // for notification permission first, and a denial leaves it off.
+      const enabled = await setCareRemindersEnabled(value === "on");
+      setCareRemindersOn(enabled);
+
+      if (value === "on" && !enabled) {
+        setCareReminderError(
+          "Notification permission was denied — allow notifications for Greenie in your device settings, then try again."
+        );
+        return;
+      }
+
+      if (enabled) {
+        // Schedule right away instead of waiting for the Plants
+        // screen's next focus refetch.
+        const plants = await getMyPlants();
+        const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
+        await rescheduleCareReminders(plants, tasks);
+      }
+    } catch (err) {
+      setCareReminderError(getErrorMessage(err));
+    } finally {
+      isTogglingCareReminders.current = false;
     }
   }
 
@@ -828,6 +879,40 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           Notifications
         </Text>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Care task reminders
+          </Text>
+          {Platform.OS === "web" ? (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              Reminders are available in the mobile app.
+            </Text>
+          ) : careRemindersOn === null ? (
+            <ActivityIndicator color={colors.moss} />
+          ) : (
+            <>
+              <ChipGroup
+                fonts={fonts}
+                value={careRemindersOn ? "on" : "off"}
+                onChange={handleToggleCareReminders}
+                options={[
+                  { value: "on", label: "On" },
+                  { value: "off", label: "Off" },
+                ]}
+              />
+              <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                Get a notification on this device when a care task comes due. Applies to this device
+                only.
+              </Text>
+              {careReminderError ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
+                  {careReminderError}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </View>
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           Choose what shows up in your notifications. Anything turned off is never created — not just

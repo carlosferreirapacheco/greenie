@@ -320,11 +320,44 @@ sharing them socially with other users.
     (10/10 cases), and live on web end-to-end (dot appears → inbox →
     tap-through → marked read → dot clears; Likes toggled Off in
     Settings really suppresses creation, then restored).
-    **PR 2 (next slice): local care-task reminders** —
-    `expo-notifications` scheduled locally from `next_due` (needs a
-    fresh EAS build, same native-module lesson as expo-image-picker),
-    a device-local Settings toggle, and a tap-to-plant response
-    listener. **Later**: real OS push for the social kinds on top of
+    **PR 2 — local care-task reminders — done.** New dependency
+    **`expo-notifications`** (via `npx expo install`, plus its config
+    plugin in `app.json` with the brand `color`; needed a fresh EAS
+    build, same native-module lesson as expo-image-picker). Split on
+    the `chart.ts`/`HeightChart.tsx` precedent: `lib/careReminders.ts`
+    is pure and tested (`selectSchedulableTasks()` — future `next_due`
+    only, since a past-dated trigger fires immediately and would spam
+    every app open while something stays overdue; overdue tasks are
+    already surfaced by the in-app pills — and
+    `buildReminderContent()`, "Time to water Big Fred" via
+    `plantPrimaryName()`), while `lib/careReminderScheduler.ts` is the
+    untested native wrapper (every entry point no-ops on web):
+    `get/setCareRemindersEnabled()` (AsyncStorage, device-local like
+    the theme — deliberately not an account setting; **on by default**
+    per user decision — an unset key counts as enabled, via the pure
+    `parseStoredCareRemindersFlag()`; enabling from Settings requests
+    notification permission first, and a denial — there or at the
+    first-reschedule prompt below — persists the setting off so it
+    doesn't spring back on),
+    `rescheduleCareReminders()` (cancel-all-then-reschedule, one
+    notification per future-due task, `data: { plantId }`; since the
+    default is on, this is also where a fresh install's permission
+    prompt appears — `getPermissionsAsync()` then a request if it can
+    still ask, refusal persists the setting off instead of re-asking
+    every focus),
+    `configureCareReminderHandling()` (foreground banner behavior +
+    the Android channel required on 8+), and
+    `addCareReminderResponseListener()`. Wiring: `app/_layout.tsx`
+    configures handling and routes a tapped reminder to
+    `/plant/[id]`; `app/index.tsx`'s focus refetch hands its fresh
+    plants + tasks to `rescheduleCareReminders()` fire-and-forget (so
+    reminders track task edits whenever the home screen regains
+    focus — accepted v1 cadence); Settings' Notifications section
+    gained a "Care task reminders" On/Off row at the top (instant
+    persist, no save button; enabling also fetches plants + tasks and
+    schedules immediately; on web the toggle is replaced by a
+    "reminders are available in the mobile app" hint).
+    **Later**: real OS push for the social kinds on top of
     the same table (Expo push service + FCM owner setup + push-token
     storage + an Edge Function sender).
   - Account deletion — done (see the GDPR item below for the full

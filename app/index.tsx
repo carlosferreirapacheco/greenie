@@ -12,6 +12,7 @@ import {
 import { getPendingFollowRequests } from "../lib/supabase/follows";
 import { getUnreadNotificationCount } from "../lib/supabase/notifications";
 import { getMyProfile } from "../lib/supabase/profiles";
+import { rescheduleCareReminders } from "../lib/careReminderScheduler";
 import { buildCareInstructionsText } from "../lib/careInstructions";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../lib/theme";
@@ -72,6 +73,13 @@ export default function PlantListScreen() {
           summaries[plant.id] = summarizeCareTasks(tasksByPlant[plant.id] ?? []);
         }
         setCareSummaries(summaries);
+
+        // Reminders track task edits by piggybacking on this screen's
+        // focus refetch -- it already has fresh plants + tasks in hand.
+        rescheduleCareReminders(data, tasks).catch(() => {
+          // Non-critical -- stale reminders self-correct on the next
+          // successful reschedule.
+        });
 
         setStatus("ready");
       })

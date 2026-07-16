@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { Redirect, Stack, useSegments } from "expo-router";
+import { Redirect, router, Stack, useSegments } from "expo-router";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase/client";
 import { getPrivacyPolicyUpdatedAt, isConsentCurrent } from "../lib/supabase/consent";
 import { onConsentAccepted } from "../lib/consentEvents";
+import { addCareReminderResponseListener, configureCareReminderHandling } from "../lib/careReminderScheduler";
 import { fontAssets, getFonts } from "../lib/theme";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -66,6 +67,18 @@ function RootLayoutNav() {
     return () => {
       subscription.unsubscribe();
       unsubscribeConsent();
+    };
+  }, []);
+
+  // Local care-task reminders (native only; both calls no-op on web):
+  // foreground presentation + Android channel, and tap-to-plant.
+  useEffect(() => {
+    configureCareReminderHandling();
+    const listener = addCareReminderResponseListener((plantId) => {
+      router.push(`/plant/${plantId}`);
+    });
+    return () => {
+      listener?.remove();
     };
   }, []);
 
