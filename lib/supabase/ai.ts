@@ -21,3 +21,27 @@ export async function lookupPlantInfo(query: string): Promise<PlantLookupResult>
 
   return data;
 }
+
+export type PlantPhotoLookupResult = {
+  status: "found" | "ambiguous" | "not_found";
+  name: string;
+  species: string;
+  wateringFrequencyDays: number;
+  candidateNames: string[];
+};
+
+export async function lookupPlantByPhoto(photoUrl: string, hint?: string): Promise<PlantPhotoLookupResult> {
+  const { data, error } = await supabase.functions.invoke<PlantPhotoLookupResult>("lookup-plant", {
+    body: { photoUrl, hint },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    throw new Error("Lookup returned no data");
+  }
+
+  return data;
+}
