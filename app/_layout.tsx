@@ -7,7 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase/client";
 import { getPrivacyPolicyUpdatedAt, isConsentCurrent } from "../lib/supabase/consent";
 import { onConsentAccepted } from "../lib/consentEvents";
-import { addCareReminderResponseListener, configureCareReminderHandling } from "../lib/careReminderScheduler";
+import { addPushResponseListener, configurePushHandling, registerForPush } from "../lib/pushNotificationManager";
 import { fontAssets, getFonts } from "../lib/theme";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 
@@ -70,12 +70,13 @@ function RootLayoutNav() {
     };
   }, []);
 
-  // Local care-task reminders (native only; both calls no-op on web):
-  // foreground presentation + Android channel, and tap-to-plant.
+  // OS push notifications (native only; all calls no-op on web):
+  // foreground presentation + Android channel, and tap deep-linking by
+  // kind via the shared notificationTargetPath.
   useEffect(() => {
-    configureCareReminderHandling();
-    const listener = addCareReminderResponseListener((plantId) => {
-      router.push(`/plant/${plantId}`);
+    configurePushHandling();
+    const listener = addPushResponseListener((path) => {
+      router.push(path);
     });
     return () => {
       listener?.remove();
@@ -118,6 +119,18 @@ function RootLayoutNav() {
     return () => {
       cancelled = true;
     };
+  }, [userId]);
+
+  // Register this device's push token for the signed-in user
+  // (fire-and-forget; no-op on web, best-effort until the FCM owner
+  // setup in docs/push-notifications.md is done). Push defaults on, so
+  // this is also where a fresh install's permission prompt appears.
+  useEffect(() => {
+    if (userId) {
+      registerForPush().catch(() => {
+        // Non-critical -- registration retries on the next app start.
+      });
+    }
   }, [userId]);
 
   const fonts = getFonts(fontsLoaded && !fontError);

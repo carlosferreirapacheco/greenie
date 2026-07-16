@@ -60,6 +60,10 @@ describe("collectMyData", () => {
       data: [{ id: "n1", recipient_id: "u1", type: "like" }],
       error: null,
     });
+    const pushTokensChain = createChainableQueryMock({
+      data: [{ token: "ExponentPushToken[abc]", user_id: "u1", platform: "android" }],
+      error: null,
+    });
     mockSupabase.from
       .mockReturnValueOnce(profileChain)
       .mockReturnValueOnce(plantsChain)
@@ -69,7 +73,8 @@ describe("collectMyData", () => {
       .mockReturnValueOnce(likesChain)
       .mockReturnValueOnce(followsChain)
       .mockReturnValueOnce(blocksChain)
-      .mockReturnValueOnce(notificationsChain);
+      .mockReturnValueOnce(notificationsChain)
+      .mockReturnValueOnce(pushTokensChain);
 
     const result = await collectMyData();
 
@@ -81,6 +86,7 @@ describe("collectMyData", () => {
     expect(followsChain.or).toHaveBeenCalledWith("follower_id.eq.u1,followee_id.eq.u1");
     expect(blocksChain.eq).toHaveBeenCalledWith("blocker_id", "u1");
     expect(notificationsChain.eq).toHaveBeenCalledWith("recipient_id", "u1");
+    expect(pushTokensChain.eq).toHaveBeenCalledWith("user_id", "u1");
 
     expect(result.account).toEqual(
       expect.objectContaining({ id: "u1", email: "a@b.com", username: "carlos", accepted_privacy_at: "2026-07-01T00:00:00Z" })
@@ -94,6 +100,9 @@ describe("collectMyData", () => {
     expect(result.follows.followers).toEqual([{ follower_id: "u3", followee_id: "u1" }]);
     expect(result.blocks).toEqual([{ blocker_id: "u1", blocked_id: "u4" }]);
     expect(result.notifications).toEqual([{ id: "n1", recipient_id: "u1", type: "like" }]);
+    expect(result.push_tokens).toEqual([
+      { token: "ExponentPushToken[abc]", user_id: "u1", platform: "android" },
+    ]);
     expect(typeof result.exported_at).toBe("string");
   });
 
@@ -110,13 +119,14 @@ describe("collectMyData", () => {
       .mockReturnValueOnce(emptyChain()) // likes
       .mockReturnValueOnce(emptyChain()) // follows
       .mockReturnValueOnce(emptyChain()) // blocks
-      .mockReturnValueOnce(emptyChain()); // notifications
+      .mockReturnValueOnce(emptyChain()) // notifications
+      .mockReturnValueOnce(emptyChain()); // push_tokens
 
     const result = await collectMyData();
 
     // profile + plants + progress + comments + likes + follows + blocks
     // + notifications = 8 -- no care_tasks call in between.
-    expect(mockSupabase.from).toHaveBeenCalledTimes(8);
+    expect(mockSupabase.from).toHaveBeenCalledTimes(9);
     expect(mockSupabase.from).not.toHaveBeenCalledWith("care_tasks");
     expect(result.care_tasks).toEqual([]);
     expect(result.blocks).toEqual([]);

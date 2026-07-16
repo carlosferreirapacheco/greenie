@@ -36,13 +36,7 @@ import {
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
-import {
-  getCareRemindersEnabled,
-  rescheduleCareReminders,
-  setCareRemindersEnabled,
-} from "../lib/careReminderScheduler";
-import { getMyPlants } from "../lib/supabase/plants";
-import { getCareTasksForPlants } from "../lib/supabase/care_tasks";
+import { getPushEnabled, setPushEnabled } from "../lib/pushNotificationManager";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -50,6 +44,7 @@ import { useTheme } from "../lib/ThemeContext";
 
 // One On/Off row per notification kind, in inbox-relevance order.
 const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; label: string }[] = [
+  { key: "notify_care_tasks", label: "Care task reminders" },
   { key: "notify_comments", label: "Comments" },
   { key: "notify_likes", label: "Likes" },
   { key: "notify_follow_requests", label: "Follow requests" },
@@ -123,9 +118,9 @@ export default function SettingsScreen() {
 
   // Device-local (AsyncStorage), not an account setting -- null while
   // the stored value loads. Instant persist like the theme preference.
-  const [careRemindersOn, setCareRemindersOn] = useState<boolean | null>(null);
-  const [careReminderError, setCareReminderError] = useState<string | null>(null);
-  const isTogglingCareReminders = useRef(false);
+  const [pushOn, setPushOn] = useState<boolean | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const isTogglingPush = useRef(false);
 
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   const [accountUsername, setAccountUsername] = useState<string | null>(null);
@@ -166,6 +161,7 @@ export default function SettingsScreen() {
         setProgressVisibility(profile.progress_visibility);
         setPlantSitterAttribution(profile.plant_sitter_attribution);
         setNotificationPrefs({
+          notify_care_tasks: profile.notify_care_tasks,
           notify_comments: profile.notify_comments,
           notify_likes: profile.notify_likes,
           notify_follow_requests: profile.notify_follow_requests,
@@ -191,9 +187,9 @@ export default function SettingsScreen() {
       .then(setGoogleLinkedEmail)
       .catch(() => setGoogleLinkedEmail(null));
 
-    getCareRemindersEnabled()
-      .then(setCareRemindersOn)
-      .catch(() => setCareRemindersOn(false));
+    getPushEnabled()
+      .then(setPushOn)
+      .catch(() => setPushOn(false));
 
     // If linkGoogleAccount() redirected away and just landed back here,
     // this picks up where it left off -- see completePendingGoogleLinkSync().
@@ -347,37 +343,28 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleToggleCareReminders(value: "on" | "off") {
-    if (isTogglingCareReminders.current) {
+  async function handleTogglePush(value: "on" | "off") {
+    if (isTogglingPush.current) {
       return;
     }
-    isTogglingCareReminders.current = true;
-    setCareReminderError(null);
+    isTogglingPush.current = true;
+    setPushError(null);
 
     try {
       // Returns the state that actually took effect -- enabling asks
       // for notification permission first, and a denial leaves it off.
-      const enabled = await setCareRemindersEnabled(value === "on");
-      setCareRemindersOn(enabled);
+      const enabled = await setPushEnabled(value === "on");
+      setPushOn(enabled);
 
       if (value === "on" && !enabled) {
-        setCareReminderError(
+        setPushError(
           "Notification permission was denied — allow notifications for Greenie in your device settings, then try again."
         );
-        return;
-      }
-
-      if (enabled) {
-        // Schedule right away instead of waiting for the Plants
-        // screen's next focus refetch.
-        const plants = await getMyPlants();
-        const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
-        await rescheduleCareReminders(plants, tasks);
       }
     } catch (err) {
-      setCareReminderError(getErrorMessage(err));
+      setPushError(getErrorMessage(err));
     } finally {
-      isTogglingCareReminders.current = false;
+      isTogglingPush.current = false;
     }
   }
 
@@ -882,32 +869,32 @@ export default function SettingsScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Care task reminders
+            Push notifications
           </Text>
           {Platform.OS === "web" ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Reminders are available in the mobile app.
+              Push notifications are available in the mobile app.
             </Text>
-          ) : careRemindersOn === null ? (
+          ) : pushOn === null ? (
             <ActivityIndicator color={colors.moss} />
           ) : (
             <>
               <ChipGroup
                 fonts={fonts}
-                value={careRemindersOn ? "on" : "off"}
-                onChange={handleToggleCareReminders}
+                value={pushOn ? "on" : "off"}
+                onChange={handleTogglePush}
                 options={[
                   { value: "on", label: "On" },
                   { value: "off", label: "Off" },
                 ]}
               />
               <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                Get a notification on this device when a care task comes due. Applies to this device
-                only.
+                Get notifications on this device. Applies to this device only — turning it off
+                doesn't touch your in-app inbox.
               </Text>
-              {careReminderError ? (
+              {pushError ? (
                 <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-                  {careReminderError}
+                  {pushError}
                 </Text>
               ) : null}
             </>

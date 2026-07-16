@@ -7,6 +7,7 @@ import {
   markAllNotificationsRead,
   type NotificationWithActor,
 } from "../lib/supabase/notifications";
+import { notificationTargetPath } from "../lib/pushNotifications";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -24,6 +25,11 @@ function actorName(notification: NotificationWithActor): string {
 }
 
 function notificationSentence(notification: NotificationWithActor): string {
+  if (notification.type === "care_due") {
+    const plantName = notification.plant_name ?? "your plant";
+    return `Time to ${notification.care_task_type ?? "care for"} ${plantName}`;
+  }
+
   const name = actorName(notification);
   switch (notification.type) {
     case "comment":
@@ -45,21 +51,14 @@ function notificationSentence(notification: NotificationWithActor): string {
   }
 }
 
+// Deep-linking lives in the shared notificationTargetPath so inbox
+// taps and push taps always land on the same screen per kind.
 function notificationTarget(notification: NotificationWithActor): string | null {
-  switch (notification.type) {
-    case "comment":
-    case "like":
-      return notification.progress_id ? `/progress/${notification.progress_id}` : null;
-    case "follow_request":
-      return "/follow-requests";
-    case "new_follower":
-    case "follow_accepted":
-      return `/user/${notification.actor_id}`;
-    case "sitting_request":
-    case "sitting_accepted":
-    case "sitting_declined":
-      return "/plant-sitting";
-  }
+  return notificationTargetPath(notification.type, {
+    progressId: notification.progress_id,
+    actorId: notification.actor_id,
+    plantId: notification.plant_id,
+  });
 }
 
 function NotificationRow({

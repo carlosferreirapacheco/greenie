@@ -20,6 +20,7 @@ import {
   validateUsername,
 } from "../lib/supabase/usernames";
 import { signOut } from "../lib/supabase/auth";
+import { unregisterPushForSignOut } from "../lib/pushNotificationManager";
 import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -175,6 +176,10 @@ export default function ProfileScreen() {
     setSignOutError(null);
 
     try {
+      // Best-effort, while the session is still valid: remove this
+      // device's push token so it stops receiving this account's
+      // pushes after signing out.
+      await unregisterPushForSignOut();
       await signOut();
       // No navigation needed -- app/_layout.tsx's onAuthStateChange
       // listener swaps back to the sign-in stack once the session clears.
