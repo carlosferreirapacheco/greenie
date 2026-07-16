@@ -427,13 +427,16 @@ sharing them socially with other users.
     gained `upsert`). `collectMyData()` exports `push_tokens`.
     Verified: rolled-back SQL (care-scan window/pref/one-shot cases +
     cron job registered), web pass (Settings hint + 8 toggles, inbox
-    clean). **Remaining setup before pushes actually deliver** (see
-    `docs/push-notifications.md`): create the Vault secret + matching
-    `PUSH_WEBHOOK_SECRET` function secret (classifier-blocked in
-    session, one-time owner/SQL step), then the Firebase/FCM V1 setup
-    (google-services.json + app.json `googleServicesFile` + `eas
-    credentials` service-account upload) and a fresh EAS build; a
-    live end-to-end push test (like → device) is pending those.
+    clean). **Owner setup complete and live end-to-end push
+    verified** (see `docs/push-notifications.md` for the runbook):
+    the Vault secret + matching `PUSH_WEBHOOK_SECRET` function
+    secret, the Firebase/FCM V1 setup (`google-services.json` +
+    app.json `googleServicesFile` + `eas credentials` service-account
+    upload), and a fresh EAS build are all done. Confirmed live on a
+    real Android device: a like from a second account produced a
+    real push notification (`net._http_response`/function logs
+    showed `{"sent":1,"removed":0}`) and tapping it opened the
+    report.
     **Later**: notify active plant sitters of care_due too (scan is
     owner-only for now).
   - Account deletion — done (see the GDPR item below for the full
