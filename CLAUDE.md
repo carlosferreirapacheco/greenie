@@ -333,10 +333,18 @@ sharing them socially with other users.
     `plantPrimaryName()`), while `lib/careReminderScheduler.ts` is the
     untested native wrapper (every entry point no-ops on web):
     `get/setCareRemindersEnabled()` (AsyncStorage, device-local like
-    the theme — deliberately not an account setting; enabling requests
-    notification permission first and a denial leaves it off),
+    the theme — deliberately not an account setting; **on by default**
+    per user decision — an unset key counts as enabled, via the pure
+    `parseStoredCareRemindersFlag()`; enabling from Settings requests
+    notification permission first, and a denial — there or at the
+    first-reschedule prompt below — persists the setting off so it
+    doesn't spring back on),
     `rescheduleCareReminders()` (cancel-all-then-reschedule, one
-    notification per future-due task, `data: { plantId }`),
+    notification per future-due task, `data: { plantId }`; since the
+    default is on, this is also where a fresh install's permission
+    prompt appears — `getPermissionsAsync()` then a request if it can
+    still ask, refusal persists the setting off instead of re-asking
+    every focus),
     `configureCareReminderHandling()` (foreground banner behavior +
     the Android channel required on 8+), and
     `addCareReminderResponseListener()`. Wiring: `app/_layout.tsx`

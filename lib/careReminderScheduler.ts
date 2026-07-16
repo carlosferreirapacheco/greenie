@@ -1,7 +1,12 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { CARE_REMINDERS_STORAGE_KEY, buildReminderContent, selectSchedulableTasks } from "./careReminders";
+import {
+  CARE_REMINDERS_STORAGE_KEY,
+  buildReminderContent,
+  parseStoredCareRemindersFlag,
+  selectSchedulableTasks,
+} from "./careReminders";
 import type { Plant } from "./supabase/plants";
 import type { CareTask } from "./supabase/care_tasks";
 
@@ -15,9 +20,19 @@ export async function getCareRemindersEnabled(): Promise<boolean> {
     return false;
   }
   try {
-    return (await AsyncStorage.getItem(CARE_REMINDERS_STORAGE_KEY)) === "true";
+    return parseStoredCareRemindersFlag(await AsyncStorage.getItem(CARE_REMINDERS_STORAGE_KEY));
   } catch {
-    return false;
+    return true;
+  }
+}
+
+// Refusing the OS permission turns the setting off for good (the
+// default is ON, so just leaving the key unset would flip it back).
+async function persistCareRemindersOff(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(CARE_REMINDERS_STORAGE_KEY, "false");
+  } catch {
+    // Worst case the permission check runs again next time.
   }
 }
 
@@ -31,6 +46,7 @@ export async function setCareRemindersEnabled(enabled: boolean): Promise<boolean
   if (enabled) {
     const permission = await Notifications.requestPermissionsAsync();
     if (!permission.granted) {
+      await persistCareRemindersOff();
       return false;
     }
   }
@@ -52,6 +68,18 @@ export async function rescheduleCareReminders(plants: Plant[], tasks: CareTask[]
     return;
   }
   if (!(await getCareRemindersEnabled())) {
+    return;
+  }
+
+  // Reminders are on by default, so the first reschedule on a fresh
+  // install is where the permission prompt happens. A refusal turns
+  // the setting off (persisted) instead of re-prompting every focus.
+  let permission = await Notifications.getPermissionsAsync();
+  if (!permission.granted && permission.canAskAgain) {
+    permission = await Notifications.requestPermissionsAsync();
+  }
+  if (!permission.granted) {
+    await persistCareRemindersOff();
     return;
   }
 

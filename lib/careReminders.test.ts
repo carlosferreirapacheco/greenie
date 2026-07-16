@@ -3,7 +3,7 @@ jest.mock("./supabase/client", () => {
   return { supabase: createMockSupabaseClient() };
 });
 
-import { buildReminderContent, selectSchedulableTasks } from "./careReminders";
+import { buildReminderContent, parseStoredCareRemindersFlag, selectSchedulableTasks } from "./careReminders";
 import type { CareTask } from "./supabase/care_tasks";
 
 function task(overrides: Partial<CareTask>): CareTask {
@@ -37,6 +37,20 @@ describe("selectSchedulableTasks", () => {
     const tasks = [task({ next_due: "2026-07-16T12:00:00Z" })];
 
     expect(selectSchedulableTasks(tasks, now)).toEqual([]);
+  });
+});
+
+describe("parseStoredCareRemindersFlag", () => {
+  it("defaults to on when the key was never set", () => {
+    expect(parseStoredCareRemindersFlag(null)).toBe(true);
+  });
+
+  it("stays off once persisted off (e.g. after a permission denial)", () => {
+    expect(parseStoredCareRemindersFlag("false")).toBe(false);
+  });
+
+  it("stays on when explicitly enabled", () => {
+    expect(parseStoredCareRemindersFlag("true")).toBe(true);
   });
 });
 
