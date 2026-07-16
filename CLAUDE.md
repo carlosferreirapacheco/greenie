@@ -271,6 +271,28 @@ sharing them socially with other users.
   likes/comments (inline on feed rows + `app/progress/[id].tsx`) are all
   built. Social features are now feature-complete against the original
   backlog scope.
+  - View who liked a report — done, client-only as expected (no
+    schema/RLS change — `likes_select_visible` already scoped the
+    right rows). `getLikersForProgress()` in `lib/supabase/likes.ts`
+    mirrors `comments.ts`'s `hydrateAuthors` shape: fetch `likes` for
+    the report, batch-hydrate `profiles`, and fall back to null
+    fields for an unresolvable liker (block asymmetry — they blocked
+    the viewer, so their own profile row is hidden even though the
+    like itself is visible); the new `app/likes/[progressId].tsx`
+    screen (modeled on `app/followers.tsx`, read-only) renders that
+    list, falling back to "Someone" for the unresolvable case, same
+    convention as the notifications inbox. Scoped to the detail
+    screen only, not feed rows, mirroring the existing
+    preview-on-feed / full-interaction-on-detail split comments
+    already use. On `app/progress/[id].tsx` the like control, previously
+    one `Pressable` wrapping both the heart and the count, is now two
+    siblings: the heart/label toggle (unchanged behavior) and the
+    count itself as its own link to the new screen — reusing the
+    existing `(N)` text rather than adding new link copy. Verified
+    live with two likers (one with a set display name, one falling
+    back to `@username`): the list renders both, tapping a row opens
+    the liker's profile, and the heart toggle still likes/unlikes
+    without navigating anywhere.
 - Account settings and configuration — scoped and split into slices.
   Slice 1 (change password) is done: `app/settings.tsx` (new screen,
   linked from a "Settings" link in `app/profile.tsx`'s header) lets a

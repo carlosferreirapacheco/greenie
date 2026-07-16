@@ -5,7 +5,7 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getLikesForProgress, likeProgress, unlikeProgress } from "./likes";
+import { getLikersForProgress, getLikesForProgress, likeProgress, unlikeProgress } from "./likes";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -30,6 +30,44 @@ describe("getLikesForProgress", () => {
 
     expect(chain.in).toHaveBeenCalledWith("progress_id", ["p1", "p2"]);
     expect(result).toEqual([{ progress_id: "p1", user_id: "u1" }]);
+  });
+});
+
+describe("getLikersForProgress", () => {
+  it("returns an empty array without a profile lookup when there are no likes", async () => {
+    mockSupabase.from.mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    const result = await getLikersForProgress("p1");
+
+    expect(result).toEqual([]);
+    expect(mockSupabase.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("hydrates each liker with their profile", async () => {
+    const likesChain = createChainableQueryMock({ data: [{ user_id: "u1" }], error: null });
+    const profilesChain = createChainableQueryMock({
+      data: [{ id: "u1", display_name: "Sammy", username: "sammy", avatar_url: "https://example.com/a.jpg" }],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(likesChain).mockReturnValueOnce(profilesChain);
+
+    const result = await getLikersForProgress("p1");
+
+    expect(likesChain.eq).toHaveBeenCalledWith("progress_id", "p1");
+    expect(profilesChain.in).toHaveBeenCalledWith("id", ["u1"]);
+    expect(result).toEqual([
+      { user_id: "u1", display_name: "Sammy", username: "sammy", avatar_url: "https://example.com/a.jpg" },
+    ]);
+  });
+
+  it("falls back to null fields when a liker's profile isn't visible (block asymmetry)", async () => {
+    const likesChain = createChainableQueryMock({ data: [{ user_id: "hidden" }], error: null });
+    const profilesChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValueOnce(likesChain).mockReturnValueOnce(profilesChain);
+
+    const result = await getLikersForProgress("p1");
+
+    expect(result).toEqual([{ user_id: "hidden", display_name: null, username: null, avatar_url: null }]);
   });
 });
 
