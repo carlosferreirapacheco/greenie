@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Pressable, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, ScrollView, Share, StyleSheet, Pressable, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { router, Stack, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import {
   acceptSittingRequest,
   cancelSittingRequest,
@@ -14,12 +14,16 @@ import {
   getSittersHistory,
   type PlantSittingAssignment,
   type SittingAccessState,
-} from "../lib/supabase/plant_sitting";
-import { type Profile } from "../lib/supabase/profiles";
-import { PhotoThumb } from "../components/PhotoThumb";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
-import { useTheme } from "../lib/ThemeContext";
-import { getErrorMessage } from "../lib/errors";
+} from "../../lib/supabase/plant_sitting";
+import { type Profile } from "../../lib/supabase/profiles";
+import { getMyPlants } from "../../lib/supabase/plants";
+import { getCareTasksForPlants } from "../../lib/supabase/care_tasks";
+import { buildCareInstructionsText } from "../../lib/careInstructions";
+import { PhotoThumb } from "../../components/PhotoThumb";
+import { HeaderIconButton } from "../../components/HeaderIconButton";
+import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
+import { getErrorMessage } from "../../lib/errors";
 
 function accessStateLabel(state: SittingAccessState): string {
   switch (state) {
@@ -204,6 +208,11 @@ export default function PlantSittingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const navigation = useNavigation();
+
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const shareBusyRef = useRef(false);
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +250,62 @@ export default function PlantSittingScreen() {
       fetchAll();
     }, [fetchAll])
   );
+
+  // Share care instructions -- moved here from the Plants screen; it's
+  // a plant-sitting feature. Fetches plants + tasks on demand rather
+  // than keeping them in this screen's state.
+  const handleShareInstructions = useCallback(async () => {
+    if (shareBusyRef.current) {
+      return;
+    }
+    shareBusyRef.current = true;
+    setShareBusy(true);
+    setShareError(null);
+
+    try {
+      const plants = await getMyPlants();
+      if (plants.length === 0) {
+        setShareError("You have no plants to share care instructions for yet.");
+        return;
+      }
+      const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
+      const tasksByPlant: Record<string, typeof tasks> = {};
+      for (const task of tasks) {
+        (tasksByPlant[task.plant_id] ??= []).push(task);
+      }
+      const text = buildCareInstructionsText(plants.map((plant) => ({ ...plant, tasks: tasksByPlant[plant.id] ?? [] })));
+      await Share.share({ message: text, title: "Plant care instructions" });
+    } catch (err) {
+      setShareError(getErrorMessage(err));
+    } finally {
+      shareBusyRef.current = false;
+      setShareBusy(false);
+    }
+  }, []);
+
+  // Header actions live here (not the tabs layout) because Share
+  // carries busy state owned by this screen.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerActionsRow}>
+          <HeaderIconButton
+            icon="share-variant"
+            label="Share"
+            onPress={handleShareInstructions}
+            fonts={fonts}
+            busy={shareBusy}
+          />
+          <HeaderIconButton
+            icon="account-plus-outline"
+            label="Request"
+            onPress={() => router.push("/select-sitter")}
+            fonts={fonts}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, fonts, shareBusy, handleShareInstructions]);
 
   async function handleAccept(id: string) {
     if (busyRequestRef.current) {
@@ -304,25 +369,9 @@ export default function PlantSittingScreen() {
     }
   }
 
-  const screen = (
-    <Stack.Screen
-      options={{
-        title: "Plant Sitting",
-        headerRight: () => (
-          <Pressable onPress={() => router.push("/select-sitter")} hitSlop={8} style={styles.requestButtonWrap}>
-            <Text style={[styles.requestButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-              + Request
-            </Text>
-          </Pressable>
-        ),
-      }}
-    />
-  );
-
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -331,7 +380,6 @@ export default function PlantSittingScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
@@ -339,7 +387,9 @@ export default function PlantSittingScreen() {
 
   return (
     <ScrollView style={[styles.screen, { backgroundColor: colors.paper }]} contentContainerStyle={styles.content}>
-      {screen}
+      {shareError ? (
+        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{shareError}</Text>
+      ) : null}
 
       <Text style={[styles.sectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>Requests for me</Text>
       {requestActionError ? (
@@ -424,11 +474,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  requestButtonWrap: {
-    marginRight: spacing.md,
-  },
-  requestButton: {
-    fontSize: 15,
+  headerActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
   },
   sectionTitle: {
     fontSize: 18,

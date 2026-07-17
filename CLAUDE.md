@@ -923,6 +923,60 @@ sharing them socially with other users.
 - Review feed behavior on multiple progress reports — audit how the feed
   reads when a plant has several reports (ordering, whether they should
   ever be grouped/collapsed under one plant); not a concrete feature yet
+- UI/UX revamp — persistent tab bar + icon navigation, replacing the
+  text-link header navigation that had accumulated feature-by-feature
+  and no longer fit a mobile screen (the concrete first chunk of the
+  general "Revisit prompt design / UX" item under Later). Design norms
+  are documented in the Greenie — Design System artifact and decided
+  with the user: four bottom tabs (Plants / Feed / Sitting / Alerts —
+  Following moved off the main nav; Profile stays as the avatar thumb
+  top-left, not a tab), icon + small-label treatment for both tab
+  items and header actions, `+ Add` as a Plants header icon (no center
+  FAB), icons from **`@expo/vector-icons`** (new dependency, pure
+  JS + fonts — no EAS rebuild needed; MaterialCommunityIcons family
+  throughout), and Share (care instructions) moved from Plants to the
+  Sitting screen where it belongs. Delivery is per-screen:
+  - **PR 1 — foundation + the four tab screens — done.** New
+    `app/(tabs)/` route group (`index`/`feed`/`plant-sitting`/
+    `notifications` moved in; group segments don't appear in URLs so
+    every route and `notificationTargetPath()` deep link kept working
+    unchanged) with `app/(tabs)/_layout.tsx` as the Tabs navigator:
+    tab bar styled per the design system (icon + 10px label, moss
+    active / ink-soft inactive, paper background, hairline top
+    border), centered serif titles, a shared 28px avatar-thumb
+    headerLeft → `/profile` on every tab, and an Alerts tab badge dot
+    via `tabBarBadge`. The root Stack hides its own header for the
+    `(tabs)` route (double-header otherwise). Header/badge state
+    (avatar, unread count, pending follow requests) lives in the tabs
+    layout, refetched via a **navigation `state`-event listener** —
+    `useSegments()` was tried first and verified NOT to re-render the
+    layout on tab changes, while the root navigation's state event
+    fires on tab switches AND stack push/pops (the state tree includes
+    nested navigators), matching the old per-screen focus refetch.
+    New shared `components/HeaderIconButton.tsx` (icon + ~9px label
+    below, optional badge dot / busy spinner) is the header-action
+    norm. Per screen: Plants keeps only the `plus` Add action (the
+    five old text links replaced by the tab bar); Feed gained
+    `account-group-outline` People → `/following` carrying the
+    pending-requests dot; Sitting gained `account-plus-outline`
+    Request plus the relocated `share-variant` Share (handler, busy
+    state, and error banner moved from `app/index.tsx`; fetches
+    plants/tasks on demand and reports "no plants" as a friendly
+    error; headerRight set from the screen via `navigation.setOptions`
+    since Share's busy state lives there); Alerts has no header action
+    (its dot moved to the tab icon). Verified live on web: tabs
+    persist state across switches, pushed screens cover the bar and
+    return correctly, deep links land on the right tab, Share fires
+    from Sitting (web's "not supported" banner path), the Alerts badge
+    lights on an unread fixture and fades after the inbox visit marks
+    it read, no horizontal overflow at 375px, no console errors.
+  - **PR 2 — remaining header conversions — not started.** Following
+    (`app/following.tsx`): Requests (badge) / Followers / Search text
+    links → `HeaderIconButton`s (`account-clock-outline` /
+    `account-multiple-outline` / `magnify`). Profile
+    (`app/profile.tsx`): Settings link → `cog-outline` icon action.
+    No other screen defines header actions (verified); in-body text
+    links stay with the general UX-pass item under Later.
 - Online demo (gated) — done and live at https://greenie-cwb.pages.dev.
   `.github/workflows/deploy.yml` exports the Expo web bundle
   (`app.json` `web.output: "single"`, SPA) and deploys it to Cloudflare

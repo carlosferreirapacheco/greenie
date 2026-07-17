@@ -1,14 +1,14 @@
 import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { router, Stack, useFocusEffect } from "expo-router";
-import { getFeed, type FeedItem } from "../lib/supabase/plant_progress";
-import { likeProgress, unlikeProgress } from "../lib/supabase/likes";
-import { plantCommonNameSubtitle, plantPrimaryName } from "../lib/supabase/plants";
-import { PhotoThumb } from "../components/PhotoThumb";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
-import { useTheme } from "../lib/ThemeContext";
-import { getErrorMessage } from "../lib/errors";
+import { router, useFocusEffect } from "expo-router";
+import { getFeed, type FeedItem } from "../../lib/supabase/plant_progress";
+import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
+import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
+import { PhotoThumb } from "../../components/PhotoThumb";
+import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
+import { getErrorMessage } from "../../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
@@ -173,12 +173,9 @@ export default function FeedScreen() {
     }, [fetchFeed])
   );
 
-  const screen = <Stack.Screen options={{ title: "Feed" }} />;
-
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -187,7 +184,6 @@ export default function FeedScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
@@ -196,22 +192,18 @@ export default function FeedScreen() {
   if (items.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No activity yet</Text>
       </View>
     );
   }
 
   return (
-    <>
-      {screen}
-      <FlatList
-        style={[styles.list, { backgroundColor: colors.paper }]}
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <FeedRow item={item} fonts={fonts} />}
-      />
-    </>
+    <FlatList
+      style={[styles.list, { backgroundColor: colors.paper }]}
+      data={items}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => <FeedRow item={item} fonts={fonts} />}
+    />
   );
 }
 
