@@ -16,6 +16,7 @@ import { router, Stack } from "expo-router";
 import { lookupPlantByPhoto, lookupPlantInfo } from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
+import { createProgressReport, effectiveCommentPolicy } from "../lib/supabase/plant_progress";
 import { DatePickerField } from "../components/DatePickerField";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { todayISO } from "../lib/dateGrid";
@@ -44,6 +45,7 @@ export default function AddPlantScreen() {
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
   const [location, setLocation] = useState("");
   const [acquiredAt, setAcquiredAt] = useState("");
+  const [initialHeightCm, setInitialHeightCm] = useState("");
 
   const [lookupStatus, setLookupStatus] = useState<"idle" | "loading" | "error">("idle");
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -178,6 +180,18 @@ export default function AddPlantScreen() {
         next_due: nextDue,
       });
 
+      const trimmedInitialHeight = initialHeightCm.trim();
+      if (trimmedInitialHeight.length > 0) {
+        await createProgressReport({
+          plant_id: plant.id,
+          height_cm: Number(trimmedInitialHeight),
+          notes: "",
+          comment_policy: effectiveCommentPolicy(false, "public"),
+          shared_to_feed: false,
+          photo_url: null,
+        });
+      }
+
       router.back();
     } catch (err) {
       setSaveError(getErrorMessage(err));
@@ -236,8 +250,6 @@ export default function AddPlantScreen() {
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={nickname}
             onChangeText={setNickname}
-            placeholder="e.g. Big Fred"
-            placeholderTextColor={colors.inkSoft}
           />
         </View>
 
@@ -287,6 +299,20 @@ export default function AddPlantScreen() {
             Acquired date (optional)
           </Text>
           <DatePickerField value={acquiredAt} onChange={setAcquiredAt} fonts={fonts} maxDate={todayISO()} />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            Initial height (cm, optional)
+          </Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={initialHeightCm}
+            onChangeText={setInitialHeightCm}
+            placeholder="e.g. 32"
+            placeholderTextColor={colors.inkSoft}
+            keyboardType="decimal-pad"
+          />
         </View>
 
         {saveStatus === "error" ? (

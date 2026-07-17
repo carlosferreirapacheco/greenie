@@ -639,19 +639,49 @@ sharing them socially with other users.
   gap noted in the original Photo capture PR1 write-up below), so
   getting a photo into the Add Plant form for a live UI pass needs a
   manual web session or a real-device pass.
-  - Review Add Plant screen — two loose ends flagged, not built yet.
-    (1) The Nickname field's placeholder text ("e.g. Big Fred") reads
-    as a suggested value rather than a format hint — remove it.
-    (2) Add Plant has no way to record the plant's initial size,
-    unlike `app/log-progress.tsx`'s optional "Height (cm)" field
-    (`plant_progress.height_cm`) — add a matching initial-size input
-    so a plant's height history (`lib/chart.ts`, `HeightChart.tsx`)
-    can start from acquisition instead of only from the first logged
-    progress report. Needs a design decision at implementation time:
-    `plants` has no height column today, so this likely means Add
-    Plant quietly creates an initial `plant_progress` row (unlisted,
-    no photo/notes) rather than adding a new column — to be planned
-    before building.
+  - Review Add Plant screen — done, both loose ends. (1) The Nickname
+    field's placeholder text ("e.g. Big Fred") was removed — it read
+    as a suggested value rather than a format hint, and the "Nickname
+    (optional)" label needs no example. (2) Add Plant gained an
+    "Initial height (cm, optional)" field, placed after Acquired date,
+    matching `app/log-progress.tsx`'s Height field's styling and its
+    lack of extra validation. `plants` gained no height column —
+    resolved the design question flagged when this item was first
+    logged by reusing the existing `createProgressReport()`
+    (`lib/supabase/plant_progress.ts`) with no schema or
+    function-signature changes needed: `plant_progress.notes` was
+    already nullable at the DB level (confirmed in migration
+    `0003_progress_reports.sql` — the `caption` column it was renamed
+    from was never `not null`), so passing `notes: ""` is fine and
+    renders identically to no notes via the existing `{report.notes ?
+    ... : null}` check on `app/plant/[id].tsx`. The row only needs to
+    sort as the *earliest* progress report for its plant, which it
+    always will be since it's inserted at plant-creation time before
+    any other report can exist — no `created_at` backdating to
+    `acquired_at` needed, since `computeChartPoints()` already spaces
+    chart points evenly by index, not by real date. Marked unlisted
+    (`shared_to_feed: false`, `comment_policy` forced to `disabled`
+    via the existing `effectiveCommentPolicy()` helper, satisfying the
+    `plant_progress_unlisted_implies_comments_disabled` CHECK) and
+    `photo_url: null` — a data point, not a social post, so it stays
+    out of every feed; it does still appear once in the plant's own
+    Progress history (height badge + "Unlisted" tag, no notes line), a
+    minor accepted side effect of reusing the reports table rather
+    than a bespoke path. Only created when a value is actually typed;
+    the call sits inside the same `try` block as `createPlant`/
+    `createCareTask` in `handleSave()` (not a fire-and-forget
+    try/catch like Log Progress's "set as plant's photo") since this
+    is the only place the typed height is captured — a silent failure
+    here would lose it with no fallback. Verified: the exact insert
+    shape (`notes: ''`, `shared_to_feed: false`, `comment_policy:
+    'disabled'`, `photo_url: null`) succeeds against the live schema
+    and constraints via a rolled-back SQL transaction; the full save
+    flow itself wasn't click-tested end-to-end in this pass for the
+    same reason as the photo-lookup feature above — this environment's
+    browser automation can't drive the native OS file-picker "Choose
+    from Library" opens, and the photo field is required, so getting a
+    photo into the form needs a manual web session or a real-device
+    pass.
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete
