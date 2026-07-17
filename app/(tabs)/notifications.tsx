@@ -1,17 +1,17 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { router, Stack, useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   getNotifications,
   markAllNotificationsRead,
   type NotificationWithActor,
-} from "../lib/supabase/notifications";
-import { notificationTargetPath } from "../lib/pushNotifications";
-import { PhotoThumb } from "../components/PhotoThumb";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
-import { useTheme } from "../lib/ThemeContext";
-import { getErrorMessage } from "../lib/errors";
+} from "../../lib/supabase/notifications";
+import { notificationTargetPath } from "../../lib/pushNotifications";
+import { PhotoThumb } from "../../components/PhotoThumb";
+import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
+import { getErrorMessage } from "../../lib/errors";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
@@ -131,12 +131,9 @@ export default function NotificationsScreen() {
     }, [fetchNotifications])
   );
 
-  const screen = <Stack.Screen options={{ title: "Notifications" }} />;
-
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -145,7 +142,6 @@ export default function NotificationsScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
@@ -154,7 +150,6 @@ export default function NotificationsScreen() {
   if (notifications.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Nothing here yet</Text>
       </View>
     );
@@ -162,7 +157,6 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.paper }]}>
-      {screen}
       <FlatList
         style={styles.list}
         data={notifications}

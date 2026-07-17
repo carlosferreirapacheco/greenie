@@ -188,7 +188,12 @@ function RootLayoutNav() {
   return (
     <>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={screenOptions} />
+      <Stack screenOptions={screenOptions}>
+        {/* The tab group renders its own header (avatar + centered
+            title + icon actions) -- without this the root Stack would
+            stack a second header on top of it. */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
     </>
   );
 }

@@ -1,22 +1,18 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
-import { router, Stack, useFocusEffect } from "expo-router";
-import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../lib/supabase/plants";
+import { router, useFocusEffect } from "expo-router";
+import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../../lib/supabase/plants";
 import {
   getCareTasksForPlants,
   summarizeCareTasks,
   type PlantCareSummary,
   type PlantCareStatus,
-} from "../lib/supabase/care_tasks";
-import { getPendingFollowRequests } from "../lib/supabase/follows";
-import { getUnreadNotificationCount } from "../lib/supabase/notifications";
-import { getMyProfile } from "../lib/supabase/profiles";
-import { buildCareInstructionsText } from "../lib/careInstructions";
-import { PhotoThumb } from "../components/PhotoThumb";
-import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../lib/theme";
-import { useTheme } from "../lib/ThemeContext";
-import { getErrorMessage } from "../lib/errors";
+} from "../../lib/supabase/care_tasks";
+import { PhotoThumb } from "../../components/PhotoThumb";
+import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
+import { getErrorMessage } from "../../lib/errors";
 
 function statusText(status: PlantCareStatus): string {
   switch (status) {
@@ -47,11 +43,6 @@ export default function PlantListScreen() {
   const [error, setError] = useState<string | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [careSummaries, setCareSummaries] = useState<Record<string, PlantCareSummary>>({});
-  const [hasPendingRequests, setHasPendingRequests] = useState(false);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
-  const [shareBusy, setShareBusy] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
@@ -78,21 +69,6 @@ export default function PlantListScreen() {
         setError(getErrorMessage(err));
         setStatus("error");
       });
-    getPendingFollowRequests()
-      .then((requests) => setHasPendingRequests(requests.length > 0))
-      .catch(() => {
-        // Non-critical -- the badge just won't show if this fails.
-      });
-    getUnreadNotificationCount()
-      .then((count) => setHasUnreadNotifications(count > 0))
-      .catch(() => {
-        // Non-critical -- the badge just won't show if this fails.
-      });
-    getMyProfile()
-      .then((profile) => setMyAvatarUrl(profile.avatar_url))
-      .catch(() => {
-        // Non-critical -- the header just keeps the placeholder if this fails.
-      });
   }, []);
 
   // Refetches every time this screen gains focus (e.g. returning from
@@ -103,85 +79,9 @@ export default function PlantListScreen() {
     }, [fetchPlants])
   );
 
-  async function handleShareInstructions() {
-    if (shareBusy) {
-      return;
-    }
-    setShareBusy(true);
-    setShareError(null);
-
-    try {
-      const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
-      const tasksByPlant: Record<string, typeof tasks> = {};
-      for (const task of tasks) {
-        (tasksByPlant[task.plant_id] ??= []).push(task);
-      }
-      const text = buildCareInstructionsText(plants.map((plant) => ({ ...plant, tasks: tasksByPlant[plant.id] ?? [] })));
-      await Share.share({ message: text, title: "Plant care instructions" });
-    } catch (err) {
-      setShareError(getErrorMessage(err));
-    } finally {
-      setShareBusy(false);
-    }
-  }
-
-  const screen = (
-    <Stack.Screen
-      options={{
-        title: "Plants",
-        headerLeft: () => (
-          <View style={styles.headerLeftRow}>
-            <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
-              <PhotoThumb uri={myAvatarUrl} size={28} radius={radius.sm} />
-            </Pressable>
-            <Pressable onPress={() => router.push("/following")} hitSlop={8} style={styles.badgeWrap}>
-              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Following
-              </Text>
-              {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
-            </Pressable>
-            <Pressable onPress={() => router.push("/feed")} hitSlop={8}>
-              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Feed
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/plant-sitting")} hitSlop={8}>
-              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Sitting
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/notifications")} hitSlop={8} style={styles.badgeWrap}>
-              <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Alerts
-              </Text>
-              {hasUnreadNotifications ? (
-                <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} />
-              ) : null}
-            </Pressable>
-          </View>
-        ),
-        headerRight: () => (
-          <View style={styles.headerRightRow}>
-            <Pressable onPress={handleShareInstructions} disabled={shareBusy || plants.length === 0} hitSlop={8}>
-              {shareBusy ? (
-                <ActivityIndicator color={colors.moss} />
-              ) : (
-                <Text style={[styles.headerLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Share</Text>
-              )}
-            </Pressable>
-            <Pressable onPress={() => router.push("/add-plant")} hitSlop={8} style={styles.addButtonWrap}>
-              <Text style={[styles.addButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>+ Add</Text>
-            </Pressable>
-          </View>
-        ),
-      }}
-    />
-  );
-
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -190,7 +90,6 @@ export default function PlantListScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
       </View>
     );
@@ -199,7 +98,6 @@ export default function PlantListScreen() {
   if (plants.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No plants yet</Text>
       </View>
     );
@@ -207,10 +105,6 @@ export default function PlantListScreen() {
 
   return (
     <>
-      {screen}
-      {shareError ? (
-        <Text style={[styles.shareErrorText, { fontFamily: fonts.body, color: colors.coral }]}>{shareError}</Text>
-      ) : null}
       <FlatList
         style={[styles.list, { backgroundColor: colors.paper }]}
         data={plants}
@@ -266,43 +160,6 @@ export default function PlantListScreen() {
 }
 
 const styles = StyleSheet.create({
-  addButton: {
-    fontSize: 15,
-  },
-  addButtonWrap: {
-    marginRight: spacing.md,
-  },
-  headerRightRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  shareErrorText: {
-    fontSize: 13,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
-  },
-  headerLeftRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginLeft: spacing.md,
-  },
-  headerLink: {
-    fontSize: 14,
-  },
-  badgeWrap: {
-    position: "relative",
-    paddingRight: 8,
-  },
-  badgeDot: {
-    position: "absolute",
-    top: -2,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   center: {
     flex: 1,
     alignItems: "center",
