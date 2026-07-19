@@ -10,6 +10,7 @@ import { getMyProfile } from "../lib/supabase/profiles";
 import { getErrorMessage } from "../lib/errors";
 import { getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 
 // The two-factor account-deletion flow, extracted from app/settings.tsx
 // so both Settings and the public app/delete-account.tsx page render the
@@ -27,6 +28,7 @@ export function AccountDeletionFlow({
   onDeleted?: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // null = not resolved yet, which keeps the regular password UI --
   // also the fallback if the identities lookup fails.
@@ -121,23 +123,24 @@ export function AccountDeletionFlow({
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-        Deleting your account permanently removes your profile, plants, care schedules, progress reports,
-        comments, likes, and follows. This cannot be undone.{" "}
+        {t("accountDeletionFlow.sectionIntro.base")}{" "}
         {hasPassword === false
-          ? "To confirm it's really you, type your username and enter a confirmation code sent to your email."
-          : "To confirm it's really you, enter your password and a confirmation code sent to your email."}
+          ? t("accountDeletionFlow.sectionIntro.passwordless")
+          : t("accountDeletionFlow.sectionIntro.withPassword")}
       </Text>
 
       {hasPassword === false ? (
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Type @{accountUsername ?? "your username"} to confirm
+            {t("accountDeletionFlow.usernameConfirm.label", {
+              username: accountUsername ?? t("accountDeletionFlow.usernameConfirm.fallbackUsername"),
+            })}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={deleteUsername}
             onChangeText={setDeleteUsername}
-            placeholder={accountUsername ? `@${accountUsername}` : "@username"}
+            placeholder={accountUsername ? `@${accountUsername}` : t("accountDeletionFlow.usernameConfirm.placeholderFallback")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             autoCorrect={false}
@@ -145,12 +148,14 @@ export function AccountDeletionFlow({
         </View>
       ) : (
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Password</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signIn.password.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={deletePassword}
             onChangeText={setDeletePassword}
-            placeholder="••••••••"
+            placeholder={t("signIn.password.placeholder")}
             placeholderTextColor={colors.inkSoft}
             secureTextEntry
           />
@@ -160,17 +165,19 @@ export function AccountDeletionFlow({
       {codeStatus === "sent" ? (
         <>
           <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Code sent to {accountEmail ?? "your email"}
+            {t("settings.emailLinkedAccounts.codeSent", {
+              email: accountEmail ?? t("accountDeletionFlow.fallbackEmail"),
+            })}
           </Text>
           <View style={styles.field}>
             <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-              Confirmation code
+              {t("settings.emailLinkedAccounts.confirmationCode.label")}
             </Text>
             <TextInput
               style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
               value={deleteCode}
               onChangeText={setDeleteCode}
-              placeholder="123456"
+              placeholder={t("accountDeletionFlow.codePlaceholder")}
               placeholderTextColor={colors.inkSoft}
               autoCapitalize="none"
               autoCorrect={false}
@@ -191,7 +198,7 @@ export function AccountDeletionFlow({
               <ActivityIndicator color={colors.coral} />
             ) : (
               <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                Email me a confirmation code
+                {t("accountDeletionFlow.sendCodeButton")}
               </Text>
             )}
           </Pressable>
@@ -206,17 +213,17 @@ export function AccountDeletionFlow({
         confirmingDelete ? (
           <View style={[styles.confirmBox, { borderColor: colors.coral, backgroundColor: colors.coralSoft }]}>
             <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-              Last chance — this permanently erases your account and everything in it.
+              {t("accountDeletionFlow.confirmDelete.message")}
             </Text>
             <View style={styles.confirmActions}>
               <Pressable onPress={handleDeleteAccount} hitSlop={8}>
                 <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                  Delete everything
+                  {t("accountDeletionFlow.confirmDelete.confirm")}
                 </Text>
               </Pressable>
               <Pressable onPress={() => setConfirmingDelete(false)} hitSlop={8}>
                 <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Cancel
+                  {t("common.cancel")}
                 </Text>
               </Pressable>
             </View>
@@ -231,7 +238,7 @@ export function AccountDeletionFlow({
               <ActivityIndicator color={colors.paper} />
             ) : (
               <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                Permanently delete my account
+                {t("accountDeletionFlow.deleteButton")}
               </Text>
             )}
           </Pressable>

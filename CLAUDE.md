@@ -1003,9 +1003,10 @@ sharing them socially with other users.
     revisit if the invite list approaches that.
   - (Store-required public pages for a mobile release are tracked
     under Public launch / production readiness below.)
-- Multi-language support — Portuguese (Portugal), alongside English.
-  Imperial units stay out of scope for this effort (tracked separately
-  under Later). Ships in staged PRs, full coverage as the end state.
+- Multi-language support — Portuguese (Portugal), alongside English —
+  **done**, full coverage shipped across four staged PRs (PR1-4 below).
+  Imperial units stayed out of scope for this effort (tracked separately
+  under Later).
   **PR1 (infrastructure + core screens) — done.** New dependency
   **`expo-localization`** (device locale detection only — translation
   itself is a small hand-rolled dictionary + lookup, not a library like
@@ -1216,7 +1217,43 @@ sharing them socially with other users.
   timestamp bug fix). Also reconfirmed in English as a regression
   check.
   **PR4 (`profile.tsx`, `delete-account.tsx`, `AccountDeletionFlow.tsx`)
-  — not started.**
+  — done. This closes out the multi-language effort — full `t()`
+  coverage across the app** except the two files deliberately excluded
+  from the start: `app/privacy-policy.tsx` (legal text, flagged since
+  PR1 as needing a legal review before machine-translating) and
+  `app/redirect.tsx`/`app/_layout.tsx` (no user-facing text). Same
+  review-before-code process as PR1-3, approved without corrections
+  this time. Heavy reuse in this small (3-file) batch: `profile.tsx`'s
+  username/display-name fields reuse `signUp.form.username.*`/
+  `welcome.firstTime.displayName.*` verbatim, and — the more notable
+  case — `delete-account.tsx`'s sign-in form is textually identical to
+  `sign-in.tsx`'s own (`signIn.email.*`, `signIn.password.*`,
+  `signIn.submitButton`, `signIn.divider`, `signIn.googleButton`), since
+  it's the exact same email/password/Google sign-in UI, just reused on
+  a public, store-required page instead of the normal auth stack.
+  `AccountDeletionFlow.tsx` (shared by both Settings' Danger Zone and
+  the public page) reuses `signIn.password.*` for its password field and
+  `settings.emailLinkedAccounts.codeSent`/`confirmationCode.label` for
+  its emailed-code step — identical mechanism to the email-change flow
+  those keys were written for. A third bug fix bundled into this pass
+  (same category found in PR3's notifications screen): `profile.tsx`'s
+  username-change cooldown date was built with its own module-level
+  `Intl.DateTimeFormat(undefined, { month: "long", day: "numeric",
+  year: "numeric" })` at both the inline hint and the blocking
+  save-error message — both switched to `formatDisplayDate()` for the
+  same locale-independent `dd-MM-yyyy` consistency as everywhere else.
+  Verified: `tsc --noEmit` + `npm test` (347 passing), and live on web
+  with Português selected: `profile.tsx` rendered every reused label
+  and placeholder correctly, and typing a new username and saving
+  produced the live-interpolated confirm dialog "O nome de utilizador
+  só pode ser alterado a cada 5 dias. Alterar para
+  @sammy.testuser?" (cancelled without actually committing the
+  change); `delete-account.tsx` was checked in both its states —
+  signed in (showing `AccountDeletionFlow`'s password-account
+  sectionIntro + reused "Palavra-passe" field) and signed out (the
+  full reused sign-in form, "Email"/"Palavra-passe"/"Iniciar
+  sessão"/"ou"/"Continuar com Google"). Also reconfirmed in English as
+  a regression check.
 
 ### Technical follow-ups
 - Real device deployment (Android) — done. First-ever real-device pass,

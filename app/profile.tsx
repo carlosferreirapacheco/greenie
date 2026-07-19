@@ -25,18 +25,15 @@ import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
-
-const cooldownDateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-});
+import { formatDisplayDate } from "../lib/dateFormat";
 
 export default function ProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +132,7 @@ export default function ProfileScreen() {
         return;
       }
       if (nextChange) {
-        setSaveError(`You can change your username again on ${cooldownDateFormatter.format(nextChange)}`);
+        setSaveError(t("profile.username.cooldownHint", { date: formatDisplayDate(nextChange.toISOString()) }));
         setSaveStatus("error");
         return;
       }
@@ -195,11 +192,11 @@ export default function ProfileScreen() {
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         <Stack.Screen
           options={{
-            title: "Profile",
+            title: t("profile.screenTitle"),
             headerRight: () => (
               <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
                 <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                  Settings
+                  {t("settings.screenTitle")}
                 </Text>
               </Pressable>
             ),
@@ -215,17 +212,17 @@ export default function ProfileScreen() {
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         <Stack.Screen
           options={{
-            title: "Profile",
+            title: t("profile.screenTitle"),
             headerRight: () => (
               <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
                 <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                  Settings
+                  {t("settings.screenTitle")}
                 </Text>
               </Pressable>
             ),
           }}
         />
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("profile.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -235,7 +232,7 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Profile" }} />
+      <Stack.Screen options={{ title: t("profile.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <PhotoPicker
           value={profile?.avatar_url ?? null}
@@ -250,14 +247,18 @@ export default function ProfileScreen() {
         ) : null}
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signIn.email.label")}
+          </Text>
           <Text style={[styles.readonlyValue, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}>
             {profile?.email ?? "—"}
           </Text>
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signUp.form.username.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={username}
@@ -265,7 +266,7 @@ export default function ProfileScreen() {
               setUsername(text);
               setConfirmingUsername(false);
             }}
-            placeholder="e.g. plant.parent_42"
+            placeholder={t("signUp.form.username.placeholder")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             autoCorrect={false}
@@ -275,24 +276,28 @@ export default function ProfileScreen() {
           ) : null}
           {nextChange ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              You can change your username again on {cooldownDateFormatter.format(nextChange)}
+              {t("profile.username.cooldownHint", { date: formatDisplayDate(nextChange.toISOString()) })}
             </Text>
           ) : null}
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Display name</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("welcome.firstTime.displayName.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={displayName}
             onChangeText={setDisplayName}
-            placeholder="e.g. Carlos"
+            placeholder={t("welcome.firstTime.displayName.placeholder")}
             placeholderTextColor={colors.inkSoft}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Bio</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("profile.bio.label")}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -301,7 +306,7 @@ export default function ProfileScreen() {
             ]}
             value={bio}
             onChangeText={setBio}
-            placeholder="Tell other plant people about yourself"
+            placeholder={t("profile.bio.placeholder")}
             placeholderTextColor={colors.inkSoft}
             multiline
           />
@@ -311,23 +316,25 @@ export default function ProfileScreen() {
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
         ) : null}
         {saveStatus === "saved" ? (
-          <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Saved</Text>
+          <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("profile.savedText")}
+          </Text>
         ) : null}
 
         {confirmingUsername ? (
           <View style={[styles.confirmBox, { borderColor: colors.line, backgroundColor: colors.sage }]}>
             <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-              Usernames can only be changed once every {cooldownDays} days. Change it to @{normalizedUsername}?
+              {t("profile.confirmUsernameChange.message", { days: cooldownDays, username: normalizedUsername })}
             </Text>
             <View style={styles.confirmActions}>
               <Pressable onPress={doSave} hitSlop={8}>
                 <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.mossStrong }]}>
-                  Change username
+                  {t("profile.confirmUsernameChange.confirm")}
                 </Text>
               </Pressable>
               <Pressable onPress={() => setConfirmingUsername(false)} hitSlop={8}>
                 <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Cancel
+                  {t("common.cancel")}
                 </Text>
               </Pressable>
             </View>
@@ -342,7 +349,7 @@ export default function ProfileScreen() {
               <ActivityIndicator color={colors.paper} />
             ) : (
               <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                Save
+                {t("common.save")}
               </Text>
             )}
           </Pressable>
@@ -361,7 +368,7 @@ export default function ProfileScreen() {
             <ActivityIndicator color={colors.inkSoft} />
           ) : (
             <Text style={[styles.signOutButtonText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-              Sign out
+              {t("profile.signOutButton")}
             </Text>
           )}
         </Pressable>

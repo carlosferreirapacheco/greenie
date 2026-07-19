@@ -583,4 +583,50 @@ export const en = {
     },
     plantFallback: "your plant",
   },
+  profile: {
+    screenTitle: "Profile",
+    error: "Error: {error}",
+    username: {
+      cooldownHint: "You can change your username again on {date}",
+    },
+    bio: {
+      label: "Bio",
+      placeholder: "Tell other plant people about yourself",
+    },
+    savedText: "Saved",
+    confirmUsernameChange: {
+      message: "Usernames can only be changed once every {days} days. Change it to @{username}?",
+      confirm: "Change username",
+    },
+    signOutButton: "Sign out",
+  },
+  deleteAccount: {
+    screenTitle: "Delete Account",
+    heading: "Delete your account",
+    intro:
+      "This page lets you permanently delete your Greenie account and all of its data without needing the app installed. Sign in to continue — deletion still requires confirming a code sent to your account's email, the same as deleting from within the app.",
+    deletedMessage:
+      "Your account has been deleted. Everything associated with it — your profile, plants, care schedules, progress reports, comments, likes, and follows — has been permanently removed.",
+  },
+  accountDeletionFlow: {
+    sectionIntro: {
+      base:
+        "Deleting your account permanently removes your profile, plants, care schedules, progress reports, comments, likes, and follows. This cannot be undone.",
+      passwordless: "To confirm it's really you, type your username and enter a confirmation code sent to your email.",
+      withPassword: "To confirm it's really you, enter your password and a confirmation code sent to your email.",
+    },
+    usernameConfirm: {
+      label: "Type @{username} to confirm",
+      fallbackUsername: "your username",
+      placeholderFallback: "@username",
+    },
+    fallbackEmail: "your email",
+    codePlaceholder: "123456",
+    sendCodeButton: "Email me a confirmation code",
+    confirmDelete: {
+      message: "Last chance — this permanently erases your account and everything in it.",
+      confirm: "Delete everything",
+    },
+    deleteButton: "Permanently delete my account",
+  },
 };
