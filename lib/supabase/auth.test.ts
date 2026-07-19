@@ -22,6 +22,7 @@ import * as QueryParams from "expo-auth-session/build/QueryParams";
 import { supabase } from "./client";
 import {
   signUpWithEmail,
+  verifySignupCode,
   signInWithEmail,
   signInWithGoogle,
   signOut,
@@ -92,6 +93,23 @@ describe("signUpWithEmail", () => {
     mockSupabase.auth.signUp.mockResolvedValue({ data: { session: null }, error: err });
 
     await expect(signUpWithEmail("a@b.com", "pw123456", "carlos", true)).rejects.toBe(err);
+  });
+});
+
+describe("verifySignupCode", () => {
+  it("verifies the trimmed code against the given email with type signup", async () => {
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: null });
+
+    await verifySignupCode("a@b.com", " 123456 ");
+
+    expect(mockSupabase.auth.verifyOtp).toHaveBeenCalledWith({ email: "a@b.com", token: "123456", type: "signup" });
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "Token has expired or is invalid" };
+    mockSupabase.auth.verifyOtp.mockResolvedValue({ data: {}, error: err });
+
+    await expect(verifySignupCode("a@b.com", "000000")).rejects.toBe(err);
   });
 });
 

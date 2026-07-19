@@ -32,6 +32,27 @@ export async function signUpWithEmail(
   return { session: data.session };
 }
 
+// Confirms a fresh signup with the code emailed by the "Confirm signup"
+// template, instead of the classic click-a-link flow -- consistent with
+// every other emailed-code flow in this app, and immune to email
+// security scanners that pre-fetch links (which can silently consume a
+// one-time confirmation link before the user ever clicks it). No
+// session exists yet at this point, so the email has to be passed in
+// rather than read off the current user. On success supabase-js sets
+// the client's session itself, which app/_layout.tsx's
+// onAuthStateChange listener picks up the same as any other sign-in.
+export async function verifySignupCode(email: string, code: string): Promise<void> {
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: code.trim(),
+    type: "signup",
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 // Native counterpart to the web redirect flow below: opens Google's
 // consent screen in an in-app browser tab (expo-web-browser) and waits
 // for Supabase's own callback to redirect back to this device-local
