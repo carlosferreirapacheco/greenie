@@ -28,8 +28,8 @@ export const ptPT: typeof en = {
     },
     careType: {
       watering: "rega",
-      fertilize: "adubação",
-      repot: "transplante",
+      fertilize: "adubar",
+      repot: "trocar terra",
     },
     pill: {
       labelStatus: "{label}: {status}",
@@ -311,5 +311,144 @@ export const ptPT: typeof en = {
     dangerZone: {
       sectionTitle: "Zona de perigo",
     },
+  },
+  common: {
+    cancel: "Cancelar",
+    save: "Guardar",
+    notSet: "Não definido",
+    heightUnit: "{height} cm",
+    chipOptions: {
+      commentPolicy: {
+        anyone: "Todos",
+        followersOnly: "Apenas seguidores",
+        off: "Desativado",
+      },
+      feedSharing: {
+        shareToFeed: "Partilhar no feed",
+        dontShare: "Não partilhar",
+      },
+    },
+  },
+  plantDetail: {
+    headerTitle: "Planta",
+    errorPrefix: "Erro: {error}",
+    neverDoneDate: "Nunca",
+    nickname: {
+      label: "Alcunha",
+      editLink: "Editar",
+    },
+    acquiredDate: {
+      label: "Data de aquisição",
+      editLink: "Editar",
+    },
+    progress: {
+      label: "Progresso",
+      empty: "Ainda não há progresso registado",
+      unlistedTag: "Não listado",
+    },
+    careTasks: {
+      label: "Tarefas de cuidado",
+      frequencyOne: "A cada {count} dia",
+      frequencyMany: "A cada {count} dias",
+      lastDone: "Última vez: {date}",
+      nextDue: "Próxima: {date}",
+      frequencyPlaceholder: "dias",
+      deleteConfirmPrompt: "Eliminar esta tarefa?",
+      confirm: "Confirmar",
+      overduePrompt: "Esta tarefa está atrasada. Contar a próxima data a partir de:",
+      originalDueDate: "Data de vencimento original",
+      today: "Hoje",
+      markDone: "Marcar como feita",
+      edit: "Editar",
+      delete: "Eliminar",
+      addTask: "+ Adicionar tarefa",
+    },
+  },
+  progress: {
+    headerTitle: "Progresso",
+    errorPrefix: "Erro: {error}",
+    setAsPlantPhoto: "Definir como foto da planta",
+    ownerSettings: {
+      commentsLabel: "Comentários",
+      feedLabel: "Feed",
+      sitterShareBlockedHint:
+        "O dono desta planta mantém os relatórios de cuidadores fora dos feeds — isto fica apenas no histórico da própria planta.",
+      unlistedLockHint: "Este relatório não está listado e não pode voltar a ser partilhado; os comentários mantêm-se desativados.",
+    },
+    commentsOffNotice: "Os comentários estão desativados nesta publicação",
+    commentInputPlaceholder: "Adicionar um comentário",
+    postButton: "Publicar",
+    followersOnlyNotice: "Só os seguidores podem comentar isto",
+  },
+  logProgress: {
+    headerTitle: "Registar Progresso",
+    photo: {
+      label: "Foto (opcional)",
+      chipJustReport: "Apenas este relatório",
+      chipAlsoSetPlantPhoto: "Também definir como foto da planta",
+    },
+    height: {
+      label: "Altura (cm, opcional)",
+    },
+    notes: {
+      label: "Notas",
+      placeholder: "O que há de novo com esta planta?",
+    },
+    comments: {
+      label: "Comentários",
+    },
+    feed: {
+      label: "Feed",
+      unlistedWarning:
+        "Não aparecerá no feed de ninguém, e os comentários ficarão desativados — isto não pode ser desfeito depois de guardado.",
+      sitterShareBlockedHint:
+        "O dono desta planta mantém os relatórios de cuidadores fora dos feeds — isto só aparecerá no histórico da própria planta.",
+    },
+  },
+  likes: {
+    fallbackName: "Alguém",
+    headerTitle: "Gostos de",
+    empty: "Ainda sem gostos",
+    errorPrefix: "Erro: {error}",
+  },
+  heightChart: {
+    captionEntry: "{date} · {height} cm",
+  },
+  datePickerField: {
+    defaultPlaceholder: "Selecionar data",
+    backToCalendar: "‹ Voltar ao calendário",
+    clearDate: "Limpar data",
+    monthNames: {
+      january: "Janeiro",
+      february: "Fevereiro",
+      march: "Março",
+      april: "Abril",
+      may: "Maio",
+      june: "Junho",
+      july: "Julho",
+      august: "Agosto",
+      september: "Setembro",
+      october: "Outubro",
+      november: "Novembro",
+      december: "Dezembro",
+    },
+    monthAbbrev: {
+      jan: "Jan",
+      feb: "Fev",
+      mar: "Mar",
+      apr: "Abr",
+      may: "Mai",
+      jun: "Jun",
+      jul: "Jul",
+      aug: "Ago",
+      sep: "Set",
+      oct: "Out",
+      nov: "Nov",
+      dec: "Dez",
+    },
+  },
+  photoPicker: {
+    takePhoto: "Tirar Foto",
+    chooseFromLibrary: "Escolher da Biblioteca",
   },
 };

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { resolveLocale, t as translate, type LanguagePreference, type SupportedLocale } from "./i18n";
+import { syncCalendarLocale } from "./calendarLocale";
 
 const STORAGE_KEY = "languagePreference";
 
@@ -38,6 +39,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const systemLocales = Localization.getLocales().map((entry) => entry.languageTag);
   const locale = resolveLocale(languagePreference, systemLocales);
+
+  useEffect(() => {
+    syncCalendarLocale(locale);
+  }, [locale]);
 
   return (
     <LanguageContext.Provider

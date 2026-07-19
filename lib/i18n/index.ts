@@ -54,3 +54,20 @@ export function lookup(dict: unknown, key: string, params?: Record<string, strin
 export function t(locale: SupportedLocale, key: string, params?: Record<string, string | number>): string {
   return lookup(dictionaries[locale], key, params);
 }
+
+// Splits a translated sentence template on its {token} markers so each
+// piece can render as its own JSX node (a plain Text run, or a nested
+// pressable) -- needed because word order around the same tokens can
+// differ by language (e.g. English "Logged progress on {owner}'s
+// {plant}" vs. Portuguese "Registou progresso na planta {plant} de
+// {owner}"), so a sentence can't be built from fixed-position pieces.
+export function splitTemplate(template: string, tokens: string[]): (string | { token: string })[] {
+  const pattern = new RegExp(`(${tokens.map((tok) => `\\{${tok}\\}`).join("|")})`, "g");
+  return template
+    .split(pattern)
+    .filter((part) => part !== "")
+    .map((part) => {
+      const match = tokens.find((tok) => part === `{${tok}}`);
+      return match ? { token: match } : part;
+    });
+}

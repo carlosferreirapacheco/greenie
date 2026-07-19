@@ -13,11 +13,16 @@ import {
 } from "../lib/dateGrid";
 import { getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+const MONTH_KEYS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+] as const;
+
+const MONTH_ABBREV_KEYS = [
+  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
+] as const;
 
 // Structural type instead of importing XDate from the 'xdate' package
 // directly -- it's only a transitive dependency of react-native-calendars
@@ -33,7 +38,7 @@ type MonthLike = { toString(format: string): string };
 export function DatePickerField({
   value,
   onChange,
-  placeholder = "Select date",
+  placeholder,
   fonts,
   minDate,
   maxDate,
@@ -46,6 +51,8 @@ export function DatePickerField({
   maxDate?: string;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
+  const resolvedPlaceholder = placeholder ?? t("datePickerField.defaultPlaceholder");
   const [isOpen, setIsOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"days" | "months" | "years">("days");
   // The month currently being browsed -- independent from `value` so
@@ -103,7 +110,7 @@ export function DatePickerField({
     <>
       <Pressable style={[styles.input, { borderColor: colors.line }]} onPress={handleOpen}>
         <Text style={[styles.value, { fontFamily: fonts.body, color: value ? colors.ink : colors.inkSoft }]}>
-          {value || placeholder}
+          {value || resolvedPlaceholder}
         </Text>
       </Pressable>
 
@@ -200,17 +207,17 @@ export function DatePickerField({
                   </View>
                   <Pressable onPress={() => setPickerMode("days")} hitSlop={8} style={styles.backLink}>
                     <Text style={[styles.backText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                      ‹ Back to calendar
+                      {t("datePickerField.backToCalendar")}
                     </Text>
                   </Pressable>
                   <View style={styles.grid}>
-                    {MONTH_NAMES.map((name, month0) => ({ name, month0 }))
+                    {MONTH_KEYS.map((key, month0) => ({ key, month0 }))
                       .filter(({ month0 }) => !isMonthOutOfRange(viewYear, month0, minDate, maxDate))
-                      .map(({ name, month0 }) => {
+                      .map(({ key, month0 }) => {
                         const isCurrent = month0 === viewMonth0;
                         return (
                           <Pressable
-                            key={name}
+                            key={key}
                             style={[
                               styles.gridChip,
                               { borderColor: colors.line, backgroundColor: isCurrent ? colors.moss : "transparent" },
@@ -223,7 +230,7 @@ export function DatePickerField({
                                 { fontFamily: fonts.bodyMedium, color: isCurrent ? colors.paperRaised : colors.ink },
                               ]}
                             >
-                              {name.slice(0, 3)}
+                              {t(`datePickerField.monthAbbrev.${MONTH_ABBREV_KEYS[month0]}`)}
                             </Text>
                           </Pressable>
                         );
@@ -278,7 +285,7 @@ export function DatePickerField({
                       </View>
                       <Pressable onPress={() => setPickerMode("days")} hitSlop={8} style={styles.backLink}>
                         <Text style={[styles.backText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                          ‹ Back to calendar
+                          {t("datePickerField.backToCalendar")}
                         </Text>
                       </Pressable>
                       <View style={styles.grid}>
@@ -315,7 +322,7 @@ export function DatePickerField({
               {pickerMode === "days" && value ? (
                 <Pressable onPress={handleClear} hitSlop={8} style={styles.clearLink}>
                   <Text style={[styles.clearText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                    Clear date
+                    {t("datePickerField.clearDate")}
                   </Text>
                 </Pressable>
               ) : null}

@@ -310,4 +310,143 @@ export const en = {
       sectionTitle: "Danger zone",
     },
   },
+  common: {
+    cancel: "Cancel",
+    save: "Save",
+    notSet: "Not set",
+    heightUnit: "{height} cm",
+    chipOptions: {
+      commentPolicy: {
+        anyone: "Anyone",
+        followersOnly: "Followers only",
+        off: "Off",
+      },
+      feedSharing: {
+        shareToFeed: "Share to feed",
+        dontShare: "Don't share",
+      },
+    },
+  },
+  plantDetail: {
+    headerTitle: "Plant",
+    errorPrefix: "Error: {error}",
+    neverDoneDate: "Never",
+    nickname: {
+      label: "Nickname",
+      editLink: "Edit",
+    },
+    acquiredDate: {
+      label: "Acquired date",
+      editLink: "Edit",
+    },
+    progress: {
+      label: "Progress",
+      empty: "No progress logged yet",
+      unlistedTag: "Unlisted",
+    },
+    careTasks: {
+      label: "Care tasks",
+      frequencyOne: "Every {count} day",
+      frequencyMany: "Every {count} days",
+      lastDone: "Last done: {date}",
+      nextDue: "Next due: {date}",
+      frequencyPlaceholder: "days",
+      deleteConfirmPrompt: "Delete this task?",
+      confirm: "Confirm",
+      overduePrompt: "This task is overdue. Count the next due date from:",
+      originalDueDate: "Original due date",
+      today: "Today",
+      markDone: "Mark done",
+      edit: "Edit",
+      delete: "Delete",
+      addTask: "+ Add task",
+    },
+  },
+  progress: {
+    headerTitle: "Progress",
+    errorPrefix: "Error: {error}",
+    setAsPlantPhoto: "Set as plant's photo",
+    ownerSettings: {
+      commentsLabel: "Comments",
+      feedLabel: "Feed",
+      sitterShareBlockedHint:
+        "This plant's owner keeps sitter reports out of feeds — this stays in the plant's own history only.",
+      unlistedLockHint: "This report is unlisted and can't be shared again; comments stay off.",
+    },
+    commentsOffNotice: "Comments are off on this post",
+    commentInputPlaceholder: "Add a comment",
+    postButton: "Post",
+    followersOnlyNotice: "Only followers can comment on this",
+  },
+  logProgress: {
+    headerTitle: "Log Progress",
+    photo: {
+      label: "Photo (optional)",
+      chipJustReport: "Just this report",
+      chipAlsoSetPlantPhoto: "Also set as plant's photo",
+    },
+    height: {
+      label: "Height (cm, optional)",
+    },
+    notes: {
+      label: "Notes",
+      placeholder: "What's new with this plant?",
+    },
+    comments: {
+      label: "Comments",
+    },
+    feed: {
+      label: "Feed",
+      unlistedWarning:
+        "Won't appear in anyone's feed, and comments will be off — this can't be undone once saved.",
+      sitterShareBlockedHint:
+        "This plant's owner keeps sitter reports out of feeds — this will only appear in the plant's own history.",
+    },
+  },
+  likes: {
+    fallbackName: "Someone",
+    headerTitle: "Liked by",
+    empty: "No likes yet",
+    errorPrefix: "Error: {error}",
+  },
+  heightChart: {
+    captionEntry: "{date} · {height} cm",
+  },
+  datePickerField: {
+    defaultPlaceholder: "Select date",
+    backToCalendar: "‹ Back to calendar",
+    clearDate: "Clear date",
+    monthNames: {
+      january: "January",
+      february: "February",
+      march: "March",
+      april: "April",
+      may: "May",
+      june: "June",
+      july: "July",
+      august: "August",
+      september: "September",
+      october: "October",
+      november: "November",
+      december: "December",
+    },
+    monthAbbrev: {
+      jan: "Jan",
+      feb: "Feb",
+      mar: "Mar",
+      apr: "Apr",
+      may: "May",
+      jun: "Jun",
+      jul: "Jul",
+      aug: "Aug",
+      sep: "Sep",
+      oct: "Oct",
+      nov: "Nov",
+      dec: "Dec",
+    },
+  },
+  photoPicker: {
+    takePhoto: "Take Photo",
+    chooseFromLibrary: "Choose from Library",
+  },
 };
