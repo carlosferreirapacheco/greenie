@@ -23,22 +23,23 @@ import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
 
-function accessStateLabel(state: SittingAccessState): string {
+function accessStateLabel(state: SittingAccessState, t: (key: string) => string): string {
   switch (state) {
     case "pending":
-      return "Pending";
+      return t("plantSitting.state.pending");
     case "upcoming":
-      return "Upcoming";
+      return t("plantSitting.state.upcoming");
     case "active":
-      return "Active";
+      return t("plantSitting.state.active");
     case "ended":
-      return "Ended";
+      return t("plantSitting.state.ended");
     case "declined":
-      return "Declined";
+      return t("plantSitting.state.declined");
     case "cancelled":
-      return "Cancelled";
+      return t("plantSitting.state.cancelled");
   }
 }
 
@@ -56,6 +57,7 @@ function RequestRow({
   onDecline: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.owner.id}`)}>
@@ -70,11 +72,13 @@ function RequestRow({
         ) : (
           <>
             <Pressable onPress={onAccept} hitSlop={8}>
-              <Text style={[styles.acceptLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Accept</Text>
+              <Text style={[styles.acceptLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                {t("common.accept")}
+              </Text>
             </Pressable>
             <Pressable onPress={onDecline} hitSlop={8}>
               <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                Decline
+                {t("common.decline")}
               </Text>
             </Pressable>
           </>
@@ -92,6 +96,7 @@ function AssignmentRow({
   fonts: ReturnType<typeof getFonts>;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const state = computeSittingAccessState(assignment);
   return (
     <Pressable
@@ -104,7 +109,7 @@ function AssignmentRow({
           {assignment.owner.display_name ?? `@${assignment.owner.username}`}
         </Text>
         <Text style={[styles.stateText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {accessStateLabel(state)}
+          {accessStateLabel(state, t)}
         </Text>
       </View>
     </Pressable>
@@ -129,6 +134,7 @@ function SentRequestRow({
   onCancelCancel: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const canCancel = assignment.status === "pending" || assignment.status === "accepted";
   const period = formatSittingPeriod(assignment.starts_at, assignment.ends_at);
   return (
@@ -140,7 +146,7 @@ function SentRequestRow({
             {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}
           </Text>
           <Text style={[styles.stateText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            {accessStateLabel(computeSittingAccessState(assignment))}
+            {accessStateLabel(computeSittingAccessState(assignment), t)}
           </Text>
           {period ? (
             <Text style={[styles.periodText, { fontFamily: fonts.body, color: colors.inkSoft }]}>{period}</Text>
@@ -155,18 +161,20 @@ function SentRequestRow({
             <>
               <Pressable onPress={onConfirmCancel} hitSlop={8}>
                 <Text style={[styles.declineLink, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                  Sure?
+                  {t("common.confirmSure")}
                 </Text>
               </Pressable>
               <Pressable onPress={onCancelCancel} hitSlop={8}>
                 <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Keep
+                  {t("plantSitting.sentRequestRow.keep")}
                 </Text>
               </Pressable>
             </>
           ) : (
             <Pressable onPress={onCancelPress} hitSlop={8}>
-              <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>Cancel</Text>
+              <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+                {t("common.cancel")}
+              </Text>
             </Pressable>
           )}
         </View>
@@ -208,6 +216,7 @@ export default function PlantSittingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const navigation = useNavigation();
 
   const [shareBusy, setShareBusy] = useState(false);
@@ -265,7 +274,7 @@ export default function PlantSittingScreen() {
     try {
       const plants = await getMyPlants();
       if (plants.length === 0) {
-        setShareError("You have no plants to share care instructions for yet.");
+        setShareError(t("plantSitting.shareError.noPlants"));
         return;
       }
       const tasks = await getCareTasksForPlants(plants.map((plant) => plant.id));
@@ -274,14 +283,14 @@ export default function PlantSittingScreen() {
         (tasksByPlant[task.plant_id] ??= []).push(task);
       }
       const text = buildCareInstructionsText(plants.map((plant) => ({ ...plant, tasks: tasksByPlant[plant.id] ?? [] })));
-      await Share.share({ message: text, title: "Plant care instructions" });
+      await Share.share({ message: text, title: t("plantSitting.shareDialogTitle") });
     } catch (err) {
       setShareError(getErrorMessage(err));
     } finally {
       shareBusyRef.current = false;
       setShareBusy(false);
     }
-  }, []);
+  }, [t]);
 
   // Header actions live here (not the tabs layout) because Share
   // carries busy state owned by this screen.
@@ -291,21 +300,21 @@ export default function PlantSittingScreen() {
         <View style={styles.headerActionsRow}>
           <HeaderIconButton
             icon="share-variant"
-            label="Share"
+            label={t("plantSitting.header.share")}
             onPress={handleShareInstructions}
             fonts={fonts}
             busy={shareBusy}
           />
           <HeaderIconButton
             icon="account-plus-outline"
-            label="Request"
+            label={t("plantSitting.header.request")}
             onPress={() => router.push("/select-sitter")}
             fonts={fonts}
           />
         </View>
       ),
     });
-  }, [navigation, fonts, shareBusy, handleShareInstructions]);
+  }, [navigation, fonts, shareBusy, handleShareInstructions, t]);
 
   async function handleAccept(id: string) {
     if (busyRequestRef.current) {
@@ -380,7 +389,7 @@ export default function PlantSittingScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("plantSitting.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -391,13 +400,15 @@ export default function PlantSittingScreen() {
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{shareError}</Text>
       ) : null}
 
-      <Text style={[styles.sectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>Requests for me</Text>
+      <Text style={[styles.sectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+        {t("plantSitting.sectionTitle.requestsForMe")}
+      </Text>
       {requestActionError ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{requestActionError}</Text>
       ) : null}
       {requests.length === 0 ? (
         <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          No pending requests
+          {t("plantSitting.emptyState.noRequests")}
         </Text>
       ) : (
         requests.map((assignment) => (
@@ -413,25 +424,25 @@ export default function PlantSittingScreen() {
       )}
 
       <Text style={[styles.sectionTitle, styles.sectionSpacing, { fontFamily: fonts.display, color: colors.ink }]}>
-        Sitting for
+        {t("plantSitting.sectionTitle.sittingFor")}
       </Text>
       {assignments.length === 0 ? (
         <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          You're not sitting for anyone right now
+          {t("plantSitting.emptyState.notSittingForAnyone")}
         </Text>
       ) : (
         assignments.map((assignment) => <AssignmentRow key={assignment.id} assignment={assignment} fonts={fonts} />)
       )}
 
       <Text style={[styles.sectionTitle, styles.sectionSpacing, { fontFamily: fonts.display, color: colors.ink }]}>
-        My sitters
+        {t("plantSitting.sectionTitle.mySitters")}
       </Text>
       {sentActionError ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{sentActionError}</Text>
       ) : null}
       {sentRequests.length === 0 ? (
         <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          You haven't asked anyone to sit for you
+          {t("plantSitting.emptyState.noSitters")}
         </Text>
       ) : (
         sentRequests.map((assignment) => (
@@ -449,11 +460,11 @@ export default function PlantSittingScreen() {
       )}
 
       <Text style={[styles.sectionTitle, styles.sectionSpacing, { fontFamily: fonts.display, color: colors.ink }]}>
-        Plant sitters history
+        {t("plantSitting.sectionTitle.history")}
       </Text>
       {history.length === 0 ? (
         <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          No past plant-sitters yet
+          {t("plantSitting.emptyState.noHistory")}
         </Text>
       ) : (
         history.map((assignment) => <HistoryRow key={assignment.id} assignment={assignment} fonts={fonts} />)

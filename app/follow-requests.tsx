@@ -7,6 +7,7 @@ import { type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 function RequestRow({
@@ -23,6 +24,7 @@ function RequestRow({
   onDecline: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
@@ -34,11 +36,15 @@ function RequestRow({
           {busy ? (
             <ActivityIndicator color={colors.moss} />
           ) : (
-            <Text style={[styles.acceptLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Accept</Text>
+            <Text style={[styles.acceptLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+              {t("common.accept")}
+            </Text>
           )}
         </Pressable>
         <Pressable onPress={onDecline} disabled={busy} hitSlop={8}>
-          <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>Decline</Text>
+          <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+            {t("common.decline")}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -55,6 +61,7 @@ export default function FollowRequestsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchRequests = useCallback(() => {
     getPendingFollowRequests()
@@ -112,7 +119,7 @@ export default function FollowRequestsScreen() {
     }
   }
 
-  const screen = <Stack.Screen options={{ title: "Follow Requests" }} />;
+  const screen = <Stack.Screen options={{ title: t("followRequests.screenTitle") }} />;
 
   if (status === "loading") {
     return (
@@ -127,7 +134,7 @@ export default function FollowRequestsScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("followRequests.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -136,7 +143,7 @@ export default function FollowRequestsScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No pending requests</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("followRequests.emptyState")}</Text>
       </View>
     );
   }

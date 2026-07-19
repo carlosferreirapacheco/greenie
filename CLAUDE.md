@@ -1144,7 +1144,77 @@ sharing them socially with other users.
   month-grid picker correctly showed only Jan-Jul (July's `maxDate`
   cutoff) with the new `monthAbbrev` translations ("Jan, Fev, Mar, Abr,
   Mai, Jun, Jul").
-  **PR3 (social + plant-sitting + notifications) — not started.**
+  **PR3 (social + plant-sitting + notifications: `following.tsx`,
+  `followers.tsx`, `follow-requests.tsx`, `search-users.tsx`,
+  `blocked-users.tsx`, `user/[id].tsx`, `(tabs)/plant-sitting.tsx`,
+  `request-sitting.tsx`, `select-sitter.tsx`, `(tabs)/notifications.tsx`)
+  — done.** Same review-before-code process as PR1/PR2: the extracted
+  string inventory (via a research subagent covering all 10 files) was
+  turned into a translation table, shared for review, and corrected
+  before implementation — three fixes: `followButton.requested`
+  shortened from a drafted "Solicitado" to "Pedido"; `confirmBlock.message`
+  corrected from "Deixarão"/plural to "Deixará"/singular and "os deles"
+  clarified to "os da pessoa bloqueada" (the blocked person specifically,
+  not an ambiguous "theirs"); and `plantSitting.emptyState.notSittingForAnyone`
+  changed from "a cuidar de ninguém" to "a cuidar das plantas de
+  ninguém" (matching the more specific "who's plants" phrasing used
+  elsewhere in this screen). Three follow-notification sentences using
+  formal Portuguese object-pronoun clitics (e.g. "começou a segui-lo")
+  were flagged for a native-speaker gut-check and approved as drafted.
+  New `common.*` entries — `confirmSure` ("Sure?"), `accept`, `decline`,
+  `unblock` — reused across `followers.tsx`/`plant-sitting.tsx`
+  (confirmSure), `follow-requests.tsx`/`plant-sitting.tsx`
+  (accept/decline), and `user/[id].tsx`/`blocked-users.tsx` (unblock),
+  same "identical wording across unrelated screens" rule PR2 used for
+  `cancel`/`save`. `user/[id].tsx` reuses PR1's `index.status.*`/
+  `index.pill.labelStatus`/`index.careType.*`/`index.emptyState` for its
+  copy of the Plants-screen status-pill treatment (this file's
+  `StatusPill` component is a near-duplicate of `app/index.tsx`'s, per
+  the plant-list-on-profiles feature's original design) and
+  `tabsLayout.plants.title` for its "Plants" section label — no new
+  keys needed for any of that. Two small pre-existing bugs were fixed
+  as part of this pass rather than left in place: `user/[id].tsx` had
+  two near-identical strings for the same blocked-account state ("You've
+  blocked this account." with a period near the Unblock button, and the
+  same sentence without one in the Plants section's empty state) --
+  consolidated to one `userProfile.blockedNotice` key reused in both
+  spots; and `(tabs)/notifications.tsx`'s row timestamp still used its
+  own `Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" })`
+  (a leftover from before `formatDisplayDate()` existed, unlike
+  `feed.tsx`'s equivalent timestamp which was already converted in
+  PR1) -- switched to `formatDisplayDate()` for both correctness (no
+  longer silently following the device's locale for month names) and
+  consistency with every other row-timestamp in the app. The
+  `notificationsScreen` namespace name (not `notifications`) was
+  deliberately chosen to avoid colliding conceptually with the
+  already-existing `settings.notifications` (per-kind toggle section)
+  and `tabsLayout.notifications` (tab label "Alerts") paths.
+  `notificationsScreen.actorFallback` reuses `likes.fallbackName`
+  ("Alguém") -- identical reasoning (block asymmetry hides the actor's
+  profile) to where that key was first introduced. The `care_due`
+  notification kind ("Time to water/fertilize/repot {plant}") got three
+  separate full-sentence keys (`sentence.careDueWater`/
+  `careDueFertilize`/`careDueRepot`) instead of one template with an
+  interpolated verb, since Portuguese repot phrasing needs a different
+  sentence shape ("Hora de trocar a terra **de** {plant}") than
+  water/fertilize do, and reusing PR1's `index.careType.*` noun forms
+  ("rega") would have been grammatically wrong in a verb position
+  ("regar"). Verified: `tsc --noEmit` + `npm test` (347 passing), and
+  live on web against real seeded data (SQL-inserted mutual follows, a
+  pending plant-sitting request, a plant with a care task, and three
+  notification rows -- like/follow_request/care_due -- all removed
+  after) with Português selected: Following/Followers header actions,
+  Follow Requests' empty state, Search Users' prompt state, the user
+  profile's Unfollow/Block-this-account copy and reused Plants
+  section/empty-state, the Plant Sitting hub's Share/Request header
+  actions and all four sections (including the corrected "a cuidar das
+  plantas de ninguém" wording and a real pending "My sitters" row
+  showing "Pendente"/"Cancelar"), and the Notifications inbox (a real
+  like sentence, a real follow-request sentence with the reviewed
+  clitic pronoun, and "Hora de regar Snake Plant" for the care-due
+  case, each row's date correctly in fixed `dd-MM-yyyy` confirming the
+  timestamp bug fix). Also reconfirmed in English as a regression
+  check.
   **PR4 (`profile.tsx`, `delete-account.tsx`, `AccountDeletionFlow.tsx`)
   — not started.**
 

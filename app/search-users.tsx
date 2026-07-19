@@ -6,6 +6,7 @@ import { searchProfiles, type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
@@ -40,6 +41,7 @@ export default function SearchUsersScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   function handleSearchChange(text: string) {
     setSearchQuery(text);
@@ -83,19 +85,19 @@ export default function SearchUsersScreen() {
   } else if (searchStatus === "error") {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {searchError}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("searchUsers.error", { error: searchError ?? "" })}</Text>
       </View>
     );
   } else if (searchQuery.trim().length === 0) {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Type a name or username to search</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("searchUsers.promptState")}</Text>
       </View>
     );
   } else if (searchResults.length === 0) {
     body = (
       <View style={styles.center}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No users found</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("searchUsers.emptyState")}</Text>
       </View>
     );
   } else {
@@ -111,12 +113,12 @@ export default function SearchUsersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.paper }]}>
-      <Stack.Screen options={{ title: "Search Users" }} />
+      <Stack.Screen options={{ title: t("searchUsers.screenTitle") }} />
       <TextInput
         style={[styles.searchInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
         value={searchQuery}
         onChangeText={handleSearchChange}
-        placeholder="Search users by name or username"
+        placeholder={t("searchUsers.placeholder")}
         placeholderTextColor={colors.inkSoft}
         autoFocus
       />

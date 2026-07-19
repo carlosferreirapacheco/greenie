@@ -11,43 +11,51 @@ import { notificationTargetPath } from "../../lib/pushNotifications";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+import { formatDisplayDate } from "../../lib/dateFormat";
 
 // Actor can be unresolvable (block asymmetry hides their profile) --
 // fall back to a neutral name rather than an empty sentence.
-function actorName(notification: NotificationWithActor): string {
+function actorName(notification: NotificationWithActor, t: (key: string) => string): string {
   if (notification.actor_display_name) {
     return notification.actor_display_name;
   }
-  return notification.actor_username ? `@${notification.actor_username}` : "Someone";
+  return notification.actor_username ? `@${notification.actor_username}` : t("likes.fallbackName");
 }
 
-function notificationSentence(notification: NotificationWithActor): string {
+function notificationSentence(notification: NotificationWithActor, t: (key: string, params?: Record<string, string>) => string): string {
   if (notification.type === "care_due") {
-    const plantName = notification.plant_name ?? "your plant";
-    return `Time to ${notification.care_task_type ?? "care for"} ${plantName}`;
+    const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    switch (notification.care_task_type) {
+      case "fertilize":
+        return t("notificationsScreen.sentence.careDueFertilize", { plant: plantName });
+      case "repot":
+        return t("notificationsScreen.sentence.careDueRepot", { plant: plantName });
+      case "water":
+      default:
+        return t("notificationsScreen.sentence.careDueWater", { plant: plantName });
+    }
   }
 
-  const name = actorName(notification);
+  const name = actorName(notification, t);
   switch (notification.type) {
     case "comment":
-      return `${name} commented on your report`;
+      return t("notificationsScreen.sentence.comment", { name });
     case "like":
-      return `${name} liked your report`;
+      return t("notificationsScreen.sentence.like", { name });
     case "follow_request":
-      return `${name} requested to follow you`;
+      return t("notificationsScreen.sentence.followRequest", { name });
     case "new_follower":
-      return `${name} started following you`;
+      return t("notificationsScreen.sentence.newFollower", { name });
     case "follow_accepted":
-      return `${name} accepted your follow request`;
+      return t("notificationsScreen.sentence.followAccepted", { name });
     case "sitting_request":
-      return `${name} asked you to plant-sit`;
+      return t("notificationsScreen.sentence.sittingRequest", { name });
     case "sitting_accepted":
-      return `${name} accepted your plant-sitting request`;
+      return t("notificationsScreen.sentence.sittingAccepted", { name });
     case "sitting_declined":
-      return `${name} declined your plant-sitting request`;
+      return t("notificationsScreen.sentence.sittingDeclined", { name });
   }
 }
 
@@ -69,6 +77,7 @@ function NotificationRow({
   fonts: ReturnType<typeof getFonts>;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const target = notificationTarget(notification);
   const isUnread = notification.read_at === null;
 
@@ -88,10 +97,10 @@ function NotificationRow({
       <PhotoThumb uri={notification.actor_avatar_url} size={44} radius={radius.sm} />
       <View style={styles.rowText}>
         <Text style={[styles.sentence, { fontFamily: isUnread ? fonts.bodyMedium : fonts.body, color: colors.ink }]}>
-          {notificationSentence(notification)}
+          {notificationSentence(notification, t)}
         </Text>
         <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {dateFormatter.format(new Date(notification.created_at))}
+          {formatDisplayDate(notification.created_at)}
         </Text>
       </View>
     </Pressable>
@@ -105,6 +114,7 @@ export default function NotificationsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchNotifications = useCallback(() => {
     getNotifications()
@@ -142,7 +152,7 @@ export default function NotificationsScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("notificationsScreen.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -150,7 +160,7 @@ export default function NotificationsScreen() {
   if (notifications.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Nothing here yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("notificationsScreen.emptyState")}</Text>
       </View>
     );
   }

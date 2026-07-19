@@ -317,6 +317,10 @@ export const ptPT: typeof en = {
     save: "Guardar",
     notSet: "Não definido",
     heightUnit: "{height} cm",
+    confirmSure: "De certeza?",
+    accept: "Aceitar",
+    decline: "Recusar",
+    unblock: "Desbloquear",
     chipOptions: {
       commentPolicy: {
         anyone: "Todos",
@@ -450,5 +454,135 @@ export const ptPT: typeof en = {
   photoPicker: {
     takePhoto: "Tirar Foto",
     chooseFromLibrary: "Escolher da Biblioteca",
+  },
+  following: {
+    screenTitle: "A seguir",
+    headerActions: {
+      requests: "Pedidos",
+      followers: "Seguidores",
+      search: "Pesquisar",
+    },
+    error: "Erro: {error}",
+    emptyState: "Ainda não segue ninguém",
+    noMatch: 'Ninguém que segue corresponde a "{query}"',
+    searchPlaceholder: "Pesquisar pessoas que segue",
+  },
+  followers: {
+    screenTitle: "Seguidores",
+    error: "Erro: {error}",
+    emptyState: "Ainda sem seguidores",
+    row: {
+      remove: "Remover",
+    },
+  },
+  followRequests: {
+    screenTitle: "Pedidos para Seguir",
+    error: "Erro: {error}",
+    emptyState: "Sem pedidos pendentes",
+  },
+  searchUsers: {
+    screenTitle: "Pesquisar Utilizadores",
+    placeholder: "Pesquisar utilizadores por nome ou nome de utilizador",
+    error: "Erro: {error}",
+    promptState: "Escreva um nome ou nome de utilizador para pesquisar",
+    emptyState: "Nenhum utilizador encontrado",
+  },
+  blockedUsers: {
+    screenTitle: "Utilizadores Bloqueados",
+    error: "Erro: {error}",
+    emptyState: "Sem utilizadores bloqueados",
+  },
+  userProfile: {
+    loadingTitle: "Perfil",
+    error: "Erro: {error}",
+    noBio: "Ainda sem biografia",
+    blockedNotice: "Bloqueou esta conta.",
+    followButton: {
+      follow: "Seguir",
+      requested: "Pedido",
+      unfollow: "Deixar de seguir",
+    },
+    confirmBlock: {
+      message:
+        "Bloquear esta conta? Deixará de poder segui-lo ou ver as suas plantas e relatórios de progresso, e também não verá os da pessoa bloqueada. Pode desbloquear a qualquer momento.",
+      confirm: "Bloquear",
+    },
+    blockLink: "Bloquear esta conta",
+    plantsSection: {
+      privateNotice: "Esta conta é privada",
+    },
+  },
+  plantSitting: {
+    state: {
+      pending: "Pendente",
+      upcoming: "Próximo",
+      active: "Ativo",
+      ended: "Terminado",
+      declined: "Recusado",
+      cancelled: "Cancelado",
+    },
+    header: {
+      share: "Partilhar",
+      request: "Pedir",
+    },
+    shareDialogTitle: "Instruções de cuidado das plantas",
+    shareError: {
+      noPlants: "Ainda não tem plantas para partilhar instruções de cuidado.",
+    },
+    error: "Erro: {error}",
+    sectionTitle: {
+      requestsForMe: "Pedidos para mim",
+      sittingFor: "A cuidar de",
+      mySitters: "Os meus cuidadores",
+      history: "Histórico de cuidadores",
+    },
+    emptyState: {
+      noRequests: "Sem pedidos pendentes",
+      notSittingForAnyone: "De momento não está a cuidar das plantas de ninguém",
+      noSitters: "Ainda não pediu a ninguém para cuidar das suas plantas",
+      noHistory: "Ainda sem histórico de cuidadores",
+    },
+    sentRequestRow: {
+      keep: "Manter",
+    },
+  },
+  requestSitting: {
+    screenTitle: "Pedir Cuidado de Plantas",
+    sitterFallback: "este seguidor",
+    intro:
+      "Peça a {sitterName} para cuidar de todas as suas plantas enquanto está fora. Vai poder ver as suas tarefas de cuidado, marcá-las como feitas, e registar novos relatórios de progresso em seu nome.",
+    startDate: {
+      label: "Data de início (opcional)",
+    },
+    endDate: {
+      label: "Data de fim (opcional)",
+      rangeError: "A data de fim deve ser igual ou posterior à data de início",
+      hint:
+        "Deixe ambos em branco para um pedido sem data definida que pode cancelar a qualquer momento. O acesso abre na data de início e fecha após a data de fim -- aceitar mais cedo não antecipa a abertura.",
+    },
+    sendButton: "Enviar pedido",
+  },
+  selectSitter: {
+    screenTitle: "Escolher um Cuidador",
+    error: "Erro: {error}",
+    emptyState: "Ainda não tem seguidores mútuos -- para cuidar de plantas é preciso seguirem-se mutuamente.",
+  },
+  notificationsScreen: {
+    error: "Erro: {error}",
+    emptyState: "Ainda nada por aqui",
+    sentence: {
+      comment: "{name} comentou o seu relatório",
+      like: "{name} gostou do seu relatório",
+      followRequest: "{name} pediu para o seguir",
+      newFollower: "{name} começou a segui-lo",
+      followAccepted: "{name} aceitou o seu pedido para seguir",
+      sittingRequest: "{name} pediu-lhe para cuidar das plantas",
+      sittingAccepted: "{name} aceitou o seu pedido de cuidado de plantas",
+      sittingDeclined: "{name} recusou o seu pedido de cuidado de plantas",
+      careDueWater: "Hora de regar {plant}",
+      careDueFertilize: "Hora de adubar {plant}",
+      careDueRepot: "Hora de trocar a terra de {plant}",
+    },
+    plantFallback: "a sua planta",
   },
 };
