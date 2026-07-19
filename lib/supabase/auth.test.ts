@@ -561,6 +561,17 @@ describe("signInWithGoogle", () => {
       });
     });
 
+    it("redirects to a specific path when one is given", async () => {
+      mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: { url: "https://accounts.google.com" }, error: null });
+
+      await signInWithGoogle("/delete-account");
+
+      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: "http://localhost:8081/delete-account" },
+      });
+    });
+
     it("throws the Supabase error on failure", async () => {
       const err = { message: "Unsupported provider: provider is not enabled" };
       mockSupabase.auth.signInWithOAuth.mockResolvedValue({ data: {}, error: err });

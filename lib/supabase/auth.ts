@@ -115,8 +115,13 @@ async function signInWithGoogleNative(): Promise<void> {
 // Web does a full-page redirect through Supabase to Google and back,
 // picking the session out of the return URL (detectSessionInUrl, see
 // ./client); native opens an in-app browser tab instead -- see
-// signInWithGoogleNative() above.
-export async function signInWithGoogle(): Promise<void> {
+// signInWithGoogleNative() above. An optional redirectPath sends the
+// user back to a specific route instead of the bare origin -- e.g.
+// app/delete-account.tsx passes "/delete-account" so a signed-out
+// visitor lands back on the same public page after the OAuth round
+// trip, rather than the app root. Mirrors linkGoogleAccount()'s
+// existing redirectTo: `${origin}/settings` precedent.
+export async function signInWithGoogle(redirectPath?: string): Promise<void> {
   if (Platform.OS !== "web") {
     await signInWithGoogleNative();
     return;
@@ -126,7 +131,7 @@ export async function signInWithGoogle(): Promise<void> {
 
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: origin },
+    options: { redirectTo: redirectPath && origin ? `${origin}${redirectPath}` : origin },
   });
 
   if (error) {

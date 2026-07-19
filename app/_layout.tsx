@@ -159,8 +159,10 @@ function RootLayoutNav() {
 
   const inAuthGroup = segments[0] === "sign-in" || segments[0] === "sign-up";
   // Readable signed-out too: the sign-up form asks for consent to this
-  // policy, so it can't sit behind the session gate.
-  const inPublicGroup = segments[0] === "privacy-policy";
+  // policy, so it can't sit behind the session gate. delete-account is
+  // the Google Play-required public deletion page -- it manages its own
+  // inline sign-in, so it can't sit behind the sign-in redirect either.
+  const inPublicGroup = segments[0] === "privacy-policy" || segments[0] === "delete-account";
 
   if (!session && !inAuthGroup && !inPublicGroup) {
     return <Redirect href="/sign-in" />;
