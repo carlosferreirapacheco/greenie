@@ -40,28 +40,29 @@ import {
 import { supabase } from "../../lib/supabase/client";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
+import { formatDisplayDate } from "../../lib/dateFormat";
 
 const ALL_TASK_TYPES: CareTaskType[] = ["water", "fertilize", "repot"];
 
-const progressDateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
-
-function careTaskLabel(type: CareTask["type"]): string {
+function careTaskLabel(type: CareTask["type"], t: (key: string) => string): string {
   switch (type) {
     case "water":
-      return "watering";
+      return t("index.careType.watering");
     case "fertilize":
-      return "fertilize";
+      return t("index.careType.fertilize");
     case "repot":
-      return "repot";
+      return t("index.careType.repot");
   }
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) {
-    return "Never";
-  }
-  return new Date(iso).toISOString().slice(0, 10);
+function statusText(status: "healthy" | "due_soon" | "overdue", t: (key: string) => string): string {
+  return t(status === "due_soon" ? "index.status.dueSoon" : `index.status.${status}`);
+}
+
+function formatTaskDate(iso: string | null, t: (key: string) => string): string {
+  return iso ? formatDisplayDate(iso) : t("plantDetail.neverDoneDate");
 }
 
 export default function PlantProfileScreen() {
@@ -70,6 +71,7 @@ export default function PlantProfileScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const statusColors = getStatusColors(colors);
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -345,7 +347,7 @@ export default function PlantProfileScreen() {
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Plant" }} />
+        <Stack.Screen options={{ title: t("plantDetail.headerTitle") }} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -354,8 +356,10 @@ export default function PlantProfileScreen() {
   if (status === "error" || !plant) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Plant" }} />
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Stack.Screen options={{ title: t("plantDetail.headerTitle") }} />
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>
+          {t("plantDetail.errorPrefix", { error: error ?? "" })}
+        </Text>
       </View>
     );
   }
@@ -395,14 +399,15 @@ export default function PlantProfileScreen() {
       ) : null}
 
       <View style={styles.field}>
-        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Nickname</Text>
+        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+          {t("plantDetail.nickname.label")}
+        </Text>
         {isEditingNickname ? (
           <>
             <TextInput
               style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
               value={nicknameInput}
               onChangeText={setNicknameInput}
-              placeholder="e.g. Big Fred"
               placeholderTextColor={colors.inkSoft}
             />
             {nicknameSaveStatus === "error" ? (
@@ -413,7 +418,7 @@ export default function PlantProfileScreen() {
             <View style={styles.editActions}>
               <Pressable onPress={() => setIsEditingNickname(false)} hitSlop={8}>
                 <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Cancel
+                  {t("common.cancel")}
                 </Text>
               </Pressable>
               <Pressable
@@ -425,7 +430,7 @@ export default function PlantProfileScreen() {
                   <ActivityIndicator color={colors.paper} />
                 ) : (
                   <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                    Save
+                    {t("common.save")}
                   </Text>
                 )}
               </Pressable>
@@ -434,11 +439,13 @@ export default function PlantProfileScreen() {
         ) : (
           <View style={styles.dateRow}>
             <Text style={[styles.dateValue, { fontFamily: fonts.body, color: plant.nickname ? colors.ink : colors.inkSoft }]}>
-              {plant.nickname ?? "Not set"}
+              {plant.nickname ?? t("common.notSet")}
             </Text>
             {isOwner ? (
               <Pressable onPress={handleStartEditNickname} hitSlop={8}>
-                <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Edit</Text>
+                <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  {t("plantDetail.nickname.editLink")}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -446,7 +453,9 @@ export default function PlantProfileScreen() {
       </View>
 
       <View style={styles.field}>
-        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Acquired date</Text>
+        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+          {t("plantDetail.acquiredDate.label")}
+        </Text>
         {isEditingDate ? (
           <>
             <DatePickerField value={acquiredAtInput} onChange={setAcquiredAtInput} fonts={fonts} maxDate={todayISO()} />
@@ -456,7 +465,7 @@ export default function PlantProfileScreen() {
             <View style={styles.editActions}>
               <Pressable onPress={() => setIsEditingDate(false)} hitSlop={8}>
                 <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Cancel
+                  {t("common.cancel")}
                 </Text>
               </Pressable>
               <Pressable
@@ -468,7 +477,7 @@ export default function PlantProfileScreen() {
                   <ActivityIndicator color={colors.paper} />
                 ) : (
                   <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                    Save
+                    {t("common.save")}
                   </Text>
                 )}
               </Pressable>
@@ -477,11 +486,13 @@ export default function PlantProfileScreen() {
         ) : (
           <View style={styles.dateRow}>
             <Text style={[styles.dateValue, { fontFamily: fonts.body, color: plant.acquired_at ? colors.ink : colors.inkSoft }]}>
-              {plant.acquired_at ?? "Not set"}
+              {plant.acquired_at ? formatDisplayDate(plant.acquired_at) : t("common.notSet")}
             </Text>
             {isOwner ? (
               <Pressable onPress={handleStartEdit} hitSlop={8}>
-                <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Edit</Text>
+                <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  {t("plantDetail.acquiredDate.editLink")}
+                </Text>
               </Pressable>
             ) : null}
           </View>
@@ -499,7 +510,7 @@ export default function PlantProfileScreen() {
                 <View key={task.id} style={[styles.pill, { backgroundColor: palette.bg }]}>
                   <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
                   <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
-                    {careTaskLabel(task.type)}: {taskStatus === "due_soon" ? "due soon" : taskStatus}
+                    {t("index.pill.labelStatus", { label: careTaskLabel(task.type, t), status: statusText(taskStatus, t) })}
                   </Text>
                 </View>
               );
@@ -508,11 +519,13 @@ export default function PlantProfileScreen() {
       ) : null}
 
       <View style={styles.field}>
-        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Progress</Text>
+        <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+          {t("plantDetail.progress.label")}
+        </Text>
 
         {progressReports.length === 0 ? (
           <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            No progress logged yet
+            {t("plantDetail.progress.empty")}
           </Text>
         ) : (
           <>
@@ -534,17 +547,17 @@ export default function PlantProfileScreen() {
               >
                 <View style={styles.progressRowHeader}>
                   <Text style={[styles.progressDate, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                    {progressDateFormatter.format(new Date(report.created_at))}
+                    {formatDisplayDate(report.created_at)}
                   </Text>
                   {report.height_cm !== null ? (
                     <Text style={[styles.progressHeight, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                      {report.height_cm} cm
+                      {t("common.heightUnit", { height: report.height_cm })}
                     </Text>
                   ) : null}
                   {!report.shared_to_feed ? (
                     <View style={[styles.unlistedTag, { backgroundColor: colors.sage }]}>
                       <Text style={[styles.unlistedTagText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-                        Unlisted
+                        {t("plantDetail.progress.unlistedTag")}
                       </Text>
                     </View>
                   ) : null}
@@ -565,7 +578,9 @@ export default function PlantProfileScreen() {
 
       {isOwner || isSitting ? (
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Care tasks</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("plantDetail.careTasks.label")}
+          </Text>
 
           {tasksError ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{tasksError}</Text>
@@ -577,11 +592,14 @@ export default function PlantProfileScreen() {
               <View key={task.id} style={[styles.taskRow, { borderColor: colors.line }]}>
                 <View style={styles.taskRowMain}>
                   <Text style={[styles.taskType, { fontFamily: fonts.bodySemiBold, color: colors.ink }]}>
-                    {careTaskLabel(task.type)}
+                    {careTaskLabel(task.type, t)}
                   </Text>
                   <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                    Every {task.frequency_days} day{task.frequency_days === 1 ? "" : "s"} · Last done:{" "}
-                    {formatDate(task.last_done)} · Next due: {formatDate(task.next_due)}
+                    {t(task.frequency_days === 1 ? "plantDetail.careTasks.frequencyOne" : "plantDetail.careTasks.frequencyMany", {
+                      count: task.frequency_days,
+                    })}{" "}
+                    · {t("plantDetail.careTasks.lastDone", { date: formatTaskDate(task.last_done, t) })} ·{" "}
+                    {t("plantDetail.careTasks.nextDue", { date: formatTaskDate(task.next_due, t) })}
                   </Text>
                 </View>
 
@@ -592,12 +610,12 @@ export default function PlantProfileScreen() {
                       value={editFrequencyInput}
                       onChangeText={setEditFrequencyInput}
                       keyboardType="number-pad"
-                      placeholder="days"
+                      placeholder={t("plantDetail.careTasks.frequencyPlaceholder")}
                       placeholderTextColor={colors.inkSoft}
                     />
                     <Pressable onPress={() => setEditingTaskId(null)} hitSlop={8}>
                       <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                        Cancel
+                        {t("common.cancel")}
                       </Text>
                     </Pressable>
                     <Pressable onPress={() => handleSaveFrequency(task)} hitSlop={8} disabled={!editFrequencyIsValid || isBusy}>
@@ -607,30 +625,30 @@ export default function PlantProfileScreen() {
                           { fontFamily: fonts.bodyMedium, color: editFrequencyIsValid ? colors.moss : colors.inkSoft },
                         ]}
                       >
-                        Save
+                        {t("common.save")}
                       </Text>
                     </Pressable>
                   </View>
                 ) : isOwner && confirmDeleteId === task.id ? (
                   <View style={styles.taskEditRow}>
                     <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                      Delete this task?
+                      {t("plantDetail.careTasks.deleteConfirmPrompt")}
                     </Text>
                     <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
                       <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                        Cancel
+                        {t("common.cancel")}
                       </Text>
                     </Pressable>
                     <Pressable onPress={() => handleConfirmDelete(task)} hitSlop={8} disabled={isBusy}>
                       <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                        Confirm
+                        {t("plantDetail.careTasks.confirm")}
                       </Text>
                     </Pressable>
                   </View>
                 ) : markDonePromptId === task.id ? (
                   <View style={styles.taskPromptWrap}>
                     <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                      This task is overdue. Count the next due date from:
+                      {t("plantDetail.careTasks.overduePrompt")}
                     </Text>
                     <View style={styles.taskActionsRow}>
                       <Pressable
@@ -639,17 +657,17 @@ export default function PlantProfileScreen() {
                         disabled={isBusy}
                       >
                         <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                          Original due date
+                          {t("plantDetail.careTasks.originalDueDate")}
                         </Text>
                       </Pressable>
                       <Pressable onPress={() => executeMarkDone(task)} hitSlop={8} disabled={isBusy}>
                         <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                          Today
+                          {t("plantDetail.careTasks.today")}
                         </Text>
                       </Pressable>
                       <Pressable onPress={() => setMarkDonePromptId(null)} hitSlop={8} disabled={isBusy}>
                         <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                          Cancel
+                          {t("common.cancel")}
                         </Text>
                       </Pressable>
                       {isBusy ? <ActivityIndicator color={colors.moss} /> : null}
@@ -662,7 +680,7 @@ export default function PlantProfileScreen() {
                         <ActivityIndicator color={colors.moss} />
                       ) : (
                         <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                          Mark done
+                          {t("plantDetail.careTasks.markDone")}
                         </Text>
                       )}
                     </Pressable>
@@ -670,12 +688,12 @@ export default function PlantProfileScreen() {
                       <>
                         <Pressable onPress={() => handleStartEditFrequency(task)} hitSlop={8} disabled={isBusy}>
                           <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                            Edit
+                            {t("plantDetail.careTasks.edit")}
                           </Text>
                         </Pressable>
                         <Pressable onPress={() => handleStartDelete(task)} hitSlop={8} disabled={isBusy}>
                           <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                            Delete
+                            {t("plantDetail.careTasks.delete")}
                           </Text>
                         </Pressable>
                       </>
@@ -689,17 +707,17 @@ export default function PlantProfileScreen() {
           {isOwner && isAddingTask ? (
             <View style={[styles.taskRow, { borderColor: colors.line }]}>
               <View style={styles.taskTypeRow}>
-                {ALL_TASK_TYPES.filter((t) => !careTasks.some((task) => task.type === t)).map((t) => (
+                {ALL_TASK_TYPES.filter((taskType) => !careTasks.some((task) => task.type === taskType)).map((taskType) => (
                   <Pressable
-                    key={t}
+                    key={taskType}
                     style={[
                       styles.taskTypeChoice,
-                      { borderColor: colors.line, backgroundColor: newTaskType === t ? colors.sage : "transparent" },
+                      { borderColor: colors.line, backgroundColor: newTaskType === taskType ? colors.sage : "transparent" },
                     ]}
-                    onPress={() => setNewTaskType(t)}
+                    onPress={() => setNewTaskType(taskType)}
                   >
                     <Text style={[styles.taskMeta, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                      {careTaskLabel(t)}
+                      {careTaskLabel(taskType, t)}
                     </Text>
                   </Pressable>
                 ))}
@@ -710,12 +728,12 @@ export default function PlantProfileScreen() {
                   value={newTaskFrequency}
                   onChangeText={setNewTaskFrequency}
                   keyboardType="number-pad"
-                  placeholder="days"
+                  placeholder={t("plantDetail.careTasks.frequencyPlaceholder")}
                   placeholderTextColor={colors.inkSoft}
                 />
                 <Pressable onPress={() => setIsAddingTask(false)} hitSlop={8}>
                   <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                    Cancel
+                    {t("common.cancel")}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -735,16 +753,16 @@ export default function PlantProfileScreen() {
                         },
                       ]}
                     >
-                      Save
+                      {t("common.save")}
                     </Text>
                   )}
                 </Pressable>
               </View>
             </View>
-          ) : isOwner && ALL_TASK_TYPES.some((t) => !careTasks.some((task) => task.type === t)) ? (
+          ) : isOwner && ALL_TASK_TYPES.some((taskType) => !careTasks.some((task) => task.type === taskType)) ? (
             <Pressable onPress={handleStartAddTask} hitSlop={8} style={styles.addTaskLink}>
               <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                + Add task
+                {t("plantDetail.careTasks.addTask")}
               </Text>
             </Pressable>
           ) : null}
@@ -757,7 +775,7 @@ export default function PlantProfileScreen() {
           onPress={() => router.push({ pathname: "/log-progress", params: { plantId: plant.id } })}
         >
           <Text style={[styles.logProgressText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-            Log progress
+            {t("index.logProgress")}
           </Text>
         </Pressable>
       ) : null}

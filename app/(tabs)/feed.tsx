@@ -9,25 +9,9 @@ import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
+import { splitTemplate } from "../../lib/i18n";
 import { getErrorMessage } from "../../lib/errors";
 import { formatDisplayDate } from "../../lib/dateFormat";
-
-// Splits a translated sentence template on its {token} markers so each
-// piece can render as its own JSX node (a plain Text run, or a nested
-// pressable) -- needed because "Logged progress on {owner}'s {plant}"
-// and its Portuguese equivalent "Registou progresso na planta {plant}
-// de {owner}" put the same two tokens in a different order, so the
-// sentence can't be built from fixed-position English word order.
-function splitTemplate(template: string, tokens: string[]): (string | { token: string })[] {
-  const pattern = new RegExp(`(${tokens.map((tok) => `\\{${tok}\\}`).join("|")})`, "g");
-  return template
-    .split(pattern)
-    .filter((part) => part !== "")
-    .map((part) => {
-      const match = tokens.find((tok) => part === `{${tok}}`);
-      return match ? { token: match } : part;
-    });
-}
 
 function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();

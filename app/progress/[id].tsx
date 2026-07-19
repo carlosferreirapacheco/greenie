@@ -29,15 +29,17 @@ import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
+import { splitTemplate } from "../../lib/i18n";
 import { getErrorMessage } from "../../lib/errors";
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+import { formatDisplayDate } from "../../lib/dateFormat";
 
 export default function ProgressDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +211,7 @@ export default function ProgressDetailScreen() {
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Progress" }} />
+        <Stack.Screen options={{ title: t("progress.headerTitle") }} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -218,8 +220,10 @@ export default function ProgressDetailScreen() {
   if (status === "error" || !report) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Progress" }} />
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Stack.Screen options={{ title: t("progress.headerTitle") }} />
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>
+          {t("progress.errorPrefix", { error: error ?? "" })}
+        </Text>
       </View>
     );
   }
@@ -242,34 +246,54 @@ export default function ProgressDetailScreen() {
             </Text>
           </Pressable>
           <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            {dateFormatter.format(new Date(report.created_at))}
+            {formatDisplayDate(report.created_at)}
           </Text>
         </View>
 
         <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Logged progress on{" "}
-          {report.user_id !== report.plant_owner_id ? (
-            <Text
-              onPress={() => router.push(`/user/${report.plant_owner_id}`)}
-              style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
-            >
-              {(report.plant_owner_display_name ?? `@${report.plant_owner_username}`) + "'s "}
-            </Text>
-          ) : null}
-          <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{plantPrimary}</Text>
-          {plantCommonName || report.plant_species ? (
-            <Text>
-              {" ("}
-              {plantCommonName ? (
-                <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>{plantCommonName}</Text>
-              ) : null}
-              {plantCommonName && report.plant_species ? ", " : ""}
-              {report.plant_species ? (
-                <Text style={{ fontFamily: fonts.displayItalic }}>{report.plant_species}</Text>
-              ) : null}
-              {")"}
-            </Text>
-          ) : null}
+          {(() => {
+            const hasOwner = report.user_id !== report.plant_owner_id;
+            const segments = splitTemplate(
+              t(hasOwner ? "feed.plantLine.sentence" : "feed.plantLine.sentenceNoOwner"),
+              ["owner", "plant"]
+            );
+            return segments.map((segment, index) => {
+              if (typeof segment === "string") {
+                return <Text key={index}>{segment}</Text>;
+              }
+              if (segment.token === "owner") {
+                return (
+                  <Text
+                    key={index}
+                    onPress={() => router.push(`/user/${report.plant_owner_id}`)}
+                    style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
+                  >
+                    {report.plant_owner_display_name ?? `@${report.plant_owner_username}`}
+                  </Text>
+                );
+              }
+              return (
+                <Text key={index}>
+                  <Text style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>{plantPrimary}</Text>
+                  {plantCommonName || report.plant_species ? (
+                    <Text>
+                      {" ("}
+                      {plantCommonName ? (
+                        <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>
+                          {plantCommonName}
+                        </Text>
+                      ) : null}
+                      {plantCommonName && report.plant_species ? ", " : ""}
+                      {report.plant_species ? (
+                        <Text style={{ fontFamily: fonts.displayItalic }}>{report.plant_species}</Text>
+                      ) : null}
+                      {")"}
+                    </Text>
+                  ) : null}
+                </Text>
+              );
+            });
+          })()}
         </Text>
 
         {report.photo_url ? (
@@ -281,7 +305,7 @@ export default function ProgressDetailScreen() {
                   <ActivityIndicator color={colors.moss} />
                 ) : (
                   <Text style={[styles.setPhotoLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                    Set as plant's photo
+                    {t("progress.setAsPlantPhoto")}
                   </Text>
                 )}
               </Pressable>
@@ -298,7 +322,7 @@ export default function ProgressDetailScreen() {
 
         {report.height_cm !== null ? (
           <Text style={[styles.height, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            {report.height_cm} cm
+            {t("common.heightUnit", { height: report.height_cm })}
           </Text>
         ) : null}
 
@@ -310,7 +334,7 @@ export default function ProgressDetailScreen() {
                 { fontFamily: fonts.bodyMedium, color: liked ? colors.coral : colors.inkSoft },
               ]}
             >
-              {liked ? "♥ Liked" : "♡ Like"}
+              {liked ? t("feed.like.liked") : t("feed.like.unliked")}
             </Text>
           </Pressable>
           {likeCount > 0 ? (
@@ -328,7 +352,7 @@ export default function ProgressDetailScreen() {
 
             <View style={styles.ownerSetting}>
               <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Comments
+                {t("progress.ownerSettings.commentsLabel")}
               </Text>
               <ChipGroup
                 fonts={fonts}
@@ -336,21 +360,20 @@ export default function ProgressDetailScreen() {
                 onChange={(value) => handleUpdateSettings({ comment_policy: value })}
                 disabled={!report.shared_to_feed}
                 options={[
-                  { value: "public", label: "Anyone" },
-                  { value: "followers", label: "Followers only" },
-                  { value: "disabled", label: "Off" },
+                  { value: "public", label: t("common.chipOptions.commentPolicy.anyone") },
+                  { value: "followers", label: t("common.chipOptions.commentPolicy.followersOnly") },
+                  { value: "disabled", label: t("common.chipOptions.commentPolicy.off") },
                 ]}
               />
             </View>
 
             <View style={styles.ownerSetting}>
               <Text style={[styles.ownerSettingLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Feed
+                {t("progress.ownerSettings.feedLabel")}
               </Text>
               {report.user_id !== report.plant_owner_id && !report.plant_owner_share_allowed ? (
                 <Text style={[styles.settingHint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  This plant's owner keeps sitter reports out of feeds -- this stays in the plant's own
-                  history only.
+                  {t("progress.ownerSettings.sitterShareBlockedHint")}
                 </Text>
               ) : (
                 <>
@@ -360,13 +383,13 @@ export default function ProgressDetailScreen() {
                     onChange={(value) => handleUpdateSettings({ shared_to_feed: value === "share" })}
                     disabled={!report.shared_to_feed}
                     options={[
-                      { value: "share", label: "Share to feed" },
-                      { value: "unlisted", label: "Don't share" },
+                      { value: "share", label: t("common.chipOptions.feedSharing.shareToFeed") },
+                      { value: "unlisted", label: t("common.chipOptions.feedSharing.dontShare") },
                     ]}
                   />
                   {!report.shared_to_feed ? (
                     <Text style={[styles.settingHint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                      This report is unlisted and can't be shared again; comments stay off.
+                      {t("progress.ownerSettings.unlistedLockHint")}
                     </Text>
                   ) : null}
                 </>
@@ -385,14 +408,16 @@ export default function ProgressDetailScreen() {
 
         {report.comment_policy === "disabled" ? (
           <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            Comments are off on this post
+            {t("progress.commentsOffNotice")}
           </Text>
         ) : (
           <>
             <Text style={[styles.commentsHeading, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
               {comments.length > 0
-                ? `${comments.length} comment${comments.length === 1 ? "" : "s"}`
-                : "No comments yet"}
+                ? t(comments.length === 1 ? "feed.comments.countOne" : "feed.comments.countMany", {
+                    count: comments.length,
+                  })
+                : t("feed.comments.none")}
             </Text>
 
             {comments.map((comment) => (
@@ -406,7 +431,7 @@ export default function ProgressDetailScreen() {
                   {comment.content}
                 </Text>
                 <Text style={[styles.commentTimestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  {dateFormatter.format(new Date(comment.created_at))}
+                  {formatDisplayDate(comment.created_at)}
                 </Text>
               </View>
             ))}
@@ -421,7 +446,7 @@ export default function ProgressDetailScreen() {
                   ]}
                   value={commentText}
                   onChangeText={setCommentText}
-                  placeholder="Add a comment"
+                  placeholder={t("progress.commentInputPlaceholder")}
                   placeholderTextColor={colors.inkSoft}
                   multiline
                 />
@@ -442,14 +467,14 @@ export default function ProgressDetailScreen() {
                     <ActivityIndicator color={colors.paper} />
                   ) : (
                     <Text style={[styles.postButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                      Post
+                      {t("progress.postButton")}
                     </Text>
                   )}
                 </Pressable>
               </View>
             ) : (
               <Text style={[styles.commentsClosedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                Only followers can comment on this
+                {t("progress.followersOnlyNotice")}
               </Text>
             )}
           </>

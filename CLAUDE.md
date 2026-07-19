@@ -1068,7 +1068,82 @@ sharing them socially with other users.
   **PR2 (plant-content cluster: `plant/[id].tsx`, `progress/[id].tsx`,
   `log-progress.tsx`, `likes/[progressId].tsx`, `HeightChart.tsx`,
   `DatePickerField.tsx` incl. its `react-native-calendars`
-  `LocaleConfig` locale mechanism, `PhotoPicker.tsx`) — not started.**
+  `LocaleConfig` locale mechanism, `PhotoPicker.tsx`) — done.** Same
+  per-PR review checkpoint as PR1: the exact `pt-PT` string table (incl.
+  two corrections mid-review — `careType.fertilize`/`repot` changed
+  from "adubação"/"transplante" to "adubar"/"trocar terra", and a
+  planned `plantDetail.nickname.placeholder` key was dropped entirely
+  since the plant-detail nickname editor, like Add Plant's, was never
+  meant to carry a placeholder) was shared and approved before any
+  `t()` calls were written. New shared `namespaces`: `common` (`cancel`,
+  `save`, `notSet`, `heightUnit`, and the two `ChipGroup` option sets --
+  comment policy, feed sharing -- that `progress/[id].tsx` and
+  `log-progress.tsx` both use verbatim), `plantDetail`, `progress`,
+  `logProgress`, `likes`, `heightChart`, `datePickerField`,
+  `photoPicker`. Reused rather than duplicated wherever the English
+  text was identical to an existing PR1 key: `index.status.*`/
+  `index.careType.*` (care-status pill and task-type label),
+  `index.logProgress` (button), `addPlant.initialHeight.placeholder`
+  (Log Progress's height field), and -- the more involved case --
+  `feed.plantLine.sentence`/`sentenceNoOwner`,
+  `feed.like.liked`/`unliked`, and `feed.comments.*`, all reused as-is
+  on `progress/[id].tsx` since its "Logged progress on ..." sentence,
+  like button, and comment-count line are textually identical to
+  `feed.tsx`'s. That reuse is what prompted pulling `splitTemplate()`
+  (the `{token}`-marker sentence splitter handling the
+  English/Portuguese word-order difference around "owner"/"plant") out
+  of `feed.tsx` and into `lib/i18n/index.ts` as a shared export --
+  `progress/[id].tsx` needed the exact same mechanism, and a second use
+  site is what made it worth promoting from a screen-local helper to a
+  real shared one. All 8 remaining `Intl.DateTimeFormat`/
+  `.toLocaleDateString` call sites from the original plan's survey are
+  now converted to `formatDisplayDate()` (`plant/[id].tsx`'s progress
+  timeline dates and care-task last-done/next-due,
+  `progress/[id].tsx`'s timestamp and comment dates, `HeightChart.tsx`'s
+  chart captions), closing out that fixed-`dd-MM-yyyy` decoupling for
+  every date this PR touches. `DatePickerField.tsx`'s own strings
+  (placeholder, "Back to calendar", month names, a new
+  `monthAbbrev.*` set replacing the previous `name.slice(0, 3)` trick --
+  English abbreviations happen to be a clean 3-char slice but
+  Portuguese ones aren't, e.g. "Fevereiro" -> "Fev") go through the
+  normal `t()` dictionary like everything else; the calendar's own
+  day-grid (weekday headers, the "Hoje" today label, and each day's
+  accessibility label) is a *separate* mechanism entirely --
+  `react-native-calendars`' underlying `xdate` package stores locale
+  data as global module state (`LocaleConfig.locales`/
+  `LocaleConfig.defaultLocale`, re-exported as `LocaleConfig` from
+  `react-native-calendars` itself, no `@types/xdate` available so it's
+  implicitly `any`). New `lib/calendarLocale.ts` registers a `pt` entry
+  once at module load and exports `syncCalendarLocale(locale)`,
+  called from a `useEffect` in `lib/LanguageContext.tsx` keyed on the
+  resolved `locale` -- registering per-`DatePickerField`-instance would
+  have worked too but centralizing it in the one place that already
+  reacts to locale changes avoided redoing the same global mutation on
+  every mount. Verified: `tsc --noEmit` + `npm test` (347 passing,
+  no new test files needed since nothing new here is pure/testable
+  beyond what PR1 already covered), and live on web against real
+  seeded data (a plant, two progress reports with heights, a care task,
+  a like, and a comment, inserted directly via SQL and removed after --
+  the photo-required Add Plant flow can't be driven through this
+  environment's browser automation, same long-standing native-file-
+  picker gap noted elsewhere in this doc) with Português selected:
+  `plant/[id].tsx` rendered the nickname/acquired-date editors, the
+  "rega: em atraso" status pill, the height chart captions in
+  `dd-MM-yyyy`, the care-task frequency/last-done/next-due line, and
+  every task action label correctly; `progress/[id].tsx` rendered the
+  no-owner sentence variant ("Registou progresso na planta ..."), the
+  like button, both `ChipGroup`s, and a real "1 comentário" singular
+  count; `likes/[progressId].tsx` showed "Gostos de"; `log-progress.tsx`
+  rendered every field label and both chip groups. Also reconfirmed in
+  English as a regression check. Separately, opening the date picker
+  live confirmed the `xdate` `LocaleConfig` wiring end-to-end: the
+  calendar's month/year header read "Julho 2026" (driven by `xdate`'s
+  own `MMMM` formatting, not a `t()` call), weekday headers read "Dom
+  Seg Ter Qua Qui Sex Sáb", today's cell read "Hoje Domingo, 19 de
+  Julho de 2026" (the registered `formatAccessibilityLabel`), and the
+  month-grid picker correctly showed only Jan-Jul (July's `maxDate`
+  cutoff) with the new `monthAbbrev` translations ("Jan, Fev, Mar, Abr,
+  Mai, Jun, Jul").
   **PR3 (social + plant-sitting + notifications) — not started.**
   **PR4 (`profile.tsx`, `delete-account.tsx`, `AccountDeletionFlow.tsx`)
   — not started.**

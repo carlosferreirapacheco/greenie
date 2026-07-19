@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { pickImage, uploadPhoto, type PhotoContext } from "../lib/supabase/storage";
 import { getErrorMessage } from "../lib/errors";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { radius, spacing, type Fonts } from "../lib/theme";
 import { PhotoThumb } from "./PhotoThumb";
 
@@ -28,6 +29,7 @@ export function PhotoPicker({
   fonts: Fonts;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,10 +71,14 @@ export function PhotoPicker({
       </View>
       <View style={styles.linksRow}>
         <Pressable onPress={() => handlePick("camera")} disabled={busy} hitSlop={6}>
-          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Take Photo</Text>
+          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("photoPicker.takePhoto")}
+          </Text>
         </Pressable>
         <Pressable onPress={() => handlePick("library")} disabled={busy} hitSlop={6}>
-          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Choose from Library</Text>
+          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("photoPicker.chooseFromLibrary")}
+          </Text>
         </Pressable>
       </View>
       {error ? <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{error}</Text> : null}

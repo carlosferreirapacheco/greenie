@@ -21,6 +21,7 @@ import { ChipGroup } from "../components/ChipGroup";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function LogProgressScreen() {
@@ -28,6 +29,7 @@ export default function LogProgressScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [plant, setPlant] = useState<Plant | null>(null);
@@ -134,11 +136,11 @@ export default function LogProgressScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Log Progress" }} />
+      <Stack.Screen options={{ title: t("logProgress.headerTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Photo (optional)
+            {t("logProgress.photo.label")}
           </Text>
           <PhotoPicker value={photoUrl} onChange={setPhotoUrl} context="progress" fonts={fonts} />
           {isOwner && photoUrl ? (
@@ -147,8 +149,8 @@ export default function LogProgressScreen() {
               value={setAsPlantPhoto ? "yes" : "no"}
               onChange={(value) => setSetAsPlantPhoto(value === "yes")}
               options={[
-                { value: "no", label: "Just this report" },
-                { value: "yes", label: "Also set as plant's photo" },
+                { value: "no", label: t("logProgress.photo.chipJustReport") },
+                { value: "yes", label: t("logProgress.photo.chipAlsoSetPlantPhoto") },
               ]}
             />
           ) : null}
@@ -156,20 +158,22 @@ export default function LogProgressScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Height (cm, optional)
+            {t("logProgress.height.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={heightCm}
             onChangeText={setHeightCm}
-            placeholder="e.g. 32"
+            placeholder={t("addPlant.initialHeight.placeholder")}
             placeholderTextColor={colors.inkSoft}
             keyboardType="decimal-pad"
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Notes</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("logProgress.notes.label")}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -178,29 +182,33 @@ export default function LogProgressScreen() {
             ]}
             value={notes}
             onChangeText={setNotes}
-            placeholder="What's new with this plant?"
+            placeholder={t("logProgress.notes.placeholder")}
             placeholderTextColor={colors.inkSoft}
             multiline
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Comments</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("logProgress.comments.label")}
+          </Text>
           <ChipGroup
             fonts={fonts}
             value={commentPolicy}
             onChange={setCommentPolicy}
             disabled={!sharedToFeed}
             options={[
-              { value: "public", label: "Anyone" },
-              { value: "followers", label: "Followers only" },
-              { value: "disabled", label: "Off" },
+              { value: "public", label: t("common.chipOptions.commentPolicy.anyone") },
+              { value: "followers", label: t("common.chipOptions.commentPolicy.followersOnly") },
+              { value: "disabled", label: t("common.chipOptions.commentPolicy.off") },
             ]}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Feed</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("logProgress.feed.label")}
+          </Text>
           {shareAllowed ? (
             <>
               <ChipGroup
@@ -214,21 +222,19 @@ export default function LogProgressScreen() {
                   }
                 }}
                 options={[
-                  { value: "share", label: "Share to feed" },
-                  { value: "unlisted", label: "Don't share" },
+                  { value: "share", label: t("common.chipOptions.feedSharing.shareToFeed") },
+                  { value: "unlisted", label: t("common.chipOptions.feedSharing.dontShare") },
                 ]}
               />
               {!sharedToFeed ? (
                 <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  Won't appear in anyone's feed, and comments will be off — this can't be undone once
-                  saved.
+                  {t("logProgress.feed.unlistedWarning")}
                 </Text>
               ) : null}
             </>
           ) : (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              This plant's owner keeps sitter reports out of feeds -- this will only appear in the
-              plant's own history.
+              {t("logProgress.feed.sitterShareBlockedHint")}
             </Text>
           )}
         </View>
@@ -246,7 +252,7 @@ export default function LogProgressScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Save
+              {t("common.save")}
             </Text>
           )}
         </Pressable>

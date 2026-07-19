@@ -6,11 +6,13 @@ import { getLikersForProgress, type LikerProfile } from "../../lib/supabase/like
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
 
 function LikerRow({ liker, fonts }: { liker: LikerProfile; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();
-  const name = liker.display_name ?? (liker.username ? `@${liker.username}` : "Someone");
+  const { t } = useLanguage();
+  const name = liker.display_name ?? (liker.username ? `@${liker.username}` : t("likes.fallbackName"));
 
   if (liker.username === null) {
     return (
@@ -40,6 +42,7 @@ export default function LikesScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   useFocusEffect(
     useCallback(() => {
@@ -55,7 +58,7 @@ export default function LikesScreen() {
     }, [progressId])
   );
 
-  const screen = <Stack.Screen options={{ title: "Liked by" }} />;
+  const screen = <Stack.Screen options={{ title: t("likes.headerTitle") }} />;
 
   if (status === "loading") {
     return (
@@ -70,7 +73,9 @@ export default function LikesScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>
+          {t("likes.errorPrefix", { error: error ?? "" })}
+        </Text>
       </View>
     );
   }
@@ -79,7 +84,7 @@ export default function LikesScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No likes yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("likes.empty")}</Text>
       </View>
     );
   }

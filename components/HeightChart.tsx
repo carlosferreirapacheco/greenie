@@ -3,6 +3,8 @@ import Svg, { Circle, Polyline } from "react-native-svg";
 import { computeChartPoints } from "../lib/chart";
 import { getFonts, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
+import { formatDisplayDate } from "../lib/dateFormat";
 
 const CHART_WIDTH = 320;
 const CHART_HEIGHT = 100;
@@ -19,6 +21,7 @@ export function HeightChart({
   fonts: ReturnType<typeof getFonts>;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const points = computeChartPoints(
     entries.map((entry) => entry.height_cm),
     CHART_WIDTH,
@@ -31,7 +34,6 @@ export function HeightChart({
 
   const first = entries[0];
   const last = entries[entries.length - 1];
-  const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
   return (
     <View style={styles.wrap}>
@@ -48,10 +50,10 @@ export function HeightChart({
       </Svg>
       <View style={styles.captionRow}>
         <Text style={[styles.caption, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {dateFormatter.format(new Date(first.created_at))} · {first.height_cm} cm
+          {t("heightChart.captionEntry", { date: formatDisplayDate(first.created_at), height: first.height_cm })}
         </Text>
         <Text style={[styles.caption, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {dateFormatter.format(new Date(last.created_at))} · {last.height_cm} cm
+          {t("heightChart.captionEntry", { date: formatDisplayDate(last.created_at), height: last.height_cm })}
         </Text>
       </View>
     </View>
