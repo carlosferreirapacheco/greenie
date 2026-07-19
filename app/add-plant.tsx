@@ -22,6 +22,7 @@ import { PhotoPicker } from "../components/PhotoPicker";
 import { todayISO } from "../lib/dateGrid";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 type LookupPrompt =
@@ -37,6 +38,7 @@ export default function AddPlantScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t, locale } = useLanguage();
 
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -86,7 +88,7 @@ export default function AddPlantScreen() {
 
     try {
       const typedName = name.trim();
-      const result = await lookupPlantByPhoto(photoUrl, typedName.length > 0 ? typedName : undefined);
+      const result = await lookupPlantByPhoto(photoUrl, typedName.length > 0 ? typedName : undefined, locale);
 
       if (result.status === "ambiguous") {
         setLookupPrompt({ kind: "ambiguous", candidateNames: result.candidateNames });
@@ -122,7 +124,7 @@ export default function AddPlantScreen() {
     setLookupError(null);
 
     try {
-      const result = await lookupPlantInfo(query);
+      const result = await lookupPlantInfo(query, locale);
       fillFromLookup(result);
       setLookupStatus("idle");
       setLookupPrompt(null);
@@ -206,10 +208,12 @@ export default function AddPlantScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Add Plant" }} />
+      <Stack.Screen options={{ title: t("addPlant.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Photo</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.photo.label")}
+          </Text>
           <PhotoPicker value={photoUrl} onChange={setPhotoUrl} context="plants" fonts={fonts} />
           <Pressable
             style={[styles.lookupButton, { backgroundColor: colors.sage }]}
@@ -220,7 +224,7 @@ export default function AddPlantScreen() {
               <ActivityIndicator color={colors.mossStrong} />
             ) : (
               <Text style={[styles.lookupButtonText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-                Look up with AI
+                {t("addPlant.photo.lookupButton")}
               </Text>
             )}
           </Pressable>
@@ -231,20 +235,20 @@ export default function AddPlantScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Name (optional)
+            {t("addPlant.name.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={name}
             onChangeText={setName}
-            placeholder="e.g. Pothos -- leave blank to let AI name it from the photo"
+            placeholder={t("addPlant.name.placeholder")}
             placeholderTextColor={colors.inkSoft}
           />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Nickname (optional)
+            {t("addPlant.nickname.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -254,7 +258,9 @@ export default function AddPlantScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Species</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.species.label")}
+          </Text>
           <TextInput
             style={[
               styles.input,
@@ -262,20 +268,20 @@ export default function AddPlantScreen() {
             ]}
             value={species}
             onChangeText={setSpecies}
-            placeholder="e.g. Epipremnum aureum"
+            placeholder={t("addPlant.species.placeholder")}
             placeholderTextColor={colors.inkSoft}
           />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Watering frequency (days)
+            {t("addPlant.wateringFrequency.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={wateringFrequencyDays}
             onChangeText={setWateringFrequencyDays}
-            placeholder="e.g. 8"
+            placeholder={t("addPlant.wateringFrequency.placeholder")}
             placeholderTextColor={colors.inkSoft}
             keyboardType="number-pad"
           />
@@ -283,33 +289,33 @@ export default function AddPlantScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Location (optional)
+            {t("addPlant.location.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={location}
             onChangeText={setLocation}
-            placeholder="e.g. Living room, east window"
+            placeholder={t("addPlant.location.placeholder")}
             placeholderTextColor={colors.inkSoft}
           />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Acquired date (optional)
+            {t("addPlant.acquiredDate.label")}
           </Text>
           <DatePickerField value={acquiredAt} onChange={setAcquiredAt} fonts={fonts} maxDate={todayISO()} />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Initial height (cm, optional)
+            {t("addPlant.initialHeight.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={initialHeightCm}
             onChangeText={setInitialHeightCm}
-            placeholder="e.g. 32"
+            placeholder={t("addPlant.initialHeight.placeholder")}
             placeholderTextColor={colors.inkSoft}
             keyboardType="decimal-pad"
           />
@@ -328,7 +334,7 @@ export default function AddPlantScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Save plant
+              {t("addPlant.saveButton")}
             </Text>
           )}
         </Pressable>
@@ -345,8 +351,10 @@ export default function AddPlantScreen() {
               {lookupPrompt.kind === "nameMismatch" ? (
                 <>
                   <Text style={[styles.promptText, { fontFamily: fonts.body, color: colors.ink }]}>
-                    AI identified this as &quot;{lookupPrompt.aiName}&quot;, but you entered &quot;
-                    {lookupPrompt.typedName}&quot;.
+                    {t("addPlant.lookupModal.nameMismatch.message", {
+                      aiName: lookupPrompt.aiName,
+                      typedName: lookupPrompt.typedName,
+                    })}
                   </Text>
                   <Pressable
                     style={[styles.promptButton, { backgroundColor: colors.sage }]}
@@ -354,7 +362,7 @@ export default function AddPlantScreen() {
                     disabled={lookupStatus === "loading"}
                   >
                     <Text style={[styles.promptButtonText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-                      Keep &quot;{lookupPrompt.typedName}&quot;
+                      {t("addPlant.lookupModal.nameMismatch.keepTyped", { typedName: lookupPrompt.typedName })}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -363,7 +371,7 @@ export default function AddPlantScreen() {
                     disabled={lookupStatus === "loading"}
                   >
                     <Text style={[styles.promptButtonText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-                      Use &quot;{lookupPrompt.aiName}&quot;
+                      {t("addPlant.lookupModal.nameMismatch.useAi", { aiName: lookupPrompt.aiName })}
                     </Text>
                   </Pressable>
                 </>
@@ -372,7 +380,7 @@ export default function AddPlantScreen() {
               {lookupPrompt.kind === "ambiguous" ? (
                 <>
                   <Text style={[styles.promptText, { fontFamily: fonts.body, color: colors.ink }]}>
-                    Found more than one possible match:
+                    {t("addPlant.lookupModal.ambiguous.message")}
                   </Text>
                   {lookupPrompt.candidateNames.map((candidate) => (
                     <Pressable
@@ -388,7 +396,7 @@ export default function AddPlantScreen() {
                   ))}
                   <Pressable style={styles.promptSecondaryButton} onPress={handleTakeNewPicture}>
                     <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                      Take a new picture
+                      {t("addPlant.lookupModal.takeNewPicture")}
                     </Text>
                   </Pressable>
                 </>
@@ -397,12 +405,11 @@ export default function AddPlantScreen() {
               {lookupPrompt.kind === "notFound" ? (
                 <>
                   <Text style={[styles.promptText, { fontFamily: fonts.body, color: colors.ink }]}>
-                    Couldn&apos;t identify a plant in that photo. Take a new picture, or close this, type a common
-                    name above, and try again.
+                    {t("addPlant.lookupModal.notFound.message")}
                   </Text>
                   <Pressable style={[styles.promptButton, { backgroundColor: colors.sage }]} onPress={handleTakeNewPicture}>
                     <Text style={[styles.promptButtonText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-                      Take a new picture
+                      {t("addPlant.lookupModal.takeNewPicture")}
                     </Text>
                   </Pressable>
                 </>
@@ -419,7 +426,7 @@ export default function AddPlantScreen() {
 
               <Pressable style={styles.promptSecondaryButton} onPress={() => setLookupPrompt(null)}>
                 <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  Cancel
+                  {t("addPlant.lookupModal.cancel")}
                 </Text>
               </Pressable>
             </Pressable>

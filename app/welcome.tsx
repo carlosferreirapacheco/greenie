@@ -18,6 +18,7 @@ import { signOut } from "../lib/supabase/auth";
 import { emitConsentAccepted } from "../lib/consentEvents";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 // Two modes, both driven by the root layout's consent gate:
@@ -32,6 +33,7 @@ export default function WelcomeScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export default function WelcomeScreen() {
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Welcome" }} />
+        <Stack.Screen options={{ title: t("welcome.loadingScreenTitle") }} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -127,8 +129,8 @@ export default function WelcomeScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Welcome" }} />
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Stack.Screen options={{ title: t("welcome.errorScreenTitle") }} />
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("welcome.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -138,39 +140,39 @@ export default function WelcomeScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: isReconsent ? "Privacy Policy" : "Welcome" }} />
+      <Stack.Screen options={{ title: isReconsent ? t("welcome.reconsent.screenTitle") : t("welcome.firstTime.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>
-          {isReconsent ? "Privacy Policy update" : "Welcome to Greenie"}
+          {isReconsent ? t("welcome.reconsent.heading") : t("welcome.firstTime.heading")}
         </Text>
         <Text style={[styles.intro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {isReconsent
-            ? "The privacy policy has changed since you last accepted it — please review it to continue."
-            : "One quick step before you head in: check that these look right, and agree to the privacy policy."}
+          {isReconsent ? t("welcome.reconsent.intro") : t("welcome.firstTime.intro")}
         </Text>
 
         {!isReconsent ? (
           <>
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Display name
+                {t("welcome.firstTime.displayName.label")}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
                 value={displayName}
                 onChangeText={setDisplayName}
-                placeholder="e.g. Carlos"
+                placeholder={t("welcome.firstTime.displayName.placeholder")}
                 placeholderTextColor={colors.inkSoft}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                {t("welcome.firstTime.username.label")}
+              </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
                 value={username}
                 onChangeText={setUsername}
-                placeholder="e.g. plant.parent_42"
+                placeholder={t("welcome.firstTime.username.placeholder")}
                 placeholderTextColor={colors.inkSoft}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -181,7 +183,7 @@ export default function WelcomeScreen() {
                 </Text>
               ) : (
                 <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  This first change is free; afterwards usernames can only be changed once in a while.
+                  {t("welcome.firstTime.username.cooldownHint")}
                 </Text>
               )}
             </View>
@@ -200,12 +202,12 @@ export default function WelcomeScreen() {
             {privacyAccepted ? <Text style={[styles.consentCheck, { color: colors.paper }]}>✓</Text> : null}
           </View>
           <Text style={[styles.consentText, { fontFamily: fonts.body, color: colors.ink }]}>
-            I have read and agree to the{" "}
+            {t("welcome.consent.prefix")}
             <Text
               style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
               onPress={() => router.push("/privacy-policy")}
             >
-              Privacy Policy
+              {t("welcome.consent.link")}
             </Text>
           </Text>
         </Pressable>
@@ -223,14 +225,14 @@ export default function WelcomeScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              {isReconsent ? "Accept and continue" : "Continue"}
+              {isReconsent ? t("welcome.reconsent.submitButton") : t("welcome.firstTime.submitButton")}
             </Text>
           )}
         </Pressable>
 
         <Pressable onPress={handleSignOut} hitSlop={8}>
           <Text style={[styles.signOutLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            {isReconsent ? "Sign out" : "Not you? Sign out"}
+            {isReconsent ? t("welcome.reconsent.signOutLink") : t("welcome.firstTime.signOutLink")}
           </Text>
         </Pressable>
       </ScrollView>

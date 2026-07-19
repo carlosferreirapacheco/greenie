@@ -1003,6 +1003,75 @@ sharing them socially with other users.
     revisit if the invite list approaches that.
   - (Store-required public pages for a mobile release are tracked
     under Public launch / production readiness below.)
+- Multi-language support — Portuguese (Portugal), alongside English.
+  Imperial units stay out of scope for this effort (tracked separately
+  under Later). Ships in staged PRs, full coverage as the end state.
+  **PR1 (infrastructure + core screens) — done.** New dependency
+  **`expo-localization`** (device locale detection only — translation
+  itself is a small hand-rolled dictionary + lookup, not a library like
+  i18next, matching this codebase's general preference for hand-rolling
+  over pulling in a framework for something this scoped). `lib/i18n/`:
+  `en.ts` (canonical dictionary, nested by screen/feature namespace) and
+  `pt-PT.ts` (typed as `typeof en`, so a missing or extra key is a
+  **compile-time** error, not a silent runtime gap — grows one
+  namespace per PR as screens convert), plus `index.ts`'s pure,
+  tested `resolveLocale()` (mirrors `lib/theme.ts`'s `resolveScheme()`
+  exactly) and `t()` (dot-path lookup + `{token}` interpolation, no
+  built-in pluralization — callers pick between two translated key
+  variants via a manual ternary, same pattern `app/(tabs)/feed.tsx`
+  already used for English's `s` suffix). New `lib/LanguageContext.tsx`
+  mirrors `lib/ThemeContext.tsx` exactly (device-local AsyncStorage
+  key `"languagePreference"`, `system`/`en`/`pt-PT`, a `loaded` gate),
+  wired into `app/_layout.tsx` alongside `ThemeProvider`. New Settings
+  "Language" section (System/English/Português (Portugal)) mirrors
+  "Appearance". **Per explicit user decision, date format is not
+  localized** — new pure `lib/dateFormat.ts` → `formatDisplayDate()`
+  always renders `dd-MM-yyyy` regardless of chosen language, replacing
+  all 8 `Intl.DateTimeFormat(undefined, ...)` call sites project-wide
+  (handles plain `YYYY-MM-DD` dates via string-split, matching
+  `lib/dateGrid.ts`'s `getYearMonth()`, and full ISO timestamps via
+  local `Date` getters, preserving the exact timezone-correct calendar
+  day already shown today — only the output format changes). **Also
+  per explicit user decision**: the AI plant-lookup Edge Function
+  (`supabase/functions/lookup-plant`) now accepts a `locale` field and
+  instructs Gemini to return the common name (and, for the photo
+  variant, `candidateNames`) in the caller's language — `species`
+  stays the Latin binomial regardless, since that's universal, not
+  localized. `lib/supabase/ai.ts`'s `lookupPlantInfo()`/
+  `lookupPlantByPhoto()` gained a required `locale` parameter,
+  threaded from `app/add-plant.tsx`'s `useLanguage().locale`.
+  Converted this PR: `app/(tabs)/_layout.tsx`, `app/(tabs)/index.tsx`,
+  `app/(tabs)/feed.tsx` (including a French-door case: English builds
+  "Logged progress on {owner}'s {plant}" from three concatenated text
+  nodes, but Portuguese possessive goes after the noun — handled by
+  translating the full sentence template per language and splitting on
+  `{token}` markers via a small `splitTemplate()` helper, not a 1:1
+  string swap), `app/add-plant.tsx`, `app/sign-in.tsx`,
+  `app/sign-up.tsx`, `app/welcome.tsx`, `app/settings.tsx`.
+  Deliberately **not** translated in this pass: `app/privacy-policy.tsx`
+  (already flagged "requires review before public launch" — machine-
+  translating legal text without a matching legal review carries real
+  risk) and `app/redirect.tsx`/`app/_layout.tsx` (no user-facing text).
+  `components/AccountDeletionFlow.tsx`'s strings are explicitly out of
+  scope for PR1 (covered in PR4). Every PR in this effort has its own
+  translation-review checkpoint before implementation — the exact
+  `pt-PT` wording for each batch of screens is shared for review before
+  any `t()` calls are written, not assumed from a plan approval alone.
+  Verified: `tsc --noEmit` + `npm test` (`lib/i18n/index.test.ts` +
+  `lib/dateFormat.test.ts`, both new), and live on web — System
+  correctly auto-detected the browser's real `pt-PT` locale with no
+  manual toggle, explicit `en`/`pt-PT` overrides in Settings both
+  render correctly, and the not-yet-converted `AccountDeletionFlow`
+  content correctly stays in English underneath the now-translated
+  "Danger zone" section title, confirming the per-namespace rollout
+  doesn't produce a broken mixed state.
+  **PR2 (plant-content cluster: `plant/[id].tsx`, `progress/[id].tsx`,
+  `log-progress.tsx`, `likes/[progressId].tsx`, `HeightChart.tsx`,
+  `DatePickerField.tsx` incl. its `react-native-calendars`
+  `LocaleConfig` locale mechanism, `PhotoPicker.tsx`) — not started.**
+  **PR3 (social + plant-sitting + notifications) — not started.**
+  **PR4 (`profile.tsx`, `delete-account.tsx`, `AccountDeletionFlow.tsx`)
+  — not started.**
 
 ### Technical follow-ups
 - Real device deployment (Android) — done. First-ever real-device pass,
@@ -1610,12 +1679,10 @@ unrelated history.
 ### Later
 - Payments / monetization
 - Admin dashboard
-- Multi-language support and imperial measurement units (height in
-  inches/feet instead of cm, grouped with multi-language since both
-  are locale/unit-preference concerns touching the same fields —
+- Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
-  and the initial-size field once the Add Plant review item above is
-  built)
+  and the initial-size field on Add Plant). Explicitly out of scope
+  for the multi-language effort above; a future, separate pass.
 - Revisit prompt design and other UX/UI improvements — a general pass
   over interaction patterns accumulated feature-by-feature (e.g. the
   inline two-tap confirm/prompt style used for delete and the overdue

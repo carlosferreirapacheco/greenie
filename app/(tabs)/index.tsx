@@ -6,33 +6,40 @@ import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } fr
 import {
   getCareTasksForPlants,
   summarizeCareTasks,
+  type CareTaskType,
   type PlantCareSummary,
   type PlantCareStatus,
 } from "../../lib/supabase/care_tasks";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
 
-function statusText(status: PlantCareStatus): string {
+function careTypeLabel(type: CareTaskType, t: (key: string) => string): string {
+  return type === "water" ? t("index.careType.watering") : t(`index.careType.${type}`);
+}
+
+function statusText(status: PlantCareStatus, t: (key: string) => string): string {
   switch (status) {
     case "overdue":
-      return "overdue";
+      return t("index.status.overdue");
     case "due_soon":
-      return "due soon";
+      return t("index.status.dueSoon");
     case "healthy":
-      return "healthy";
+      return t("index.status.healthy");
   }
 }
 
 function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const palette = getStatusColors(colors)[status];
   return (
     <View style={[styles.pill, { backgroundColor: palette.bg }]}>
       <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
       <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
-        {label}: {statusText(status)}
+        {t("index.pill.labelStatus", { label, status: statusText(status, t) })}
       </Text>
     </View>
   );
@@ -46,6 +53,7 @@ export default function PlantListScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchPlants = useCallback(() => {
     getMyPlants()
@@ -90,7 +98,7 @@ export default function PlantListScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("index.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -98,7 +106,7 @@ export default function PlantListScreen() {
   if (plants.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No plants yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("index.emptyState")}</Text>
       </View>
     );
   }
@@ -132,13 +140,13 @@ export default function PlantListScreen() {
                 <View style={styles.pillRow}>
                   {summary?.primary ? (
                     <StatusPill
-                      label={summary.primary.type === "water" ? "watering" : summary.primary.type}
+                      label={careTypeLabel(summary.primary.type, t)}
                       status={summary.primary.status}
                       fonts={fonts}
                     />
                   ) : null}
                   {summary?.watering ? (
-                    <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
+                    <StatusPill label={t("index.careType.watering")} status={summary.watering.status} fonts={fonts} />
                   ) : null}
                 </View>
               </View>
@@ -148,7 +156,7 @@ export default function PlantListScreen() {
               hitSlop={8}
             >
               <Text style={[styles.logProgress, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Log progress
+                {t("index.logProgress")}
               </Text>
             </Pressable>
           </View>

@@ -24,10 +24,19 @@ type PlantPhotoInfoInput = {
   candidateNames: string[];
 };
 
-async function lookupByQuery(query: string): Promise<Response> {
+// Maps the app's locale to the language Gemini should respond in. Only
+// the common name (and, for the photo variant, candidateNames) follow
+// this -- species is always the Latin binomial, which is universal, not
+// localized. Defaults to English for callers that don't send a locale.
+function languageNameFor(locale: unknown): string {
+  return locale === "pt-PT" ? "European Portuguese (Portugal, not Brazilian Portuguese)" : "English";
+}
+
+async function lookupByQuery(query: string, locale: unknown): Promise<Response> {
+  const languageName = languageNameFor(locale);
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: `Identify this houseplant and its typical watering needs: "${query}". If the query is ambiguous or informal (e.g. "my new plant"), make your best reasonable guess for a common houseplant.`,
+    contents: `Identify this houseplant and its typical watering needs: "${query}". If the query is ambiguous or informal (e.g. "my new plant"), make your best reasonable guess for a common houseplant. Respond with the common name in ${languageName}.`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -35,7 +44,7 @@ async function lookupByQuery(query: string): Promise<Response> {
         properties: {
           name: {
             type: "string",
-            description: "Common name of the plant, cleaned up (e.g. 'Pothos').",
+            description: `Common name of the plant in ${languageName}, cleaned up (e.g. 'Pothos').`,
           },
           species: {
             type: "string",
@@ -77,7 +86,8 @@ async function lookupByQuery(query: string): Promise<Response> {
   );
 }
 
-async function lookupByPhoto(photoUrl: string, hint?: string): Promise<Response> {
+async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale: unknown): Promise<Response> {
+  const languageName = languageNameFor(locale);
   const photoResponse = await fetch(photoUrl);
   if (!photoResponse.ok) {
     throw new Error(`Could not fetch photo: ${photoResponse.status}`);
@@ -93,7 +103,7 @@ async function lookupByPhoto(photoUrl: string, hint?: string): Promise<Response>
     model: "gemini-2.5-flash",
     contents: [
       {
-        text: `Identify the houseplant in this photo and its typical watering needs.${hintText} Return status "found" if you can confidently identify a single common name and species from the photo. Return status "ambiguous" if multiple common names/species are plausible from the photo alone, and list 2-5 of them as candidateNames. Return status "not_found" if no houseplant is recognizable in the photo at all.`,
+        text: `Identify the houseplant in this photo and its typical watering needs.${hintText} Return status "found" if you can confidently identify a single common name and species from the photo. Return status "ambiguous" if multiple common names/species are plausible from the photo alone, and list 2-5 of them as candidateNames. Return status "not_found" if no houseplant is recognizable in the photo at all. Respond with the common name and any candidateNames in ${languageName}.`,
       },
       { inlineData: { mimeType: "image/jpeg", data: photoBase64 } },
     ],
@@ -109,7 +119,7 @@ async function lookupByPhoto(photoUrl: string, hint?: string): Promise<Response>
           },
           name: {
             type: "string",
-            description: "Common name of the plant if status is 'found', cleaned up (e.g. 'Pothos'); empty string otherwise.",
+            description: `Common name of the plant in ${languageName} if status is 'found', cleaned up (e.g. 'Pothos'); empty string otherwise.`,
           },
           species: {
             type: "string",
@@ -127,7 +137,7 @@ async function lookupByPhoto(photoUrl: string, hint?: string): Promise<Response>
           candidateNames: {
             type: "array",
             items: { type: "string" },
-            description: "2-5 plausible common names if status is 'ambiguous'; empty array otherwise.",
+            description: `2-5 plausible common names in ${languageName} if status is 'ambiguous'; empty array otherwise.`,
           },
         },
         required: [
@@ -175,11 +185,11 @@ Deno.serve(async (req) => {
 
     if (typeof body.photoUrl === "string" && body.photoUrl.length > 0) {
       const hint = typeof body.hint === "string" && body.hint.length > 0 ? body.hint : undefined;
-      return await lookupByPhoto(body.photoUrl, hint);
+      return await lookupByPhoto(body.photoUrl, hint, body.locale);
     }
 
     if (typeof body.query === "string" && body.query.length > 0) {
-      return await lookupByQuery(body.query);
+      return await lookupByQuery(body.query, body.locale);
     }
 
     return new Response(JSON.stringify({ error: "Missing 'query' or 'photoUrl' string" }), {

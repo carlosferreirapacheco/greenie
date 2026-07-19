@@ -10,6 +10,7 @@ import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 
 // The persistent bottom tab bar over the four main destinations
 // (Plants, Feed, Sitting, Alerts). Every other screen stays in the
@@ -20,6 +21,7 @@ export default function TabsLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const navigation = useNavigation();
 
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
@@ -82,12 +84,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Plants",
+          title: t("tabsLayout.plants.title"),
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="sprout" size={size} color={color} />,
           headerRight: () => (
             <HeaderIconButton
               icon="plus"
-              label="Add"
+              label={t("tabsLayout.plants.addAction")}
               onPress={() => router.push("/add-plant")}
               fonts={fonts}
             />
@@ -97,14 +99,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: "Feed",
+          title: t("tabsLayout.feed.title"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
           ),
           headerRight: () => (
             <HeaderIconButton
               icon="account-group-outline"
-              label="People"
+              label={t("tabsLayout.feed.peopleAction")}
               onPress={() => router.push("/following")}
               fonts={fonts}
               badge={hasPendingRequests}
@@ -115,8 +117,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="plant-sitting"
         options={{
-          title: "Plant Sitting",
-          tabBarLabel: "Sitting",
+          title: t("tabsLayout.plantSitting.title"),
+          tabBarLabel: t("tabsLayout.plantSitting.tabLabel"),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="hand-heart-outline" size={size} color={color} />
           ),
@@ -128,7 +130,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: "Alerts",
+          title: t("tabsLayout.notifications.title"),
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="bell-outline" size={size} color={color} />,
           tabBarBadge: hasUnreadNotifications ? "" : undefined,
           tabBarBadgeStyle: {
