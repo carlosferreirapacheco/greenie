@@ -151,14 +151,22 @@ export default function FeedScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
 
+  // Same synchronous-guard pattern as the like toggle below.
+  const loadingMore = useRef(false);
+
   const fetchFeed = useCallback(() => {
+    // A focus-refetch is a fresh look at current state, not a resume --
+    // it replaces the list and cursor rather than appending onto them.
     getFeed()
-      .then((data) => {
+      .then(({ items: data, nextCursor: cursor }) => {
         setItems(data);
+        setNextCursor(cursor);
         setStatus("ready");
       })
       .catch((err) => {
@@ -166,6 +174,29 @@ export default function FeedScreen() {
         setStatus("error");
       });
   }, []);
+
+  const fetchMore = useCallback(() => {
+    if (loadingMore.current || !nextCursor) {
+      return;
+    }
+    loadingMore.current = true;
+    setIsLoadingMore(true);
+
+    getFeed({ before: nextCursor })
+      .then(({ items: data, nextCursor: cursor }) => {
+        setItems((prev) => [...prev, ...data]);
+        setNextCursor(cursor);
+      })
+      .catch(() => {
+        // Low-stakes background pagination fetch -- leave nextCursor as
+        // it was so scrolling back down retries instead of surfacing a
+        // separate footer error state.
+      })
+      .finally(() => {
+        loadingMore.current = false;
+        setIsLoadingMore(false);
+      });
+  }, [nextCursor]);
 
   useFocusEffect(
     useCallback(() => {
@@ -203,6 +234,15 @@ export default function FeedScreen() {
       data={items}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => <FeedRow item={item} fonts={fonts} />}
+      onEndReached={fetchMore}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={
+        isLoadingMore ? (
+          <View style={styles.footer}>
+            <ActivityIndicator color={colors.moss} />
+          </View>
+        ) : null
+      }
     />
   );
 }
@@ -215,6 +255,10 @@ const styles = StyleSheet.create({
   },
   list: {
     flex: 1,
+  },
+  footer: {
+    paddingVertical: spacing.md,
+    alignItems: "center",
   },
   row: {
     gap: spacing.xs,

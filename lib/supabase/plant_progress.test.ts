@@ -333,7 +333,8 @@ describe("getFeed", () => {
     const result = await getFeed();
 
     expect(reportsChain.eq).toHaveBeenCalledWith("shared_to_feed", true);
-    expect(result).toEqual([]);
+    expect(reportsChain.limit).toHaveBeenCalledWith(20);
+    expect(result).toEqual({ items: [], nextCursor: null });
   });
 
   it("returns empty without querying when following nobody", async () => {
@@ -341,8 +342,69 @@ describe("getFeed", () => {
 
     const result = await getFeed();
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ items: [], nextCursor: null });
     expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("does not filter by created_at when no cursor is given", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(reportsChain);
+
+    await getFeed();
+
+    expect(reportsChain.lt).not.toHaveBeenCalled();
+  });
+
+  it("filters by created_at when a cursor is given", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(reportsChain);
+
+    await getFeed({ before: "2026-07-01T00:00:00Z" });
+
+    expect(reportsChain.lt).toHaveBeenCalledWith("created_at", "2026-07-01T00:00:00Z");
+  });
+
+  it("returns a null nextCursor when fewer than a full page comes back", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    const reports = Array.from({ length: 5 }, (_, i) => ({
+      id: `pr${i}`,
+      plant_id: "pl1",
+      user_id: "person1",
+      created_at: `2026-07-0${i + 1}T00:00:00Z`,
+    }));
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: reports, error: null })) // plant_progress
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // plants
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // likes
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })); // comments
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await getFeed();
+
+    expect(result.nextCursor).toBeNull();
+    expect(result.items).toHaveLength(5);
+  });
+
+  it("returns the last row's created_at as nextCursor when a full page comes back", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    const reports = Array.from({ length: 20 }, (_, i) => ({
+      id: `pr${i}`,
+      plant_id: "pl1",
+      user_id: "person1",
+      created_at: `2026-06-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
+    }));
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: reports, error: null })) // plant_progress
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // plants
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // likes
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })); // comments
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await getFeed();
+
+    expect(result.nextCursor).toBe(reports[19].created_at);
   });
 });
 
