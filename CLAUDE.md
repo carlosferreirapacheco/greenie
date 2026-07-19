@@ -1559,11 +1559,53 @@ unrelated history.
   currently marked "requires review before public launch") before any
   public launch — still open regardless of the content-accuracy pass
   above; a factual-accuracy check is not a legal-adequacy review.
-- Store-required public pages — when a mobile release happens, the
-  privacy-policy URL (and Google Play's required account-deletion web
-  link) must be *publicly* reachable, i.e. carved out of the online
-  demo's Cloudflare Access gate (see Online demo, Product features) or
-  hosted as a separate public project.
+- Store-required public pages — done, both halves. Privacy policy:
+  `/privacy-policy`, carved out of the online demo's Cloudflare Access
+  gate (see Online demo, Product features). **Account deletion**:
+  Google Play requires this specifically to work *without* the app
+  installed, not just be described — a page that only explains the
+  in-app steps is the weaker reading of that policy, and since
+  deletion here is already fully automated (`delete-account` Edge
+  Function + a two-factor confirm flow), there was no reason to settle
+  for the weaker version. New `app/delete-account.tsx`, public like
+  `/privacy-policy` (added to `app/_layout.tsx`'s `inPublicGroup`
+  check, the same carve-out mechanism). The two-factor deletion UI
+  itself was extracted from Settings' Danger Zone into
+  `components/AccountDeletionFlow.tsx` (self-fetches its own
+  `hasPassword`/username/email rather than taking props, so it works
+  standalone) so both Settings and this page render identical logic
+  instead of duplicating it — Settings now just renders
+  `<AccountDeletionFlow />` with no behavior change. The new page
+  tracks its own session locally (this route intentionally sits
+  outside the normal signed-in app shell) and shows an inline
+  sign-in step (email/password, or "Continue with Google") when
+  signed out, then the deletion flow once a session exists, then a
+  plain confirmation message via a new `onDeleted` callback once
+  deletion succeeds — Settings doesn't pass one, since its existing
+  redirect-to-sign-in-on-session-clear behavior is still correct
+  there. `signInWithGoogle()` (`lib/supabase/auth.ts`) gained an
+  optional `redirectPath` param so the OAuth round trip can return to
+  `/delete-account` specifically instead of the bare origin (mirrors
+  `linkGoogleAccount()`'s existing `/settings`-specific redirect);
+  the two existing call sites pass nothing, unchanged. Verified live:
+  `/delete-account` renders the sign-in step when visited signed out
+  (no redirect to `/sign-in`/`/welcome`) and correctly renders
+  `AccountDeletionFlow` once a session exists (its self-fetch calls
+  succeeded against live Supabase data); `/settings`'s Danger Zone
+  still renders identically post-extraction. The full click-through
+  (send code → real emailed OTP → confirm → delete) wasn't completed
+  in this pass — this environment's browser automation hit persistent
+  session/refresh-token flakiness driving this specific interactive
+  flow (consistent with this project's other documented browser-
+  automation limits, e.g. the native file picker and FlatList
+  virtualization); the deletion handlers themselves are unchanged,
+  already-tested code moved verbatim from Settings, not new logic.
+  Once merged, the Cloudflare Access application still needs a
+  bypass policy added for `/delete-account` (mirroring whatever rule
+  exempts `/privacy-policy`) before the URL is truly public — an
+  owner dashboard step, not something done from this repo. Both URLs
+  still need to be entered into Play Console's Data Safety form at
+  actual store-submission time.
 
 ### Later
 - Payments / monetization
