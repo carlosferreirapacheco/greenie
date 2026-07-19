@@ -1600,12 +1600,12 @@ unrelated history.
   automation limits, e.g. the native file picker and FlatList
   virtualization); the deletion handlers themselves are unchanged,
   already-tested code moved verbatim from Settings, not new logic.
-  Once merged, the Cloudflare Access application still needs a
-  bypass policy added for `/delete-account` (mirroring whatever rule
-  exempts `/privacy-policy`) before the URL is truly public — an
-  owner dashboard step, not something done from this repo. Both URLs
-  still need to be entered into Play Console's Data Safety form at
-  actual store-submission time.
+  The Cloudflare Access bypass for `/delete-account` is done too —
+  verified live (`200` with no redirect to the Access login, and the
+  real sign-in-then-delete page renders, mirroring how
+  `/privacy-policy` was confirmed). Both URLs still need to be entered
+  into Play Console's Data Safety form at actual store-submission
+  time — that step is separate and still open.
 
 ### Later
 - Payments / monetization
