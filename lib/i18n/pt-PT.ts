@@ -585,4 +585,50 @@ export const ptPT: typeof en = {
     },
     plantFallback: "a sua planta",
   },
+  profile: {
+    screenTitle: "Perfil",
+    error: "Erro: {error}",
+    username: {
+      cooldownHint: "Pode voltar a alterar o nome de utilizador a {date}",
+    },
+    bio: {
+      label: "Biografia",
+      placeholder: "Fale um pouco sobre si a outros amantes de plantas",
+    },
+    savedText: "Guardado",
+    confirmUsernameChange: {
+      message: "O nome de utilizador só pode ser alterado a cada {days} dias. Alterar para @{username}?",
+      confirm: "Alterar nome de utilizador",
+    },
+    signOutButton: "Terminar sessão",
+  },
+  deleteAccount: {
+    screenTitle: "Eliminar Conta",
+    heading: "Eliminar a sua conta",
+    intro:
+      "Esta página permite eliminar permanentemente a sua conta Greenie e todos os seus dados sem precisar de instalar a aplicação. Inicie sessão para continuar — a eliminação continua a exigir a confirmação de um código enviado para o email da sua conta, tal como ao eliminar dentro da aplicação.",
+    deletedMessage:
+      "A sua conta foi eliminada. Tudo o que estava associado a ela — o seu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores — foi removido permanentemente.",
+  },
+  accountDeletionFlow: {
+    sectionIntro: {
+      base:
+        "Eliminar a sua conta remove permanentemente o seu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores. Esta ação não pode ser desfeita.",
+      passwordless: "Para confirmar que é mesmo você, escreva o seu nome de utilizador e introduza um código de confirmação enviado para o seu email.",
+      withPassword: "Para confirmar que é mesmo você, introduza a sua palavra-passe e um código de confirmação enviado para o seu email.",
+    },
+    usernameConfirm: {
+      label: "Escreva @{username} para confirmar",
+      fallbackUsername: "o seu nome de utilizador",
+      placeholderFallback: "@nomedeutilizador",
+    },
+    fallbackEmail: "o seu email",
+    codePlaceholder: "123456",
+    sendCodeButton: "Enviar-me um código de confirmação",
+    confirmDelete: {
+      message: "Última oportunidade — isto apaga permanentemente a sua conta e tudo o que ela contém.",
+      confirm: "Eliminar tudo",
+    },
+    deleteButton: "Eliminar permanentemente a minha conta",
+  },
 };

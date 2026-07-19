@@ -18,6 +18,7 @@ import { signInWithEmail, signInWithGoogle } from "../lib/supabase/auth";
 import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 // The Google Play-required public account-deletion page: reachable
@@ -30,6 +31,7 @@ export default function DeleteAccountScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [deleted, setDeleted] = useState(false);
@@ -101,21 +103,20 @@ export default function DeleteAccountScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Delete Account" }} />
+      <Stack.Screen options={{ title: t("deleteAccount.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.heading, { fontFamily: fonts.display, color: colors.ink }]}>Delete your account</Text>
+        <Text style={[styles.heading, { fontFamily: fonts.display, color: colors.ink }]}>
+          {t("deleteAccount.heading")}
+        </Text>
 
         {deleted ? (
           <Text style={[styles.body, { fontFamily: fonts.body, color: colors.ink }]}>
-            Your account has been deleted. Everything associated with it — your profile, plants, care
-            schedules, progress reports, comments, likes, and follows — has been permanently removed.
+            {t("deleteAccount.deletedMessage")}
           </Text>
         ) : (
           <>
             <Text style={[styles.body, { fontFamily: fonts.body, color: colors.ink }]}>
-              This page lets you permanently delete your Greenie account and all of its data without
-              needing the app installed. Sign in to continue — deletion still requires confirming a code
-              sent to your account's email, the same as deleting from within the app.
+              {t("deleteAccount.intro")}
             </Text>
 
             {session === undefined ? (
@@ -125,12 +126,14 @@ export default function DeleteAccountScreen() {
             ) : (
               <View style={styles.signInBlock}>
                 <View style={styles.field}>
-                  <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
+                  <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                    {t("signIn.email.label")}
+                  </Text>
                   <TextInput
                     style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
                     value={email}
                     onChangeText={setEmail}
-                    placeholder="you@example.com"
+                    placeholder={t("signIn.email.placeholder")}
                     placeholderTextColor={colors.inkSoft}
                     autoCapitalize="none"
                     keyboardType="email-address"
@@ -139,13 +142,13 @@ export default function DeleteAccountScreen() {
 
                 <View style={styles.field}>
                   <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                    Password
+                    {t("signIn.password.label")}
                   </Text>
                   <TextInput
                     style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
                     value={password}
                     onChangeText={setPassword}
-                    placeholder="••••••••"
+                    placeholder={t("signIn.password.placeholder")}
                     placeholderTextColor={colors.inkSoft}
                     secureTextEntry
                   />
@@ -166,14 +169,16 @@ export default function DeleteAccountScreen() {
                     <ActivityIndicator color={colors.paper} />
                   ) : (
                     <Text style={[styles.submitButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                      Sign in
+                      {t("signIn.submitButton")}
                     </Text>
                   )}
                 </Pressable>
 
                 <View style={styles.dividerRow}>
                   <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-                  <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
+                  <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                    {t("signIn.divider")}
+                  </Text>
                   <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
                 </View>
 
@@ -182,7 +187,7 @@ export default function DeleteAccountScreen() {
                   onPress={handleGoogleSignIn}
                 >
                   <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-                    Continue with Google
+                    {t("signIn.googleButton")}
                   </Text>
                 </Pressable>
               </View>
