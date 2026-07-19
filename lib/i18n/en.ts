@@ -315,6 +315,10 @@ export const en = {
     save: "Save",
     notSet: "Not set",
     heightUnit: "{height} cm",
+    confirmSure: "Sure?",
+    accept: "Accept",
+    decline: "Decline",
+    unblock: "Unblock",
     chipOptions: {
       commentPolicy: {
         anyone: "Anyone",
@@ -448,5 +452,135 @@ export const en = {
   photoPicker: {
     takePhoto: "Take Photo",
     chooseFromLibrary: "Choose from Library",
+  },
+  following: {
+    screenTitle: "Following",
+    headerActions: {
+      requests: "Requests",
+      followers: "Followers",
+      search: "Search",
+    },
+    error: "Error: {error}",
+    emptyState: "Not following anyone yet",
+    noMatch: 'No one you follow matches "{query}"',
+    searchPlaceholder: "Search people you follow",
+  },
+  followers: {
+    screenTitle: "Followers",
+    error: "Error: {error}",
+    emptyState: "No followers yet",
+    row: {
+      remove: "Remove",
+    },
+  },
+  followRequests: {
+    screenTitle: "Follow Requests",
+    error: "Error: {error}",
+    emptyState: "No pending requests",
+  },
+  searchUsers: {
+    screenTitle: "Search Users",
+    placeholder: "Search users by name or username",
+    error: "Error: {error}",
+    promptState: "Type a name or username to search",
+    emptyState: "No users found",
+  },
+  blockedUsers: {
+    screenTitle: "Blocked Users",
+    error: "Error: {error}",
+    emptyState: "No blocked users",
+  },
+  userProfile: {
+    loadingTitle: "Profile",
+    error: "Error: {error}",
+    noBio: "No bio yet",
+    blockedNotice: "You've blocked this account.",
+    followButton: {
+      follow: "Follow",
+      requested: "Requested",
+      unfollow: "Unfollow",
+    },
+    confirmBlock: {
+      message:
+        "Block this account? They won't be able to follow you or see your plants and progress reports, and you won't see theirs. You can unblock anytime.",
+      confirm: "Block",
+    },
+    blockLink: "Block this account",
+    plantsSection: {
+      privateNotice: "This account is private",
+    },
+  },
+  plantSitting: {
+    state: {
+      pending: "Pending",
+      upcoming: "Upcoming",
+      active: "Active",
+      ended: "Ended",
+      declined: "Declined",
+      cancelled: "Cancelled",
+    },
+    header: {
+      share: "Share",
+      request: "Request",
+    },
+    shareDialogTitle: "Plant care instructions",
+    shareError: {
+      noPlants: "You have no plants to share care instructions for yet.",
+    },
+    error: "Error: {error}",
+    sectionTitle: {
+      requestsForMe: "Requests for me",
+      sittingFor: "Sitting for",
+      mySitters: "My sitters",
+      history: "Plant sitters history",
+    },
+    emptyState: {
+      noRequests: "No pending requests",
+      notSittingForAnyone: "You're not sitting for anyone right now",
+      noSitters: "You haven't asked anyone to sit for you",
+      noHistory: "No past plant-sitters yet",
+    },
+    sentRequestRow: {
+      keep: "Keep",
+    },
+  },
+  requestSitting: {
+    screenTitle: "Request Plant-Sitting",
+    sitterFallback: "this follower",
+    intro:
+      "Ask {sitterName} to look after all of your plants while you're away. They'll be able to view your care tasks, mark them done, and log new progress reports on your behalf.",
+    startDate: {
+      label: "Start date (optional)",
+    },
+    endDate: {
+      label: "End date (optional)",
+      rangeError: "End date must be on or after the start date",
+      hint:
+        "Leave both blank for an open-ended request you can cancel anytime. Access opens at the start date and closes after the end date -- accepting early doesn't open it sooner.",
+    },
+    sendButton: "Send request",
+  },
+  selectSitter: {
+    screenTitle: "Choose a Sitter",
+    error: "Error: {error}",
+    emptyState: "You don't have any mutual followers yet -- plant-sitting requires you to follow each other.",
+  },
+  notificationsScreen: {
+    error: "Error: {error}",
+    emptyState: "Nothing here yet",
+    sentence: {
+      comment: "{name} commented on your report",
+      like: "{name} liked your report",
+      followRequest: "{name} requested to follow you",
+      newFollower: "{name} started following you",
+      followAccepted: "{name} accepted your follow request",
+      sittingRequest: "{name} asked you to plant-sit",
+      sittingAccepted: "{name} accepted your plant-sitting request",
+      sittingDeclined: "{name} declined your plant-sitting request",
+      careDueWater: "Time to water {plant}",
+      careDueFertilize: "Time to fertilize {plant}",
+      careDueRepot: "Time to repot {plant}",
+    },
+    plantFallback: "your plant",
   },
 };

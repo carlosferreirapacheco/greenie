@@ -16,27 +16,22 @@ import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
 
-function statusText(status: PlantCareStatus): string {
-  switch (status) {
-    case "overdue":
-      return "overdue";
-    case "due_soon":
-      return "due soon";
-    case "healthy":
-      return "healthy";
-  }
+function statusText(status: PlantCareStatus, t: (key: string) => string): string {
+  return t(status === "due_soon" ? "index.status.dueSoon" : `index.status.${status}`);
 }
 
 function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const palette = getStatusColors(colors)[status];
   return (
     <View style={[styles.pill, { backgroundColor: palette.bg }]}>
       <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />
       <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
-        {label}: {statusText(status)}
+        {t("index.pill.labelStatus", { label, status: statusText(status, t) })}
       </Text>
     </View>
   );
@@ -47,6 +42,7 @@ export default function UserProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -191,7 +187,7 @@ export default function UserProfileScreen() {
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Profile" }} />
+        <Stack.Screen options={{ title: t("userProfile.loadingTitle") }} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -200,8 +196,10 @@ export default function UserProfileScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen options={{ title: "Profile" }} />
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Stack.Screen options={{ title: t("userProfile.loadingTitle") }} />
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>
+          {t("userProfile.error", { error: error ?? "" })}
+        </Text>
       </View>
     );
   }
@@ -223,13 +221,13 @@ export default function UserProfileScreen() {
       ) : null}
 
       <Text style={[styles.bio, { fontFamily: fonts.body, color: profile?.bio ? colors.ink : colors.inkSoft }]}>
-        {profile?.bio ?? "No bio yet"}
+        {profile?.bio ?? t("userProfile.noBio")}
       </Text>
 
       {!isOwnProfile && blockStatus === "blocked_by_me" ? (
         <View style={styles.blockedSection}>
           <Text style={[styles.blockedText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            You've blocked this account.
+            {t("userProfile.blockedNotice")}
           </Text>
           <Pressable
             style={[styles.dangerOutlineButton, { borderColor: colors.coral }]}
@@ -240,7 +238,7 @@ export default function UserProfileScreen() {
               <ActivityIndicator color={colors.coral} />
             ) : (
               <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                Unblock
+                {t("common.unblock")}
               </Text>
             )}
           </Pressable>
@@ -266,7 +264,11 @@ export default function UserProfileScreen() {
                   { fontFamily: fonts.bodySemiBold, color: followStatus === "none" ? colors.paper : colors.inkSoft },
                 ]}
               >
-                {followStatus === "none" ? "Follow" : followStatus === "pending" ? "Requested" : "Unfollow"}
+                {followStatus === "none"
+                  ? t("userProfile.followButton.follow")
+                  : followStatus === "pending"
+                    ? t("userProfile.followButton.requested")
+                    : t("userProfile.followButton.unfollow")}
               </Text>
             )}
           </Pressable>
@@ -278,18 +280,17 @@ export default function UserProfileScreen() {
           {confirmingBlock ? (
             <View style={[styles.confirmBox, { borderColor: colors.coral, backgroundColor: colors.coralSoft }]}>
               <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-                Block this account? They won't be able to follow you or see your plants and progress
-                reports, and you won't see theirs. You can unblock anytime.
+                {t("userProfile.confirmBlock.message")}
               </Text>
               <View style={styles.confirmActions}>
                 <Pressable onPress={handleBlock} hitSlop={8}>
                   <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                    Block
+                    {t("userProfile.confirmBlock.confirm")}
                   </Text>
                 </Pressable>
                 <Pressable onPress={() => setConfirmingBlock(false)} hitSlop={8}>
                   <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                    Cancel
+                    {t("common.cancel")}
                   </Text>
                 </Pressable>
               </View>
@@ -297,7 +298,7 @@ export default function UserProfileScreen() {
           ) : (
             <Pressable onPress={() => setConfirmingBlock(true)} hitSlop={8}>
               <Text style={[styles.blockLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                Block this account
+                {t("userProfile.blockLink")}
               </Text>
             </Pressable>
           )}
@@ -309,18 +310,22 @@ export default function UserProfileScreen() {
       ) : null}
 
       <View style={styles.plantsSection}>
-        <Text style={[styles.sectionLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Plants</Text>
+        <Text style={[styles.sectionLabel, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+          {t("tabsLayout.plants.title")}
+        </Text>
 
         {!isOwnProfile && blockStatus === "blocked_by_me" ? (
           <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            You've blocked this account
+            {t("userProfile.blockedNotice")}
           </Text>
         ) : !isOwnProfile && profile?.profile_visibility === "private" && followStatus !== "accepted" ? (
           <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            This account is private
+            {t("userProfile.plantsSection.privateNotice")}
           </Text>
         ) : plants.length === 0 ? (
-          <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>No plants yet</Text>
+          <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            {t("index.emptyState")}
+          </Text>
         ) : (
           plants.map((plant) => {
             const summary = careSummaries[plant.id];
@@ -348,13 +353,13 @@ export default function UserProfileScreen() {
                   <View style={styles.pillRow}>
                     {summary?.primary ? (
                       <StatusPill
-                        label={summary.primary.type === "water" ? "watering" : summary.primary.type}
+                        label={t(`index.careType.${summary.primary.type === "water" ? "watering" : summary.primary.type}`)}
                         status={summary.primary.status}
                         fonts={fonts}
                       />
                     ) : null}
                     {summary?.watering ? (
-                      <StatusPill label="watering" status={summary.watering.status} fonts={fonts} />
+                      <StatusPill label={t("index.careType.watering")} status={summary.watering.status} fonts={fonts} />
                     ) : null}
                   </View>
                 </View>

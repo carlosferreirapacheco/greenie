@@ -17,6 +17,7 @@ import { DatePickerField } from "../components/DatePickerField";
 import { addYears, todayISO } from "../lib/dateGrid";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function RequestSittingScreen() {
@@ -24,6 +25,7 @@ export default function RequestSittingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [sitter, setSitter] = useState<Profile | null>(null);
 
@@ -78,30 +80,29 @@ export default function RequestSittingScreen() {
     }
   }
 
-  const sitterName = sitter?.display_name ?? (sitter ? `@${sitter.username}` : "this follower");
+  const sitterName = sitter?.display_name ?? (sitter ? `@${sitter.username}` : t("requestSitting.sitterFallback"));
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Request Plant-Sitting" }} />
+      <Stack.Screen options={{ title: t("requestSitting.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.intro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Ask {sitterName} to look after all of your plants while you're away. They'll be able to view
-          your care tasks, mark them done, and log new progress reports on your behalf.
+          {t("requestSitting.intro", { sitterName })}
         </Text>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Start date (optional)
+            {t("requestSitting.startDate.label")}
           </Text>
           <DatePickerField value={startsAt} onChange={setStartsAt} fonts={fonts} minDate={today} maxDate={maxSittingDate} />
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            End date (optional)
+            {t("requestSitting.endDate.label")}
           </Text>
           <DatePickerField
             value={endsAt}
@@ -112,12 +113,11 @@ export default function RequestSittingScreen() {
           />
           {!rangeIsValid ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-              End date must be on or after the start date
+              {t("requestSitting.endDate.rangeError")}
             </Text>
           ) : null}
           <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            Leave both blank for an open-ended request you can cancel anytime. Access opens at the
-            start date and closes after the end date -- accepting early doesn't open it sooner.
+            {t("requestSitting.endDate.hint")}
           </Text>
         </View>
 
@@ -134,7 +134,7 @@ export default function RequestSittingScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Send request
+              {t("requestSitting.sendButton")}
             </Text>
           )}
         </Pressable>

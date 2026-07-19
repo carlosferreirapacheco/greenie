@@ -7,6 +7,7 @@ import { type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 function BlockedRow({
@@ -21,6 +22,7 @@ function BlockedRow({
   onUnblock: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.profileLink} onPress={() => router.push(`/user/${profile.id}`)}>
@@ -33,7 +35,9 @@ function BlockedRow({
         {busy ? (
           <ActivityIndicator color={colors.moss} />
         ) : (
-          <Text style={[styles.actionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Unblock</Text>
+          <Text style={[styles.actionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("common.unblock")}
+          </Text>
         )}
       </Pressable>
     </View>
@@ -53,6 +57,7 @@ export default function BlockedUsersScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchBlockedUsers = useCallback(() => {
     getBlockedUsers()
@@ -91,7 +96,7 @@ export default function BlockedUsersScreen() {
     }
   }
 
-  const screen = <Stack.Screen options={{ title: "Blocked Users" }} />;
+  const screen = <Stack.Screen options={{ title: t("blockedUsers.screenTitle") }} />;
 
   if (status === "loading") {
     return (
@@ -106,7 +111,7 @@ export default function BlockedUsersScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("blockedUsers.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -115,7 +120,7 @@ export default function BlockedUsersScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No blocked users</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("blockedUsers.emptyState")}</Text>
       </View>
     );
   }

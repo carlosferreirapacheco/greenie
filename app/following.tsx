@@ -7,6 +7,7 @@ import { type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
@@ -30,6 +31,7 @@ export default function FollowingScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchFollowing = useCallback(() => {
     getFollowing()
@@ -57,23 +59,23 @@ export default function FollowingScreen() {
   const screen = (
     <Stack.Screen
       options={{
-        title: "Following",
+        title: t("following.screenTitle"),
         headerRight: () => (
           <View style={styles.headerRightRow}>
             <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
               <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                Requests
+                {t("following.headerActions.requests")}
               </Text>
               {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
             </Pressable>
             <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
               <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                Followers
+                {t("following.headerActions.followers")}
               </Text>
             </Pressable>
             <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
               <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                Search
+                {t("following.headerActions.search")}
               </Text>
             </Pressable>
           </View>
@@ -95,7 +97,7 @@ export default function FollowingScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("following.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -104,7 +106,7 @@ export default function FollowingScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         {screen}
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>Not following anyone yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("following.emptyState")}</Text>
       </View>
     );
   }
@@ -120,7 +122,7 @@ export default function FollowingScreen() {
     body = (
       <View style={styles.center}>
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>
-          No one you follow matches "{searchQuery.trim()}"
+          {t("following.noMatch", { query: searchQuery.trim() })}
         </Text>
       </View>
     );
@@ -142,7 +144,7 @@ export default function FollowingScreen() {
         style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search people you follow"
+        placeholder={t("following.searchPlaceholder")}
         placeholderTextColor={colors.inkSoft}
       />
       {body}
