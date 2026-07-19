@@ -170,10 +170,19 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   });
 }
 
-export async function getFeed(): Promise<FeedItem[]> {
+const FEED_PAGE_SIZE = 20;
+
+export type FeedPage = { items: FeedItem[]; nextCursor: string | null };
+
+// Cursor-based (keyset) pagination on created_at, not offset/.range() --
+// offset pagination shifts under a feed that's actively being appended
+// to (a followed account posting mid-scroll skews every later page's
+// offset), which keyset pagination avoids since each page is anchored
+// to the last row actually seen, not a position in a moving set.
+export async function getFeed(options?: { before?: string }): Promise<FeedPage> {
   const following = await getFollowing();
   if (following.length === 0) {
-    return [];
+    return { items: [], nextCursor: null };
   }
 
   const authorInfoById = new Map<string, AuthorInfo>(
@@ -183,7 +192,7 @@ export async function getFeed(): Promise<FeedItem[]> {
     ])
   );
 
-  const { data: reports, error: reportsError } = await supabase
+  let query = supabase
     .from("plant_progress")
     .select("*")
     .in(
@@ -192,13 +201,25 @@ export async function getFeed(): Promise<FeedItem[]> {
     )
     .eq("shared_to_feed", true)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(FEED_PAGE_SIZE);
+
+  if (options?.before) {
+    query = query.lt("created_at", options.before);
+  }
+
+  const { data: reports, error: reportsError } = await query;
 
   if (reportsError) {
     throw reportsError;
   }
 
-  return hydrateReports(reports, authorInfoById);
+  const items = await hydrateReports(reports, authorInfoById);
+  // A full page means there could be more; a short page means this was
+  // the last one. Accepted edge case: if the remaining rows exactly
+  // equal FEED_PAGE_SIZE, this looks like "more" until the next fetch
+  // comes back empty -- one harmless extra round-trip, not a bug.
+  const nextCursor = reports.length === FEED_PAGE_SIZE ? reports[reports.length - 1].created_at : null;
+  return { items, nextCursor };
 }
 
 export async function getProgressReport(id: string): Promise<FeedItem> {

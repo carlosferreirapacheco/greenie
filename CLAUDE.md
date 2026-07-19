@@ -1096,9 +1096,42 @@ sharing them socially with other users.
   modules for ~20 screens; CI already runs `npm test` so it'll pick up
   new component tests automatically once this is built, no workflow
   changes needed.
-- Lazy-load feed items — `getFeed()` (`lib/supabase/plant_progress.ts`)
-  fetches a flat `.limit(50)` with no pagination/infinite scroll; fine at
-  current data volumes, worth revisiting once feeds get long
+- Lazy-load feed items — done. `getFeed()` (`lib/supabase/plant_progress.ts`)
+  switched from a flat `.limit(50)` to cursor-based (keyset) pagination on
+  `created_at`, 20 rows per page — deliberately not offset/`.range()`,
+  which shifts under a feed that's actively being appended to (a followed
+  account posting mid-scroll skews every later page's offset); keyset
+  pagination anchors each page to the last row actually seen instead of a
+  position in a moving set. New signature: `getFeed(options?: { before?:
+  string }): Promise<{ items: FeedItem[]; nextCursor: string | null }>` —
+  a full page (20 rows) yields the last row's `created_at` as the next
+  cursor, a short page yields `null` (accepted edge case: an exact-20
+  remainder looks like "more" until the following fetch comes back empty,
+  one harmless extra round-trip). `hydrateReports()` itself untouched.
+  `lib/supabase/testUtils/mockClient.ts`'s shared `CHAIN_METHODS` gained
+  `lt` (additive, used by every test file). `app/(tabs)/feed.tsx`: focus
+  refetch (`useFocusEffect`) stays a full reset of `items`/`nextCursor`,
+  not an append — revisiting the tab is a fresh look at current state, not
+  a resume; a new `fetchMore()` (guarded by the same in-flight `useRef`
+  pattern the like-toggle already uses) calls `getFeed({ before:
+  nextCursor })` and appends, wired to `FlatList`'s `onEndReached`
+  (`onEndReachedThreshold={0.5}`) with a `ListFooterComponent` spinner
+  while loading; a failed background page fetch leaves `nextCursor`
+  alone so scrolling back down retries, rather than inventing footer
+  error UI for a low-stakes fetch. Verified: `tsc --noEmit` + `npm test`
+  (6 `getFeed` cases incl. cursor-passed/full-page/short-page), and live
+  against the real backend — seeded 25 shared reports, confirmed the
+  first page loads 20, and (since this environment's browser automation
+  can't reliably drive React Native Web's virtualized `FlatList` scroll
+  internals via synthetic scroll events — confirmed via React Fiber
+  inspection that the real `onScroll` handler fires but `onEndReached`'s
+  own content-size tracking doesn't update from a synthetic event)
+  called the component's own `fetchMore` directly via its React Fiber
+  hook state: `items` went 20 → 25 and `nextCursor` correctly resolved
+  to `null` on the short second page, proving the fetch-append-cursor
+  logic end-to-end against live Supabase data, not just mocks. All
+  seeded test data (reports, test plant, follow row, throwaway auth
+  account) deleted afterward.
 - Show email (or future username) for authors without a display name —
   done, resolved by the Usernames feature (see Product features):
   every former "No display name yet" fallback now shows `@username`
