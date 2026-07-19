@@ -994,7 +994,11 @@ sharing them socially with other users.
   their email to the Access policy. A future mobile release does NOT
   depend on this hosting (native builds talk straight to Supabase) —
   it's a demo vehicle that can later graduate to a production web app.
-  - Custom domain — later, free on Cloudflare Pages.
+  - Custom domain — later, free on Cloudflare Pages. A domain is now
+    owned (`greenie-app.com`, registered for the SMTP setup below —
+    see "Confirm email + real SMTP delivery" under Public launch /
+    production readiness) and could point here later, but wiring it up
+    is still unstarted.
   - Access seat count — the free Zero Trust plan covers 50 users;
     revisit if the invite list approaches that.
   - (Store-required public pages for a mobile release are tracked
@@ -1400,28 +1404,63 @@ Everything below is a real, still-open gap between the current dev/demo
 state and a real public or store launch — pulled out of the feature
 write-ups above so it's scannable as one checklist instead of buried in
 unrelated history.
-- Re-enable "Confirm email" in the Supabase Auth dashboard — it's off
-  right now purely as a development workaround for the built-in email
-  sender's low rate limit (a couple sends/hour, too low to test signup
-  repeatedly). Leaving it off lets anyone sign up with an email they
-  don't own.
-- Finish SMTP setup so real email actually delivers. Provider chosen
-  (Resend, over Brevo/Postmark/Mailgun/SendGrid — see the SMTP provider
-  decision) and custom SMTP configured in the Supabase dashboard (host
-  `smtp.resend.com`, sender `onboarding@resend.dev` — Resend's free
-  test domain, which can only deliver to the address the Resend account
-  itself was signed up with, not arbitrary real users). Delivery
-  testing stalled because every seed/test account had a fake or
-  placeholder email with nowhere real to land — resolved by the
-  "Change account email / link Google account" feature (Product
-  features), which gives test accounts a real address to test against.
-  Actual end-to-end delivery testing (does a real inbox receive the
-  emailed OTP) is the next step once resumed. Re-enabling "Confirm
-  email" above should happen once this is done.
-- Owner dashboard action: the default Magic Link email template only
-  contains a link — add `{{ .Token }}` to it (Auth → Email Templates →
-  Magic Link) so real account-deletion emails carry the 6-digit code,
-  not just a link. Pairs with the SMTP item above.
+- Confirm email + real SMTP delivery — done. Registered `greenie-app.com`
+  via Cloudflare Registrar (chosen for `.com`'s deliverability edge over
+  cheap alt-TLDs — `.xyz`/`.site`/`.online` carry meaningfully higher
+  spam-filter distrust — and for sitting in the same dashboard as the
+  existing Cloudflare Pages demo hosting) and verified a `mail.` subdomain
+  in Resend (SPF `TXT` + DKIM `TXT` records added in Cloudflare DNS,
+  `DNS only`/grey-cloud so they're never proxied). Supabase's custom SMTP
+  now points at `smtp.resend.com` with a sender on the verified domain
+  (`noreply@mail.greenie-app.com`) instead of Resend's `onboarding@resend.dev`
+  test address, which could only ever deliver to the Resend account's own
+  signup email. **Confirm email** is back on. Both the Magic Link/OTP
+  template (account-deletion + email-change codes) and a new Confirm
+  signup template got a matching basic-HTML treatment (moss-green
+  heading, code in a shaded box, plain-language copy, subject line
+  "Your Greenie verification code" / "Confirm your Greenie account") —
+  a placeholder pass, not a final design; a real HTML template pass is
+  future work.
+  - **Signup confirmation switched from a link to a code**, matching
+    every other emailed-proof-of-mailbox flow in the app (account
+    deletion, email change) instead of Supabase's default
+    click-a-link `{{ .ConfirmationURL }}`. Deliberate tradeoff: a link
+    can be silently pre-consumed by corporate/email-provider link
+    scanners that pre-fetch URLs to check for malware, leaving the
+    real user with a confusing "expired" error before they ever click
+    it themselves — a code typed back into the same app instance the
+    signup started in doesn't have that failure mode, and it's
+    consistent with the emailed-code pattern testers will already see
+    elsewhere in the app. New `verifySignupCode(email, code)` in
+    `lib/supabase/auth.ts` (`supabase.auth.verifyOtp({ email, token,
+    type: "signup" })` — no session exists yet at this point, so the
+    email has to be passed in explicitly rather than read off
+    `getUser()` like the other emailed-code flows do). `app/sign-up.tsx`'s
+    "check your email" state is now a code-entry form (matching this
+    screen's own field/button styling) instead of a static message;
+    on success `app/_layout.tsx`'s existing `onAuthStateChange`
+    listener picks up the new session the same as any other sign-in,
+    no extra wiring needed.
+  - **Real bug found and fixed while testing**: the first live signup
+    test (via the web preview, a `+`-aliased real Gmail address) hit a
+    500 — Resend rejected the send because Supabase's SMTP "Sender
+    email" field was still pointed at the old test address even though
+    the domain itself was verified; the fix was updating that one field
+    to the `mail.greenie-app.com` sender. Caught precisely because the
+    test used a different recipient than the account owner's own
+    email — an earlier OTP-only test had used the owner's own address,
+    which Resend always allows regardless of sender-domain
+    verification, and so didn't surface the gap. Confirmed via
+    Supabase's auth logs (`get_logs` service `auth`): the failing
+    attempt showed a `550` from `gomail`, the retry after the fix
+    showed a clean `200`. Verified live end-to-end after the fix: real
+    signup → styled confirmation email arrives with a working code →
+    typing it in signs the account straight into the Plants screen
+    (skipping `/welcome`, confirming `accepted_privacy_at` still gets
+    stamped correctly from signup metadata) → test account removed via
+    the Auth Admin API afterward.
+  - Runbook: `docs/email-smtp-setup.md` (Resend/Supabase steps) is now
+    historical, since every step in it is done.
 - Native GDPR data export — the "Your data" download (Settings →
   `collectMyData()` in `lib/supabase/gdpr.ts`) uses a web Blob + anchor
   and is web-only; native needs `expo-file-system`/share-sheet wiring

@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
-import { signInWithGoogle, signUpWithEmail } from "../lib/supabase/auth";
+import { signInWithGoogle, signUpWithEmail, verifySignupCode } from "../lib/supabase/auth";
 import { isUsernameAvailable, normalizeUsername, validateUsername } from "../lib/supabase/usernames";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -31,8 +31,13 @@ export default function SignUpScreen() {
   const [status, setStatus] = useState<"idle" | "submitting" | "check-email" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
+  const [confirmCode, setConfirmCode] = useState("");
+  const [confirmStatus, setConfirmStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
   // Same synchronous-guard pattern as every other submit flow in this app.
   const isSubmitting = useRef(false);
+  const isConfirming = useRef(false);
 
   const normalizedUsername = normalizeUsername(username);
   const usernameError = normalizedUsername.length > 0 ? validateUsername(normalizedUsername) : null;
@@ -80,6 +85,28 @@ export default function SignUpScreen() {
     }
   }
 
+  async function handleConfirmCode() {
+    if (confirmCode.trim().length === 0 || isConfirming.current) {
+      return;
+    }
+    isConfirming.current = true;
+
+    setConfirmStatus("submitting");
+    setConfirmError(null);
+
+    try {
+      await verifySignupCode(email.trim(), confirmCode);
+      // If it succeeds, app/_layout.tsx's onAuthStateChange listener
+      // swaps to the main app Stack automatically -- same as any other
+      // sign-in.
+    } catch (err) {
+      setConfirmError(getErrorMessage(err));
+      setConfirmStatus("error");
+    } finally {
+      isConfirming.current = false;
+    }
+  }
+
   async function handleGoogleSignIn() {
     if (isSubmitting.current) {
       return;
@@ -102,16 +129,54 @@ export default function SignUpScreen() {
   }
 
   if (status === "check-email") {
+    const canConfirm = confirmCode.trim().length > 0 && confirmStatus !== "submitting";
+
     return (
-      <View style={[styles.center, { backgroundColor: colors.paper }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.paper }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         <Stack.Screen options={{ title: "Create Account" }} />
-        <Text style={[styles.checkEmailText, { fontFamily: fonts.body, color: colors.ink }]}>
-          Check your email to confirm your account, then sign in.
-        </Text>
-        <Pressable onPress={() => router.replace("/sign-in")} hitSlop={8}>
-          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Back to sign in</Text>
-        </Pressable>
-      </View>
+        <View style={styles.center}>
+          <Text style={[styles.checkEmailText, { fontFamily: fonts.body, color: colors.ink }]}>
+            We sent a confirmation code to {email.trim()}. Enter it below to finish creating your account.
+          </Text>
+
+          <View style={styles.field}>
+            <TextInput
+              style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+              value={confirmCode}
+              onChangeText={setConfirmCode}
+              placeholder="123456"
+              placeholderTextColor={colors.inkSoft}
+              keyboardType="number-pad"
+              autoCapitalize="none"
+            />
+          </View>
+
+          {confirmStatus === "error" ? (
+            <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{confirmError}</Text>
+          ) : null}
+
+          <Pressable
+            style={[styles.submitButton, { backgroundColor: canConfirm ? colors.moss : colors.line }]}
+            onPress={handleConfirmCode}
+            disabled={!canConfirm}
+          >
+            {confirmStatus === "submitting" ? (
+              <ActivityIndicator color={colors.paper} />
+            ) : (
+              <Text style={[styles.submitButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                Confirm
+              </Text>
+            )}
+          </Pressable>
+
+          <Pressable onPress={() => router.replace("/sign-in")} hitSlop={8}>
+            <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Back to sign in</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     );
   }
 
