@@ -1032,6 +1032,59 @@ sharing them socially with other users.
   (see Plant-sitting above) opens the real Android share sheet with
   correctly formatted, readable text — previously only verified on web,
   where the browser reports "not supported" instead.
+- External testing distribution (Android) — done. Independent testers
+  need a way to install the app that doesn't depend on Carlos's own
+  machine or a live Metro/dev-client session, unlike the `development`
+  profile above. New `eas.json` **`preview`** profile (`distribution:
+  "internal"`, Android `buildType: "apk"`, deliberately **no**
+  `developmentClient: true`) produces a standalone binary with the JS
+  bundle embedded at build time — installed testers need no dev-server
+  connection at all. No `expo-updates` is installed in this project, so
+  there's no OTA channel; a new version means a new
+  `eas build --platform android --profile preview` run and a re-shared
+  install link, which is fine at this scale. **Gotcha worth
+  remembering**: the first `preview` build compiled fine but crashed
+  immediately on open, because `lib/supabase/client.ts` throws at
+  import time if `EXPO_PUBLIC_SUPABASE_URL`/
+  `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are missing — and unlike the
+  `development` profile (a shell that loads JS live from a local Metro
+  server, which reads `.env` locally), a `preview` build bundles the JS
+  **in the cloud** during the EAS build itself, where `.env` isn't
+  present (`.easignore` deliberately excludes it, mirroring
+  `.gitignore`, so secrets never leave the machine as a plaintext
+  project file). Fixed by registering both vars as EAS **project
+  environment variables** scoped to the `preview` environment
+  (`eas env:create --environment preview --scope project --name <NAME>
+  --value <VALUE> --visibility plaintext --non-interactive`) — safe to
+  store there since `EXPO_PUBLIC_*` vars end up in the client bundle
+  regardless, and the "publishable key" is Supabase's anon key,
+  meant to be public and RLS-protected. Applies to any future
+  standalone (non-dev-client) build profile, not just this one. Before
+  the first build, the dev/test accounts' plant/progress content was
+  wiped via a transaction through the Supabase MCP `execute_sql` tool
+  (plants, care tasks, progress reports, likes, comments,
+  notifications) plus a Storage API bulk-delete for their orphaned
+  photo objects (direct SQL `DELETE` against `storage.objects` is
+  blocked by Supabase's own `protect_delete()` trigger — has to go
+  through the Storage REST API, authenticated with
+  `SUPABASE_SECRET_KEY`) — so Carlos's own account starts clean for
+  real plants rather than dev fixtures. One unrelated account (`babel`,
+  a real email, not a `dev-dummy-user-N@greenie.local` fixture) was
+  confirmed to have zero overlap with the wiped accounts and was
+  deliberately left untouched. New `docs/tester-guide.md` (install
+  instructions, sign-up guidance, and the two honest caveats: one
+  shared backend so content is visible to other testers per normal
+  privacy rules, and the Gemini AI-lookup key being shared across every
+  tester). Google sign-in still works for testers but the OAuth consent
+  screen is in Testing publish status (see `docs/google-oauth.md`),
+  capping it to manually-added test users — the tester guide defaults
+  people to email/password signup instead of chasing that down.
+  Finishing real email delivery (Confirm email + Resend SMTP) so
+  testers' signup/reset/deletion emails actually arrive is tracked
+  separately — see `docs/email-smtp-setup.md` and the "Public launch /
+  production readiness" checklist below, which stays open until Carlos
+  has run through and verified it live (owner-only dashboard steps,
+  can't be done from this repo).
 - Screen/component-level tests — unit testing (Jest + `jest-expo`) now
   covers the `lib/` layer (pure logic + Supabase call layer, see
   Conventions), but no screens under `app/` are tested yet. Deferred
