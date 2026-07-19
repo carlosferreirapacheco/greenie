@@ -1505,9 +1505,27 @@ unrelated history.
   secret was set) and, after the fresh EAS build, the native
   download/share path on a real Android device (share sheet opens with
   the correct file).
+- Privacy policy content — done for the specific gaps identified this
+  session (not the full legal review, see below). The draft
+  (`app/privacy-policy.tsx`) had drifted from what the app actually
+  does: it claimed "Photos are not collected yet" (false, Photo capture
+  shipped earlier), and "What leaves the app" didn't mention Resend
+  (real email delivery, including the new email-a-copy feature sending
+  a user's full export as an attachment) or Expo's push notification
+  service. All three sections updated to describe actual current data
+  flows; "Your rights" also updated to mention the new email-export
+  option. Deliberately did **not** touch the hardcoded "Last updated"
+  date or bump `app_config.privacy_policy_updated_at` — per this
+  screen's own documented process, that's a deliberate "publish" event
+  that re-prompts every existing user for consent, not something to
+  trigger incidentally on a content fix. Other known gaps (blocks,
+  plant-sitting, the notifications inbox aren't mentioned in "What
+  Greenie stores") were flagged but deliberately left out of this pass
+  since they weren't asked for.
 - Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
   currently marked "requires review before public launch") before any
-  public launch.
+  public launch — still open regardless of the content-accuracy pass
+  above; a factual-accuracy check is not a legal-adequacy review.
 - Store-required public pages — when a mobile release happens, the
   privacy-policy URL (and Google Play's required account-deletion web
   link) must be *publicly* reachable, i.e. carved out of the online
