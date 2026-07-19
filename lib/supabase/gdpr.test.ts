@@ -5,7 +5,7 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { collectMyData } from "./gdpr";
+import { collectMyData, emailMyDataExport, type MyDataExport } from "./gdpr";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -130,5 +130,24 @@ describe("collectMyData", () => {
     expect(mockSupabase.from).not.toHaveBeenCalledWith("care_tasks");
     expect(result.care_tasks).toEqual([]);
     expect(result.blocks).toEqual([]);
+  });
+});
+
+describe("emailMyDataExport", () => {
+  const exportData = { exported_at: "2026-07-19T00:00:00Z" } as unknown as MyDataExport;
+
+  it("invokes the edge function with the export as the body", async () => {
+    mockSupabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
+
+    await emailMyDataExport(exportData);
+
+    expect(mockSupabase.functions.invoke).toHaveBeenCalledWith("email-data-export", { body: exportData });
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "Email delivery failed" };
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: err });
+
+    await expect(emailMyDataExport(exportData)).rejects.toBe(err);
   });
 });
