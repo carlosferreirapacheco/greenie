@@ -41,23 +41,26 @@ import { ChipGroup } from "../components/ChipGroup";
 import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 
-// One On/Off row per notification kind, in inbox-relevance order.
-const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; label: string }[] = [
-  { key: "notify_care_tasks", label: "Care task reminders" },
-  { key: "notify_comments", label: "Comments" },
-  { key: "notify_likes", label: "Likes" },
-  { key: "notify_follow_requests", label: "Follow requests" },
-  { key: "notify_new_followers", label: "New followers" },
-  { key: "notify_follow_accepted", label: "Follow request accepted" },
-  { key: "notify_sitting_requests", label: "Plant-sitting requests" },
-  { key: "notify_sitting_responses", label: "Plant-sitting responses" },
+// One On/Off row per notification kind, in inbox-relevance order. labelKey
+// is a settings.notifications.prefRows.* translation key, not literal text.
+const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; labelKey: string }[] = [
+  { key: "notify_care_tasks", labelKey: "settings.notifications.prefRows.careTaskReminders" },
+  { key: "notify_comments", labelKey: "settings.notifications.prefRows.comments" },
+  { key: "notify_likes", labelKey: "settings.notifications.prefRows.likes" },
+  { key: "notify_follow_requests", labelKey: "settings.notifications.prefRows.followRequests" },
+  { key: "notify_new_followers", labelKey: "settings.notifications.prefRows.newFollowers" },
+  { key: "notify_follow_accepted", labelKey: "settings.notifications.prefRows.followRequestAccepted" },
+  { key: "notify_sitting_requests", labelKey: "settings.notifications.prefRows.sittingRequests" },
+  { key: "notify_sitting_responses", labelKey: "settings.notifications.prefRows.sittingResponses" },
 ];
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors, themePreference, setThemePreference } = useTheme();
+  const { t, languagePreference, setLanguagePreference } = useLanguage();
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -194,9 +197,7 @@ export default function SettingsScreen() {
     completePendingGoogleLinkSync()
       .then((syncedEmail) => {
         if (syncedEmail) {
-          setGoogleSyncBanner(
-            `Google account linked — check ${syncedEmail} for a confirmation link to finish switching your account email.`
-          );
+          setGoogleSyncBanner(t("settings.emailLinkedAccounts.googleSyncBanner", { email: syncedEmail }));
         }
       })
       .catch(() => {
@@ -327,9 +328,7 @@ export default function SettingsScreen() {
       setPushOn(enabled);
 
       if (value === "on" && !enabled) {
-        setPushError(
-          "Notification permission was denied — allow notifications for Greenie in your device settings, then try again."
-        );
+        setPushError(t("settings.notifications.push.permissionDeniedError"));
       }
     } catch (err) {
       setPushError(getErrorMessage(err));
@@ -451,38 +450,55 @@ export default function SettingsScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Settings" }} />
+      <Stack.Screen options={{ title: t("settings.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.sectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Appearance
+          {t("settings.appearance.sectionTitle")}
         </Text>
         <ChipGroup
           fonts={fonts}
           value={themePreference}
           onChange={setThemePreference}
           options={[
-            { value: "system", label: "System" },
-            { value: "light", label: "Light" },
-            { value: "dark", label: "Dark" },
+            { value: "system", label: t("settings.appearance.options.system") },
+            { value: "light", label: t("settings.appearance.options.light") },
+            { value: "dark", label: t("settings.appearance.options.dark") },
           ]}
         />
         <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          System matches your device's setting.
+          {t("settings.appearance.hint")}
         </Text>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Change password
+          {t("settings.language.sectionTitle")}
+        </Text>
+        <ChipGroup
+          fonts={fonts}
+          value={languagePreference}
+          onChange={setLanguagePreference}
+          options={[
+            { value: "system", label: t("settings.language.options.system") },
+            { value: "en", label: t("settings.language.options.en") },
+            { value: "pt-PT", label: t("settings.language.options.ptPT") },
+          ]}
+        />
+        <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {t("settings.language.hint")}
+        </Text>
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          {t("settings.changePassword.sectionTitle")}
         </Text>
 
         {hasPassword === false ? (
           <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            You sign in with Google — this account has no password.
+            {t("settings.changePassword.googleOnlyHint")}
           </Text>
         ) : (
           <>
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Current password
+                {t("settings.changePassword.currentPassword.label")}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -496,7 +512,7 @@ export default function SettingsScreen() {
 
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                New password (min. 6 characters)
+                {t("settings.changePassword.newPassword.label")}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -510,7 +526,7 @@ export default function SettingsScreen() {
 
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Confirm new password
+                {t("settings.changePassword.confirmPassword.label")}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -522,7 +538,7 @@ export default function SettingsScreen() {
               />
               {confirmPassword.length > 0 && !passwordsMatch ? (
                 <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
-                  Passwords don't match
+                  {t("settings.changePassword.confirmPassword.mismatchError")}
                 </Text>
               ) : null}
             </View>
@@ -532,7 +548,7 @@ export default function SettingsScreen() {
             ) : null}
             {saveStatus === "saved" ? (
               <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Password updated
+                {t("settings.changePassword.savedText")}
               </Text>
             ) : null}
 
@@ -545,7 +561,7 @@ export default function SettingsScreen() {
                 <ActivityIndicator color={colors.paper} />
               ) : (
                 <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Save
+                  {t("settings.changePassword.saveButton")}
                 </Text>
               )}
             </Pressable>
@@ -553,7 +569,7 @@ export default function SettingsScreen() {
         )}
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Email &amp; linked accounts
+          {t("settings.emailLinkedAccounts.sectionTitle")}
         </Text>
 
         {googleSyncBanner ? (
@@ -563,16 +579,18 @@ export default function SettingsScreen() {
         ) : null}
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Current email: {accountEmail ?? "—"}
+          {t("settings.emailLinkedAccounts.currentEmail", { email: accountEmail ?? "—" })}
         </Text>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>New email</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("settings.emailLinkedAccounts.newEmail.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={newEmail}
             onChangeText={setNewEmail}
-            placeholder="you@example.com"
+            placeholder={t("settings.emailLinkedAccounts.newEmail.placeholder")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             autoCorrect={false}
@@ -583,11 +601,11 @@ export default function SettingsScreen() {
         {emailCodeStatus === "sent" ? (
           <>
             <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-              Code sent to {accountEmail ?? "your email"}
+              {t("settings.emailLinkedAccounts.codeSent", { email: accountEmail ?? t("settings.emailLinkedAccounts.newEmail.label") })}
             </Text>
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Confirmation code
+                {t("settings.emailLinkedAccounts.confirmationCode.label")}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -606,7 +624,7 @@ export default function SettingsScreen() {
             ) : null}
             {emailChangeStatus === "changed" ? (
               <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Check {newEmail} for a confirmation link to finish the change.
+                {t("settings.emailLinkedAccounts.emailChanged", { newEmail })}
               </Text>
             ) : null}
             <Pressable
@@ -621,7 +639,7 @@ export default function SettingsScreen() {
                 <ActivityIndicator color={colors.paper} />
               ) : (
                 <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Confirm &amp; change email
+                  {t("settings.emailLinkedAccounts.confirmChangeButton")}
                 </Text>
               )}
             </Pressable>
@@ -642,7 +660,7 @@ export default function SettingsScreen() {
                 <ActivityIndicator color={colors.moss} />
               ) : (
                 <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                  Send code to current email
+                  {t("settings.emailLinkedAccounts.sendCodeButton")}
                 </Text>
               )}
             </Pressable>
@@ -651,20 +669,20 @@ export default function SettingsScreen() {
 
         <View style={[styles.field, styles.linkedAccountsField]}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Linked accounts
+            {t("settings.emailLinkedAccounts.linkedAccounts.label")}
           </Text>
           {googleLinkedEmail ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Google account linked ({googleLinkedEmail}).
+              {t("settings.emailLinkedAccounts.linkedAccounts.googleLinked", { email: googleLinkedEmail })}
             </Text>
           ) : Platform.OS !== "web" ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Linking a Google account is available on the web for now.
+              {t("settings.emailLinkedAccounts.linkedAccounts.webOnlyHint")}
             </Text>
           ) : googleLinkCodeStatus === "sent" ? (
             <>
               <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Code sent to {accountEmail ?? "your email"}
+                {t("settings.emailLinkedAccounts.codeSent", { email: accountEmail ?? t("settings.emailLinkedAccounts.newEmail.label") })}
               </Text>
               <TextInput
                 style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
@@ -689,7 +707,7 @@ export default function SettingsScreen() {
                   <ActivityIndicator color={colors.paper} />
                 ) : (
                   <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                    Confirm &amp; link Google account
+                    {t("settings.emailLinkedAccounts.linkedAccounts.confirmLinkButton")}
                   </Text>
                 )}
               </Pressable>
@@ -710,7 +728,7 @@ export default function SettingsScreen() {
                   <ActivityIndicator color={colors.moss} />
                 ) : (
                   <Text style={[styles.dangerOutlineButtonText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                    Send code to current email
+                    {t("settings.emailLinkedAccounts.sendCodeButton")}
                   </Text>
                 )}
               </Pressable>
@@ -719,18 +737,18 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Privacy
+          {t("settings.privacy.sectionTitle")}
         </Text>
 
         <Pressable onPress={() => router.push("/privacy-policy")} hitSlop={4}>
           <Text style={[styles.policyLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Read the Privacy Policy
+            {t("settings.privacy.readPolicyLink")}
           </Text>
         </Pressable>
 
         <Pressable onPress={() => router.push("/blocked-users")} hitSlop={4}>
           <Text style={[styles.policyLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Blocked users
+            {t("settings.privacy.blockedUsersLink")}
           </Text>
         </Pressable>
 
@@ -741,68 +759,68 @@ export default function SettingsScreen() {
         ) : (
           <>
             <View style={styles.field}>
-              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Profile</Text>
+              <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                {t("settings.privacy.profileVisibility.label")}
+              </Text>
               <ChipGroup
                 fonts={fonts}
                 value={profileVisibility}
                 onChange={setProfileVisibility}
                 options={[
-                  { value: "public", label: "Public" },
-                  { value: "private", label: "Private" },
+                  { value: "public", label: t("settings.privacy.profileVisibility.options.public") },
+                  { value: "private", label: t("settings.privacy.profileVisibility.options.private") },
                 ]}
               />
               <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                Private shows only your name, avatar, and bio to people who don't follow you.
+                {t("settings.privacy.profileVisibility.hint")}
               </Text>
             </View>
 
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Follow requests
+                {t("settings.privacy.followRequests.label")}
               </Text>
               <ChipGroup
                 fonts={fonts}
                 value={followPolicy}
                 onChange={setFollowPolicy}
                 options={[
-                  { value: "open", label: "Anyone can follow" },
-                  { value: "request", label: "Require approval" },
+                  { value: "open", label: t("settings.privacy.followRequests.options.open") },
+                  { value: "request", label: t("settings.privacy.followRequests.options.request") },
                 ]}
               />
             </View>
 
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Progress reports
+                {t("settings.privacy.progressReports.label")}
               </Text>
               <ChipGroup
                 fonts={fonts}
                 value={progressVisibility}
                 onChange={setProgressVisibility}
                 options={[
-                  { value: "public", label: "Public" },
-                  { value: "private", label: "Followers only" },
+                  { value: "public", label: t("settings.privacy.progressReports.options.public") },
+                  { value: "private", label: t("settings.privacy.progressReports.options.private") },
                 ]}
               />
             </View>
 
             <View style={styles.field}>
               <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                Plant-sitters
+                {t("settings.privacy.plantSitters.label")}
               </Text>
               <ChipGroup
                 fonts={fonts}
                 value={plantSitterAttribution}
                 onChange={setPlantSitterAttribution}
                 options={[
-                  { value: "allowed", label: "Allow sharing to their feed" },
-                  { value: "disabled", label: "Keep in plant history only" },
+                  { value: "allowed", label: t("settings.privacy.plantSitters.options.allowed") },
+                  { value: "disabled", label: t("settings.privacy.plantSitters.options.disabled") },
                 ]}
               />
               <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                When a plant-sitter logs a progress report on one of your plants, this controls whether
-                they can share it to their own feed. Off: their reports stay in this plant's own
-                history only.
+                {t("settings.privacy.plantSitters.hint")}
               </Text>
             </View>
 
@@ -813,7 +831,7 @@ export default function SettingsScreen() {
             ) : null}
             {privacySaveStatus === "saved" ? (
               <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Privacy settings saved
+                {t("settings.privacy.savedText")}
               </Text>
             ) : null}
 
@@ -826,7 +844,7 @@ export default function SettingsScreen() {
                 <ActivityIndicator color={colors.paper} />
               ) : (
                 <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Save privacy settings
+                  {t("settings.privacy.saveButton")}
                 </Text>
               )}
             </Pressable>
@@ -834,16 +852,16 @@ export default function SettingsScreen() {
         )}
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Notifications
+          {t("settings.notifications.sectionTitle")}
         </Text>
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Push notifications
+            {t("settings.notifications.push.label")}
           </Text>
           {Platform.OS === "web" ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              Push notifications are available in the mobile app.
+              {t("settings.notifications.push.webHint")}
             </Text>
           ) : pushOn === null ? (
             <ActivityIndicator color={colors.moss} />
@@ -854,13 +872,12 @@ export default function SettingsScreen() {
                 value={pushOn ? "on" : "off"}
                 onChange={handleTogglePush}
                 options={[
-                  { value: "on", label: "On" },
-                  { value: "off", label: "Off" },
+                  { value: "on", label: t("settings.notifications.push.options.on") },
+                  { value: "off", label: t("settings.notifications.push.options.off") },
                 ]}
               />
               <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                Get notifications on this device. Applies to this device only — turning it off
-                doesn't touch your in-app inbox.
+                {t("settings.notifications.push.hint")}
               </Text>
               {pushError ? (
                 <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>
@@ -872,8 +889,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Choose what shows up in your notifications. Anything turned off is never created — not just
-          hidden.
+          {t("settings.notifications.sectionIntro")}
         </Text>
 
         {privacyStatus === "loading" ? (
@@ -882,10 +898,10 @@ export default function SettingsScreen() {
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{privacyError}</Text>
         ) : (
           <>
-            {NOTIFICATION_PREF_ROWS.map(({ key, label }) => (
+            {NOTIFICATION_PREF_ROWS.map(({ key, labelKey }) => (
               <View key={key} style={styles.field}>
                 <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  {label}
+                  {t(labelKey)}
                 </Text>
                 <ChipGroup
                   fonts={fonts}
@@ -894,8 +910,8 @@ export default function SettingsScreen() {
                     setNotificationPrefs((prefs) => (prefs ? { ...prefs, [key]: value === "on" } : prefs))
                   }
                   options={[
-                    { value: "on", label: "On" },
-                    { value: "off", label: "Off" },
+                    { value: "on", label: t("settings.notifications.prefOptions.on") },
+                    { value: "off", label: t("settings.notifications.prefOptions.off") },
                   ]}
                 />
               </View>
@@ -908,7 +924,7 @@ export default function SettingsScreen() {
             ) : null}
             {notifSaveStatus === "saved" ? (
               <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Notification settings saved
+                {t("settings.notifications.savedText")}
               </Text>
             ) : null}
 
@@ -921,7 +937,7 @@ export default function SettingsScreen() {
                 <ActivityIndicator color={colors.paper} />
               ) : (
                 <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Save notification settings
+                  {t("settings.notifications.saveButton")}
                 </Text>
               )}
             </Pressable>
@@ -929,13 +945,11 @@ export default function SettingsScreen() {
         )}
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
-          Your data
+          {t("settings.yourData.sectionTitle")}
         </Text>
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Everything Greenie stores about you — your account, plants, care schedules, progress
-          reports, comments, likes, and follows — as a JSON file. Download it to this device, or
-          have a copy emailed to your account address instead.
+          {t("settings.yourData.sectionIntro")}
         </Text>
 
         {exportStatus === "error" ? (
@@ -950,14 +964,14 @@ export default function SettingsScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Download my data
+              {t("settings.yourData.downloadButton")}
             </Text>
           )}
         </Pressable>
 
         {emailExportStatus === "sent" ? (
           <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Sent — check {accountEmail ?? "your account email"}.
+            {t("settings.yourData.emailSent", { email: accountEmail ?? "—" })}
           </Text>
         ) : null}
         {emailExportStatus === "error" ? (
@@ -972,13 +986,13 @@ export default function SettingsScreen() {
             <ActivityIndicator color={colors.moss} />
           ) : (
             <Text style={[styles.secondaryButtonText, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-              Email me a copy
+              {t("settings.yourData.emailButton")}
             </Text>
           )}
         </Pressable>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.coral }]}>
-          Danger zone
+          {t("settings.dangerZone.sectionTitle")}
         </Text>
 
         <AccountDeletionFlow fonts={fonts} />

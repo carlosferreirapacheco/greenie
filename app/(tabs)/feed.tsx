@@ -8,12 +8,30 @@ import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/pl
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
 import { getErrorMessage } from "../../lib/errors";
+import { formatDisplayDate } from "../../lib/dateFormat";
 
-const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
+// Splits a translated sentence template on its {token} markers so each
+// piece can render as its own JSX node (a plain Text run, or a nested
+// pressable) -- needed because "Logged progress on {owner}'s {plant}"
+// and its Portuguese equivalent "Registou progresso na planta {plant}
+// de {owner}" put the same two tokens in a different order, so the
+// sentence can't be built from fixed-position English word order.
+function splitTemplate(template: string, tokens: string[]): (string | { token: string })[] {
+  const pattern = new RegExp(`(${tokens.map((tok) => `\\{${tok}\\}`).join("|")})`, "g");
+  return template
+    .split(pattern)
+    .filter((part) => part !== "")
+    .map((part) => {
+      const match = tokens.find((tok) => part === `{${tok}}`);
+      return match ? { token: match } : part;
+    });
+}
 
 function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [liked, setLiked] = useState(item.liked_by_me);
   const [likeCount, setLikeCount] = useState(item.like_count);
   const [isToggling, setIsToggling] = useState(false);
@@ -60,36 +78,61 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
           </Text>
         </Pressable>
         <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          {dateFormatter.format(new Date(item.created_at))}
+          {formatDisplayDate(item.created_at)}
         </Text>
       </View>
 
       <Text style={[styles.plantLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-        Logged progress on{" "}
-        {item.user_id !== item.plant_owner_id ? (
-          <Text onPress={() => router.push(`/user/${item.plant_owner_id}`)} style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}>
-            {(item.plant_owner_display_name ?? `@${item.plant_owner_username}`) + "'s "}
-          </Text>
-        ) : null}
-        <Text
-          onPress={() => router.push(`/plant/${item.plant_id}`)}
-          style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
-        >
-          {plantPrimary}
-        </Text>
-        {plantCommonName || item.plant_species ? (
-          <Text onPress={() => router.push(`/plant/${item.plant_id}`)}>
-            {" ("}
-            {plantCommonName ? (
-              <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>{plantCommonName}</Text>
-            ) : null}
-            {plantCommonName && item.plant_species ? ", " : ""}
-            {item.plant_species ? (
-              <Text style={{ fontFamily: fonts.displayItalic, color: colors.inkSoft }}>{item.plant_species}</Text>
-            ) : null}
-            {")"}
-          </Text>
-        ) : null}
+        {(() => {
+          const hasOwner = item.user_id !== item.plant_owner_id;
+          const segments = splitTemplate(
+            t(hasOwner ? "feed.plantLine.sentence" : "feed.plantLine.sentenceNoOwner"),
+            ["owner", "plant"]
+          );
+          return segments.map((segment, index) => {
+            if (typeof segment === "string") {
+              return <Text key={index}>{segment}</Text>;
+            }
+            if (segment.token === "owner") {
+              return (
+                <Text
+                  key={index}
+                  onPress={() => router.push(`/user/${item.plant_owner_id}`)}
+                  style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
+                >
+                  {item.plant_owner_display_name ?? `@${item.plant_owner_username}`}
+                </Text>
+              );
+            }
+            return (
+              <Text key={index}>
+                <Text
+                  onPress={() => router.push(`/plant/${item.plant_id}`)}
+                  style={{ fontFamily: fonts.bodyMedium, color: colors.ink }}
+                >
+                  {plantPrimary}
+                </Text>
+                {plantCommonName || item.plant_species ? (
+                  <Text onPress={() => router.push(`/plant/${item.plant_id}`)}>
+                    {" ("}
+                    {plantCommonName ? (
+                      <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft }}>
+                        {plantCommonName}
+                      </Text>
+                    ) : null}
+                    {plantCommonName && item.plant_species ? ", " : ""}
+                    {item.plant_species ? (
+                      <Text style={{ fontFamily: fonts.displayItalic, color: colors.inkSoft }}>
+                        {item.plant_species}
+                      </Text>
+                    ) : null}
+                    {")"}
+                  </Text>
+                ) : null}
+              </Text>
+            );
+          });
+        })()}
       </Text>
 
       {item.notes ? (
@@ -98,33 +141,35 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
 
       {item.height_cm !== null ? (
         <Text style={[styles.height, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-          {item.height_cm} cm
+          {t("feed.heightUnit", { height: item.height_cm })}
         </Text>
       ) : null}
 
       <View style={styles.actions}>
         <Pressable onPress={handleToggleLike} disabled={isToggling} hitSlop={8}>
           <Text style={[styles.likeButton, { fontFamily: fonts.bodyMedium, color: liked ? colors.coral : colors.inkSoft }]}>
-            {liked ? "♥ Liked" : "♡ Like"}
+            {liked ? t("feed.like.liked") : t("feed.like.unliked")}
             {likeCount > 0 ? ` (${likeCount})` : ""}
           </Text>
         </Pressable>
         {item.comment_policy === "disabled" ? (
           <Text style={[styles.commentsLink, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            Comments off
+            {t("feed.comments.off")}
           </Text>
         ) : (
           <>
             <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
               <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 {item.comment_count > 0
-                  ? `${item.comment_count} comment${item.comment_count === 1 ? "" : "s"}`
-                  : "No comments yet"}
+                  ? t(item.comment_count === 1 ? "feed.comments.countOne" : "feed.comments.countMany", {
+                      count: item.comment_count,
+                    })
+                  : t("feed.comments.none")}
               </Text>
             </Pressable>
             <Pressable onPress={() => router.push(`/progress/${item.id}`)} hitSlop={8}>
               <Text style={[styles.commentsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                Add comment
+                {t("feed.comments.add")}
               </Text>
             </Pressable>
           </>
@@ -156,6 +201,7 @@ export default function FeedScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // Same synchronous-guard pattern as the like toggle below.
   const loadingMore = useRef(false);
@@ -215,7 +261,7 @@ export default function FeedScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>Error: {error}</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("feed.error", { error: error ?? "" })}</Text>
       </View>
     );
   }
@@ -223,7 +269,7 @@ export default function FeedScreen() {
   if (items.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>No activity yet</Text>
+        <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("feed.emptyState")}</Text>
       </View>
     );
   }

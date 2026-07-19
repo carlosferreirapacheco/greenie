@@ -15,12 +15,14 @@ import { router, Stack } from "expo-router";
 import { signInWithEmail, signInWithGoogle } from "../lib/supabase/auth";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function SignInScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,17 +81,19 @@ export default function SignInScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Sign In", headerBackVisible: false }} />
+      <Stack.Screen options={{ title: t("signIn.screenTitle"), headerBackVisible: false }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>Greenie</Text>
+        <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>{t("signIn.appTitle")}</Text>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signIn.email.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder={t("signIn.email.placeholder")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -97,12 +101,14 @@ export default function SignInScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Password</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signIn.password.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder={t("signIn.password.placeholder")}
             placeholderTextColor={colors.inkSoft}
             secureTextEntry
           />
@@ -121,14 +127,16 @@ export default function SignInScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.submitButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Sign in
+              {t("signIn.submitButton")}
             </Text>
           )}
         </Pressable>
 
         <View style={styles.dividerRow}>
           <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-          <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
+          <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            {t("signIn.divider")}
+          </Text>
           <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
         </View>
 
@@ -137,12 +145,14 @@ export default function SignInScreen() {
           onPress={handleGoogleSignIn}
         >
           <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-            Continue with Google
+            {t("signIn.googleButton")}
           </Text>
         </Pressable>
 
         <Pressable onPress={() => router.push("/sign-up")} hitSlop={8}>
-          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Create account</Text>
+          <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("signIn.createAccountLink")}
+          </Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

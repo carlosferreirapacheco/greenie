@@ -10,17 +10,21 @@ import { onConsentAccepted } from "../lib/consentEvents";
 import { addPushResponseListener, configurePushHandling, registerForPush } from "../lib/pushNotificationManager";
 import { fontAssets, getFonts } from "../lib/theme";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
+import { LanguageProvider, useLanguage } from "../lib/LanguageContext";
 
 export default function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutNav />
+      <LanguageProvider>
+        <RootLayoutNav />
+      </LanguageProvider>
     </ThemeProvider>
   );
 }
 
 function RootLayoutNav() {
   const { colors, scheme, loaded: themeLoaded } = useTheme();
+  const { loaded: languageLoaded } = useLanguage();
   const [session, setSession] = useState<Session | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
   // null = never accepted; undefined = not yet known. Compared against

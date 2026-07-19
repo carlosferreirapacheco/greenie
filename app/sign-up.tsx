@@ -16,12 +16,14 @@ import { signInWithGoogle, signUpWithEmail, verifySignupCode } from "../lib/supa
 import { isUsernameAvailable, normalizeUsername, validateUsername } from "../lib/supabase/usernames";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
 export default function SignUpScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -64,7 +66,7 @@ export default function SignUpScreen() {
       // the signup silently falling back to a generated username (the
       // handle_new_user trigger never fails signups over usernames).
       if (!(await isUsernameAvailable(normalizedUsername))) {
-        setError("That username is already taken");
+        setError(t("signUp.usernameTakenError"));
         setStatus("error");
         return;
       }
@@ -136,10 +138,10 @@ export default function SignUpScreen() {
         style={{ flex: 1, backgroundColor: colors.paper }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <Stack.Screen options={{ title: "Create Account" }} />
+        <Stack.Screen options={{ title: t("signUp.checkEmail.screenTitle") }} />
         <View style={styles.center}>
           <Text style={[styles.checkEmailText, { fontFamily: fonts.body, color: colors.ink }]}>
-            We sent a confirmation code to {email.trim()}. Enter it below to finish creating your account.
+            {t("signUp.checkEmail.message", { email: email.trim() })}
           </Text>
 
           <View style={styles.field}>
@@ -167,13 +169,15 @@ export default function SignUpScreen() {
               <ActivityIndicator color={colors.paper} />
             ) : (
               <Text style={[styles.submitButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                Confirm
+                {t("signUp.checkEmail.confirmButton")}
               </Text>
             )}
           </Pressable>
 
           <Pressable onPress={() => router.replace("/sign-in")} hitSlop={8}>
-            <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>Back to sign in</Text>
+            <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+              {t("signUp.checkEmail.backToSignInLink")}
+            </Text>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -185,17 +189,19 @@ export default function SignUpScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: "Create Account" }} />
+      <Stack.Screen options={{ title: t("signUp.form.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>Create account</Text>
+        <Text style={[styles.title, { fontFamily: fonts.display, color: colors.ink }]}>{t("signUp.form.heading")}</Text>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Email</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signUp.form.email.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
+            placeholder={t("signUp.form.email.placeholder")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -203,12 +209,14 @@ export default function SignUpScreen() {
         </View>
 
         <View style={styles.field}>
-          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>Username</Text>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("signUp.form.username.label")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={username}
             onChangeText={setUsername}
-            placeholder="e.g. plant.parent_42"
+            placeholder={t("signUp.form.username.placeholder")}
             placeholderTextColor={colors.inkSoft}
             autoCapitalize="none"
             autoCorrect={false}
@@ -220,13 +228,13 @@ export default function SignUpScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-            Password (min. 6 characters)
+            {t("signUp.form.password.label")}
           </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder={t("signUp.form.password.placeholder")}
             placeholderTextColor={colors.inkSoft}
             secureTextEntry
           />
@@ -246,12 +254,12 @@ export default function SignUpScreen() {
             ) : null}
           </View>
           <Text style={[styles.consentText, { fontFamily: fonts.body, color: colors.ink }]}>
-            I have read and agree to the{" "}
+            {t("signUp.form.consent.prefix")}
             <Text
               style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
               onPress={() => router.push("/privacy-policy")}
             >
-              Privacy Policy
+              {t("signUp.form.consent.link")}
             </Text>
           </Text>
         </Pressable>
@@ -269,14 +277,16 @@ export default function SignUpScreen() {
             <ActivityIndicator color={colors.paper} />
           ) : (
             <Text style={[styles.submitButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-              Create account
+              {t("signUp.form.submitButton")}
             </Text>
           )}
         </Pressable>
 
         <View style={styles.dividerRow}>
           <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
-          <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>or</Text>
+          <Text style={[styles.dividerText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            {t("signUp.form.divider")}
+          </Text>
           <View style={[styles.dividerLine, { backgroundColor: colors.line }]} />
         </View>
 
@@ -285,13 +295,13 @@ export default function SignUpScreen() {
           onPress={handleGoogleSignIn}
         >
           <Text style={[styles.googleButtonText, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
-            Continue with Google
+            {t("signUp.form.googleButton")}
           </Text>
         </Pressable>
 
         <Pressable onPress={() => router.push("/sign-in")} hitSlop={8}>
           <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-            Already have an account? Sign in
+            {t("signUp.form.signInLink")}
           </Text>
         </Pressable>
       </ScrollView>

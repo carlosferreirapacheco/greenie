@@ -1,4 +1,5 @@
 import { supabase } from "./client";
+import type { SupportedLocale } from "../i18n";
 
 export type PlantLookupResult = {
   name: string;
@@ -6,9 +7,12 @@ export type PlantLookupResult = {
   wateringFrequencyDays: number;
 };
 
-export async function lookupPlantInfo(query: string): Promise<PlantLookupResult> {
+// locale steers which language Gemini returns the common name (and, for
+// the photo variant, candidateNames) in -- species stays the Latin
+// binomial regardless, since that's universal, not localized.
+export async function lookupPlantInfo(query: string, locale: SupportedLocale): Promise<PlantLookupResult> {
   const { data, error } = await supabase.functions.invoke<PlantLookupResult>("lookup-plant", {
-    body: { query },
+    body: { query, locale },
   });
 
   if (error) {
@@ -30,9 +34,13 @@ export type PlantPhotoLookupResult = {
   candidateNames: string[];
 };
 
-export async function lookupPlantByPhoto(photoUrl: string, hint?: string): Promise<PlantPhotoLookupResult> {
+export async function lookupPlantByPhoto(
+  photoUrl: string,
+  hint: string | undefined,
+  locale: SupportedLocale
+): Promise<PlantPhotoLookupResult> {
   const { data, error } = await supabase.functions.invoke<PlantPhotoLookupResult>("lookup-plant", {
-    body: { photoUrl, hint },
+    body: { photoUrl, hint, locale },
   });
 
   if (error) {
