@@ -15,21 +15,29 @@ const sections: { heading: string; body: string }[] = [
       "Your account: email address, username, display name, bio, and your privacy settings. " +
       "Your plants: names, nicknames, species, locations, acquisition dates, and care schedules. " +
       "Your activity: progress reports, comments, likes, and who you follow or who follows you. " +
-      "Photos are not collected yet — the app currently shows placeholders.",
+      "Photos: any photo you attach to your profile, a plant, or a progress report.",
   },
   {
     heading: "Where it lives",
     body:
-      "All data is stored in a Supabase project (Postgres database and authentication). " +
-      "Access is protected by row-level security: private content is enforced by the database itself, " +
-      "not just hidden by the app.",
+      "All data, including uploaded photos, is stored in a Supabase project (Postgres database, " +
+      "authentication, and file storage). Access is protected by row-level security: private content " +
+      "is enforced by the database itself, not just hidden by the app.",
   },
   {
     heading: "What leaves the app",
     body:
-      "When you use the AI plant lookup while adding a plant, the plant name or description you typed " +
-      "is sent to Google Gemini to identify the species and suggest a watering schedule. " +
-      "No account data is attached to that request. Nothing else is shared with third parties.",
+      "When you use the AI plant lookup while adding a plant, the plant name, description, or photo " +
+      "you provide is sent to Google Gemini to identify the species and suggest a watering schedule. " +
+      "No account data is attached to that request. " +
+      "Account emails — sign-up confirmation, password reset, and account-deletion codes — are sent " +
+      "through Resend, our email delivery provider. If you use Settings → Your data → Email me a copy, " +
+      "your full data export is also sent through Resend as an email attachment to your own account " +
+      "address. " +
+      "If you have push notifications enabled, your device's push token and the content of a " +
+      "notification (for example, a care-task reminder) pass through Expo's push notification service " +
+      "to reach your device. " +
+      "Nothing else is shared with third parties.",
   },
   {
     heading: "What Greenie doesn't do",
@@ -39,7 +47,8 @@ const sections: { heading: string; body: string }[] = [
     heading: "Your rights",
     body:
       "Rectification: edit your profile details on the Profile page at any time. " +
-      "Portability: download everything Greenie stores about you as a JSON file from Settings → Your data. " +
+      "Portability: download everything Greenie stores about you as a JSON file from Settings → Your data, " +
+      "or have a copy emailed to your account address instead. " +
       "Erasure: permanently delete your account and all of its data from Settings → Danger zone. " +
       "Deletion is immediate and irreversible — your plants, reports, comments, likes, and follows are all removed.",
   },
