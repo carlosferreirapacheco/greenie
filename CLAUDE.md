@@ -1461,10 +1461,50 @@ unrelated history.
     the Auth Admin API afterward.
   - Runbook: `docs/email-smtp-setup.md` (Resend/Supabase steps) is now
     historical, since every step in it is done.
-- Native GDPR data export — the "Your data" download (Settings →
-  `collectMyData()` in `lib/supabase/gdpr.ts`) uses a web Blob + anchor
-  and is web-only; native needs `expo-file-system`/share-sheet wiring
-  before a mobile release can offer the same portability right.
+- Native GDPR data export — done, plus a second delivery channel.
+  **Native download/share**: `app/settings.tsx`'s `handleDownloadData()`
+  keeps the existing web `Blob`/anchor path unchanged and adds a native
+  branch using **`expo-file-system`** + **`expo-sharing`** (new
+  dependencies, `npx expo install` — same native-module lesson as
+  expo-image-picker/expo-notifications, needed a fresh
+  `eas build --profile development` before the feature existed on the
+  test device). Wrote against SDK 57's modern class-based File API
+  (`new File(Paths.cache, filename); file.write(json)`) rather than the
+  deprecated string-based `writeAsStringAsync()`/`cacheDirectory`
+  functions, which throw at runtime in this SDK version unless imported
+  from the `expo-file-system/legacy` subpath — confirmed by reading the
+  installed package's own `.d.ts` files rather than assuming the older
+  API surface still applied. `Sharing.shareAsync(file.uri, ...)` then
+  opens the native OS share sheet; written to `Paths.cache` (not
+  documents) since this is a one-shot export artifact, not app state to
+  persist, and the share sheet is where the user actually decides where
+  it ends up. `expo install` auto-registered the `expo-sharing` config
+  plugin in `app.json` with no permission strings needed — confirmed,
+  not assumed. The `Platform.OS === "web"` gate around the whole
+  "Download my data" button is gone; it now works on both platforms.
+  **Email a copy** (new, requested alongside the native fix, for anyone
+  who'd rather not have the file land on whatever device they're
+  currently using): a new Edge Function
+  `supabase/functions/email-data-export` — modeled on
+  `delete-account`'s JWT-verification shape but needing no service-role
+  key at all, since the only server-side fact required is the caller's
+  own `user.email` (straight off `auth.getUser()`) and the export
+  payload itself comes from the client's request body rather than being
+  re-queried — calls Resend's HTTP API directly (a new integration
+  point distinct from the SMTP credentials already configured for
+  Supabase Auth's own emails) to send the JSON as an email attachment
+  to the caller's own registered address, never a client-supplied one.
+  New Edge Function secret `RESEND_API_KEY` (owner action, same Resend
+  account/key already in use). New `emailMyDataExport()` in
+  `lib/supabase/gdpr.ts` (+ tests) calling
+  `supabase.functions.invoke("email-data-export", { body: data })`; new
+  "Email me a copy" button in Settings, unconditional on both
+  platforms since it's a pure network call with no native-module
+  dependency. Verified live end-to-end on both fronts: the email path
+  (real email arrived with the correct JSON attachment, once the
+  secret was set) and, after the fresh EAS build, the native
+  download/share path on a real Android device (share sheet opens with
+  the correct file).
 - Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
   currently marked "requires review before public launch") before any
   public launch.

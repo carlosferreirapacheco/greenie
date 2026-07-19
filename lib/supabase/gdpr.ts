@@ -167,3 +167,16 @@ export async function collectMyData(): Promise<MyDataExport> {
     push_tokens: pushTokens,
   };
 }
+
+// Emails a copy of an already-collected export to the signed-in user's
+// own address, via the email-data-export Edge Function -- the function
+// reads the recipient off the caller's own JWT server-side, never a
+// client-supplied address, so this can only ever send a user their own
+// data to their own registered email.
+export async function emailMyDataExport(data: MyDataExport): Promise<void> {
+  const { error } = await supabase.functions.invoke("email-data-export", { body: data });
+
+  if (error) {
+    throw error;
+  }
+}

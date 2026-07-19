@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
+import { File, Paths } from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import {
   accountHasPassword,
   changeAccountEmail,
@@ -25,7 +27,7 @@ import {
   updatePasswordWithReauth,
   verifyCurrentEmailConfirmationCode,
 } from "../lib/supabase/auth";
-import { collectMyData } from "../lib/supabase/gdpr";
+import { collectMyData, emailMyDataExport } from "../lib/supabase/gdpr";
 import {
   getMyProfile,
   updateNotificationSettings,
@@ -228,25 +230,65 @@ export default function SettingsScreen() {
 
     try {
       const data = await collectMyData();
-      // Web-only download mechanism -- the button is gated on
-      // Platform.OS === "web" below; native file sharing is a tracked
-      // backlog item.
-      const doc = (globalThis as unknown as { document: Document }).document;
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const anchor = doc.createElement("a");
-      anchor.href = url;
-      anchor.download = `greenie-data-${new Date().toISOString().slice(0, 10)}.json`;
-      doc.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      const json = JSON.stringify(data, null, 2);
+      const filename = `greenie-data-${new Date().toISOString().slice(0, 10)}.json`;
+
+      if (Platform.OS === "web") {
+        const doc = (globalThis as unknown as { document: Document }).document;
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const anchor = doc.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        doc.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+      } else {
+        // Written to the cache dir, not documents -- this is a one-shot
+        // export artifact, not app state to persist; the share sheet is
+        // where the user actually decides where it ends up. No
+        // cancel-detection: expo-sharing doesn't give a reliable
+        // cross-platform "user dismissed the sheet" signal.
+        const file = new File(Paths.cache, filename);
+        file.write(json);
+
+        if (!(await Sharing.isAvailableAsync())) {
+          throw new Error("Sharing isn't available on this device");
+        }
+        await Sharing.shareAsync(file.uri, { mimeType: "application/json", dialogTitle: "Your Greenie data" });
+      }
       setExportStatus("idle");
     } catch (err) {
       setExportError(getErrorMessage(err));
       setExportStatus("error");
     } finally {
       isExporting.current = false;
+    }
+  }
+
+  const [emailExportStatus, setEmailExportStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [emailExportError, setEmailExportError] = useState<string | null>(null);
+  const isEmailingData = useRef(false);
+
+  async function handleEmailData() {
+    if (isEmailingData.current) {
+      return;
+    }
+    isEmailingData.current = true;
+
+    setEmailExportStatus("sending");
+    setEmailExportError(null);
+
+    try {
+      const data = await collectMyData();
+      await emailMyDataExport(data);
+      setEmailExportStatus("sent");
+    } catch (err) {
+      setEmailExportError(getErrorMessage(err));
+      setEmailExportStatus("error");
+    } finally {
+      isEmailingData.current = false;
     }
   }
 
@@ -963,34 +1005,49 @@ export default function SettingsScreen() {
         </Text>
 
         <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-          Download everything Greenie stores about you — your account, plants, care schedules, progress
-          reports, comments, likes, and follows — as a JSON file.
+          Everything Greenie stores about you — your account, plants, care schedules, progress
+          reports, comments, likes, and follows — as a JSON file. Download it to this device, or
+          have a copy emailed to your account address instead.
         </Text>
 
-        {Platform.OS === "web" ? (
-          <>
-            {exportStatus === "error" ? (
-              <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{exportError}</Text>
-            ) : null}
-            <Pressable
-              style={[styles.saveButton, { backgroundColor: colors.moss }]}
-              onPress={handleDownloadData}
-              disabled={exportStatus === "exporting"}
-            >
-              {exportStatus === "exporting" ? (
-                <ActivityIndicator color={colors.paper} />
-              ) : (
-                <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                  Download my data
-                </Text>
-              )}
-            </Pressable>
-          </>
-        ) : (
-          <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-            Data download is available on the web version for now.
+        {exportStatus === "error" ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{exportError}</Text>
+        ) : null}
+        <Pressable
+          style={[styles.saveButton, { backgroundColor: colors.moss }]}
+          onPress={handleDownloadData}
+          disabled={exportStatus === "exporting"}
+        >
+          {exportStatus === "exporting" ? (
+            <ActivityIndicator color={colors.paper} />
+          ) : (
+            <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+              Download my data
+            </Text>
+          )}
+        </Pressable>
+
+        {emailExportStatus === "sent" ? (
+          <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            Sent — check {accountEmail ?? "your account email"}.
           </Text>
-        )}
+        ) : null}
+        {emailExportStatus === "error" ? (
+          <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{emailExportError}</Text>
+        ) : null}
+        <Pressable
+          style={[styles.secondaryButton, { borderColor: colors.line }]}
+          onPress={handleEmailData}
+          disabled={emailExportStatus === "sending"}
+        >
+          {emailExportStatus === "sending" ? (
+            <ActivityIndicator color={colors.moss} />
+          ) : (
+            <Text style={[styles.secondaryButtonText, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+              Email me a copy
+            </Text>
+          )}
+        </Pressable>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.coral }]}>
           Danger zone
@@ -1159,6 +1216,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   saveButtonText: {
+    fontSize: 16,
+  },
+  secondaryButton: {
+    marginTop: spacing.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
     fontSize: 16,
   },
   policyLink: {
