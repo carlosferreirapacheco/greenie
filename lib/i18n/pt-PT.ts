@@ -10,7 +10,9 @@ export const ptPT: typeof en = {
     },
     feed: {
       title: "Feed",
-      peopleAction: "Pessoas",
+    },
+    people: {
+      title: "Pessoas",
     },
     plantSitting: {
       title: "Cuidar de Plantas",
@@ -460,12 +462,12 @@ export const ptPT: typeof en = {
     headerActions: {
       requests: "Pedidos",
       followers: "Seguidores",
-      search: "Pesquisar",
+      add: "Adicionar",
     },
     error: "Erro: {error}",
     emptyState: "Ainda não segue ninguém",
     noMatch: 'Ninguém que segue corresponde a "{query}"',
-    searchPlaceholder: "Pesquisar pessoas que segue",
+    searchPlaceholder: "pessoas que segue",
   },
   followers: {
     screenTitle: "Seguidores",
@@ -482,10 +484,14 @@ export const ptPT: typeof en = {
   },
   searchUsers: {
     screenTitle: "Pesquisar Utilizadores",
-    placeholder: "Pesquisar utilizadores por nome ou nome de utilizador",
+    placeholder: "utilizadores por nome ou nome de utilizador",
     error: "Erro: {error}",
     promptState: "Escreva um nome ou nome de utilizador para pesquisar",
     emptyState: "Nenhum utilizador encontrado",
+    addButton: {
+      add: "Adicionar",
+      following: "A seguir",
+    },
   },
   blockedUsers: {
     screenTitle: "Utilizadores Bloqueados",

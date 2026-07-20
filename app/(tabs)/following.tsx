@@ -1,14 +1,16 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFonts } from "expo-font";
-import { router, Stack, useFocusEffect } from "expo-router";
-import { getFollowing, getPendingFollowRequests } from "../lib/supabase/follows";
-import { type Profile } from "../lib/supabase/profiles";
-import { PhotoThumb } from "../components/PhotoThumb";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
-import { useTheme } from "../lib/ThemeContext";
-import { useLanguage } from "../lib/LanguageContext";
-import { getErrorMessage } from "../lib/errors";
+import { router, useFocusEffect, useNavigation } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { getFollowing, getPendingFollowRequests } from "../../lib/supabase/follows";
+import { type Profile } from "../../lib/supabase/profiles";
+import { PhotoThumb } from "../../components/PhotoThumb";
+import { HeaderIconButton } from "../../components/HeaderIconButton";
+import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
+import { useTheme } from "../../lib/ThemeContext";
+import { useLanguage } from "../../lib/LanguageContext";
+import { getErrorMessage } from "../../lib/errors";
 
 function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typeof getFonts> }) {
   const { colors } = useTheme();
@@ -32,6 +34,7 @@ export default function FollowingScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const navigation = useNavigation();
 
   const fetchFollowing = useCallback(() => {
     getFollowing()
@@ -56,38 +59,38 @@ export default function FollowingScreen() {
     }, [fetchFollowing])
   );
 
-  const screen = (
-    <Stack.Screen
-      options={{
-        title: t("following.screenTitle"),
-        headerRight: () => (
-          <View style={styles.headerRightRow}>
-            <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
-              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                {t("following.headerActions.requests")}
-              </Text>
-              {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
-            </Pressable>
-            <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
-              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                {t("following.headerActions.followers")}
-              </Text>
-            </Pressable>
-            <Pressable onPress={() => router.push("/search-users")} hitSlop={8} style={styles.searchButtonWrap}>
-              <Text style={[styles.searchButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-                {t("following.headerActions.search")}
-              </Text>
-            </Pressable>
-          </View>
-        ),
-      }}
-    />
-  );
+  // Header actions live here (not the tabs layout) because Requests
+  // carries its own pending-request badge dot -- same reasoning as
+  // plant-sitting.tsx's Share/Request actions.
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerRightRow}>
+          <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
+            <Text style={[styles.headerButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+              {t("following.headerActions.requests")}
+            </Text>
+            {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
+          </Pressable>
+          <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
+            <Text style={[styles.headerButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+              {t("following.headerActions.followers")}
+            </Text>
+          </Pressable>
+          <HeaderIconButton
+            icon="account-plus-outline"
+            label={t("following.headerActions.add")}
+            onPress={() => router.push("/search-users")}
+            fonts={fonts}
+          />
+        </View>
+      ),
+    });
+  }, [navigation, fonts, colors, hasPendingRequests, t]);
 
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -96,7 +99,6 @@ export default function FollowingScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("following.error", { error: error ?? "" })}</Text>
       </View>
     );
@@ -105,7 +107,6 @@ export default function FollowingScreen() {
   if (following.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        {screen}
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("following.emptyState")}</Text>
       </View>
     );
@@ -139,14 +140,16 @@ export default function FollowingScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.paper }]}>
-      {screen}
-      <TextInput
-        style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder={t("following.searchPlaceholder")}
-        placeholderTextColor={colors.inkSoft}
-      />
+      <View style={[styles.filterInputWrap, { borderColor: colors.line }]}>
+        <MaterialCommunityIcons name="magnify" size={18} color={colors.inkSoft} style={styles.filterIcon} />
+        <TextInput
+          style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink }]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t("following.searchPlaceholder")}
+          placeholderTextColor={colors.inkSoft}
+        />
+      </View>
       {body}
     </View>
   );
@@ -167,7 +170,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginRight: spacing.md,
   },
-  searchButtonWrap: {},
   badgeWrap: {
     position: "relative",
     paddingRight: 8,
@@ -180,15 +182,23 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  searchButton: {
+  headerButton: {
     fontSize: 15,
   },
-  filterInput: {
+  filterInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.sm,
     marginHorizontal: spacing.md,
     marginVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
+  },
+  filterIcon: {
+    marginRight: spacing.xs,
+  },
+  filterInput: {
+    flex: 1,
     paddingVertical: 10,
     fontSize: 16,
   },
