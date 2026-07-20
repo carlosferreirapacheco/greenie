@@ -12,11 +12,11 @@ import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
 
-// The persistent bottom tab bar over the four main destinations
-// (Plants, Feed, Sitting, Alerts). Every other screen stays in the
-// root Stack and pushes over it. Route groups don't appear in URLs,
-// so /feed, /plant-sitting, /notifications and / all keep working --
-// including the push/inbox deep links via notificationTargetPath.
+// The persistent bottom tab bar over the five main destinations
+// (People, Feed, Plants, Sitting, Alerts). Every other screen stays in
+// the root Stack and pushes over it. Route groups don't affect URLs,
+// so /following, /feed, /plant-sitting, /notifications and / all keep
+// working -- including the push/inbox deep links via notificationTargetPath.
 export default function TabsLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
@@ -82,30 +82,6 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: t("tabsLayout.plants.title"),
-          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="sprout" size={size} color={color} />,
-          headerRight: () => (
-            <HeaderIconButton
-              icon="plus"
-              label={t("tabsLayout.plants.addAction")}
-              onPress={() => router.push("/add-plant")}
-              fonts={fonts}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="feed"
-        options={{
-          title: t("tabsLayout.feed.title"),
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="following"
         options={{
           title: t("tabsLayout.people.title"),
@@ -121,9 +97,33 @@ export default function TabsLayout() {
             borderRadius: 5,
             marginTop: 2,
           },
-          // headerRight (Requests/Followers/Search) is set by the screen
+          // headerRight (Requests/Followers/Add) is set by the screen
           // itself via navigation.setOptions -- Requests carries its own
           // pending-request badge dot, same pattern as plant-sitting.tsx.
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
+          title: t("tabsLayout.feed.title"),
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: t("tabsLayout.plants.title"),
+          tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="sprout" size={size} color={color} />,
+          headerRight: () => (
+            <HeaderIconButton
+              icon="plus"
+              label={t("tabsLayout.plants.addAction")}
+              onPress={() => router.push("/add-plant")}
+              fonts={fonts}
+            />
+          ),
         }}
       />
       <Tabs.Screen

@@ -460,7 +460,7 @@ export const en = {
     headerActions: {
       requests: "Requests",
       followers: "Followers",
-      search: "Search",
+      add: "Add",
     },
     error: "Error: {error}",
     emptyState: "Not following anyone yet",

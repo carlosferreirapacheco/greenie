@@ -1903,53 +1903,58 @@ unrelated history.
   `assets/favicon.png`; re-verified live the same way (byte size match
   confirms the new asset is being served).
 - Social discoverability UI pass — done, three small fixes flagged as
-  hard-to-find/inconsistent. **People promoted to a 5th persistent
-  tab.** It had been a single small header icon on the Feed tab (added
-  in the tab-bar revamp), which turned out too easy to miss. `app/following.tsx`
-  moved to `app/(tabs)/following.tsx` (route groups don't affect URLs,
-  so `/following` deep links keep working); its Requests/Followers/Search
+  hard-to-find/inconsistent, plus one follow-up correction. **People
+  promoted to a 5th persistent tab.** It had been a single small header
+  icon on the Feed tab (added in the tab-bar revamp), which turned out
+  too easy to miss. `app/following.tsx` moved to
+  `app/(tabs)/following.tsx` (route groups don't affect URLs, so
+  `/following` deep links keep working); its Requests/Followers/Add
   header actions moved from a `<Stack.Screen options>` element to
   `navigation.setOptions()` in a `useEffect`, matching the pattern
   `plant-sitting.tsx` already uses for tab screens owning dynamic
-  header state. New tab order: Plants → Feed → **People** → Sitting →
-  Alerts, icon `account-group-outline` (the same glyph the old header
-  action used); the pending-follow-requests red dot moved from the
-  header icon's badge to the new tab's `tabBarBadge`, reusing the
-  `hasPendingRequests` state already computed in `_layout.tsx` — no new
-  fetch, just a different render target. The now-redundant Feed header
-  icon and its `tabsLayout.feed.peopleAction` key were removed.
+  header state. Tab order (per explicit user request, prioritizing the
+  social tabs first): **People → Feed → Plants → Sitting → Alerts**,
+  icon `account-group-outline`; the pending-follow-requests red dot
+  moved from the old header icon's badge to the tab's own
+  `tabBarBadge`, reusing the `hasPendingRequests` state already
+  computed in `_layout.tsx` — no new fetch, just a different render
+  target. The now-redundant Feed header icon and its
+  `tabsLayout.feed.peopleAction` key were removed.
   **Magnifying-glass icon instead of the word "Search."** Rule applied
-  everywhere the word appeared: a label that was only the word "Search"
-  became a bare `magnify` icon with no visible sub-label (the People
-  screen's header link to `/search-users`, accessible name kept via
-  `accessibilityLabel`); a placeholder that started with "Search ..."
-  dropped that word and gained a leading icon inside the input instead
-  (People's own follow-list filter, and the Search Users screen's
-  query box) — e.g. "Search users by name or username" became a
-  `magnify` icon + "users by name or username". The Search Users
-  *screen's own title* ("Search Users") was deliberately left as plain
-  text — a page's own header title is identity you're already looking
-  at, not a "come find search" affordance, and icon-embedding a native
-  Stack header title would need a custom `headerTitle` render function
-  for one screen. **"Add" instead of a silent tap-through on Search
-  Users.** Not part of the original ask but added once raised — result
-  rows had no follow action at all (tapping only opened the profile,
-  where the real tri-state button lived); each row now gets its own
-  inline tri-state action reusing the exact `getFollowStatus`/
-  `followUser`/`unfollowUser` calls `user/[id].tsx` already used, just
-  relabeled for the lighter "contacts" framing: **"Add" / "Adicionar"**
-  (not following), **"Requested" / "Pedido"** (reusing
+  everywhere the word appeared as a placeholder: it drops the leading
+  "Search " and gains a leading `magnify` icon inside the input instead
+  (People's own follow-list filter, and the Search Users screen's query
+  box) — e.g. "Search users by name or username" became a `magnify`
+  icon + "users by name or username". The Search Users *screen's own
+  title* ("Search Users") was deliberately left as plain text — a
+  page's own header title is identity you're already looking at, not a
+  "come find search" affordance. **The People screen's own header entry
+  point into Search Users was first tried as a bare `magnify` icon,
+  then corrected** after user feedback that it read as a duplicate of
+  the filter box's own search icon directly below it, misleadingly
+  implying the two did the same thing — it's now an icon+label action
+  (`account-plus-outline` + "Add"/"Adicionar", the same `HeaderIconButton`
+  treatment every other header action in the app uses), which reads
+  correctly as "go add new connections" rather than "search again."
+  **"Add" instead of a silent tap-through on Search Users results.**
+  Not part of the original ask but added once raised — result rows had
+  no follow action at all (tapping only opened the profile, where the
+  real tri-state button lived); each row now gets its own inline
+  tri-state action reusing the exact `getFollowStatus`/`followUser`/
+  `unfollowUser` calls `user/[id].tsx` already used, just relabeled for
+  the lighter "contacts" framing: **"Add" / "Adicionar"** (not
+  following), **"Requested" / "Pedido"** (reusing
   `userProfile.followButton.requested` rather than duplicating it),
   **"Following" / "A seguir"** (tapping unfollows, mirroring the
   profile screen's own toggle). Each visible row fetches its own status
   once results land — no batch status endpoint exists, and search
   result pages are short enough that adding one wasn't worth a
   schema-adjacent change for this pass. Verified live (web, dev
-  account): the 5-tab bar renders in the right order with People's tab
-  landing on the Requests/Followers/icon header row; the Search Users
-  screen's placeholder and an already-followed result's inline
-  "Following"/"A seguir" state both render correctly in English and
-  Português; `tsc`/`npm test` clean.
+  account, both languages): the 5-tab bar renders in the corrected
+  order, People's header now reads Requests/Followers/(icon)Add instead
+  of a bare search icon, the Search Users placeholder and an
+  already-followed result's inline "Following"/"A seguir" state all
+  render correctly; `tsc`/`npm test` clean.
 
 ### Later
 - Payments / monetization

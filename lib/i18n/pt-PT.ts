@@ -462,7 +462,7 @@ export const ptPT: typeof en = {
     headerActions: {
       requests: "Pedidos",
       followers: "Seguidores",
-      search: "Pesquisar",
+      add: "Adicionar",
     },
     error: "Erro: {error}",
     emptyState: "Ainda não segue ninguém",

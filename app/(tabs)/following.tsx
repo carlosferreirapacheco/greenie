@@ -6,6 +6,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { getFollowing, getPendingFollowRequests } from "../../lib/supabase/follows";
 import { type Profile } from "../../lib/supabase/profiles";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { HeaderIconButton } from "../../components/HeaderIconButton";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -76,13 +77,12 @@ export default function FollowingScreen() {
               {t("following.headerActions.followers")}
             </Text>
           </Pressable>
-          <Pressable
+          <HeaderIconButton
+            icon="account-plus-outline"
+            label={t("following.headerActions.add")}
             onPress={() => router.push("/search-users")}
-            hitSlop={8}
-            accessibilityLabel={t("following.headerActions.search")}
-          >
-            <MaterialCommunityIcons name="magnify" size={22} color={colors.moss} />
-          </Pressable>
+            fonts={fonts}
+          />
         </View>
       ),
     });
