@@ -1857,6 +1857,40 @@ unrelated history.
   `/privacy-policy` was confirmed). Both URLs still need to be entered
   into Play Console's Data Safety form at actual store-submission
   time — that step is separate and still open.
+- App icon and display name — done. Replaced every default Expo
+  template icon asset (`assets/icon.png`, `favicon.png`,
+  `splash-icon.png`, and the three Android adaptive-icon layers) with a
+  custom mark — a rounded two-leaf sprout in a sage (`#E4EBE0`) circle
+  badge with a moss (`#2F6B4F`) stroke and stem, matching the app's own
+  palette — so the default blue Expo "A" logo no longer appears
+  anywhere (native app icon, Android adaptive icon, or web favicon).
+  Chosen via an iterative Artifact-based design review (broad concepts
+  → sprout variations → a redesign once a pointed-two-leaf variant was
+  flagged as reading too close to a cannabis leaf silhouette → a final
+  rounded-ellipse-leaf mark, sized up slightly for badge/sprout
+  breathing room). Generated with no new dependency: a small
+  browser-canvas rasterizer (SVG string → `Image` → `canvas.drawImage`
+  → `toDataURL`) posted each PNG's base64 to a temporary local
+  Node `http` save server, avoiding both a new npm dependency and the
+  risk of hand-transcribing large base64 blobs. `app.json`'s `name`
+  changed from `"greenie"` to `"Greenie"` (display name only — `slug`
+  and `scheme` stay lowercase as technical identifiers) and
+  `android.adaptiveIcon.backgroundColor` updated to the same sage used
+  in the new background layer. **Found and fixed along the way**: the
+  web title and favicon weren't actually driven by `app.json` at
+  all — `public/index.html` is a custom HTML shell (for the
+  theme-reset styling noted in its own comment) that hardcoded
+  `<title>greenie</title>` and had no `<link rel="icon">` at all, so
+  every previous `app.json` favicon config was silently inert; fixed by
+  setting the title there directly and adding the icon link, plus
+  copying `favicon.png` into `public/` since Expo's web dev server (and
+  its export step) serve that directory's contents as static files
+  alongside the shell. Verified live: all six PNGs inspected directly
+  (the monochrome layer, invisible against a white viewer background
+  since it's a white silhouette on transparent, was confirmed via a
+  canvas pixel-alpha bounding-box check matching the foreground layer's
+  exactly) and the web preview's title/favicon confirmed live
+  (`document.title` → `"Greenie"`, `/favicon.png` → `200 image/png`).
 
 ### Later
 - Payments / monetization

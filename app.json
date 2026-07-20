@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "greenie",
+    "name": "Greenie",
     "slug": "greenie",
     "version": "1.0.0",
     "scheme": "greenie",
@@ -13,7 +13,7 @@
     "android": {
       "package": "com.hederahelix.greenie",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#E4EBE0",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
