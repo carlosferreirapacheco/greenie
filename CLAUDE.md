@@ -970,13 +970,15 @@ sharing them socially with other users.
     from Sitting (web's "not supported" banner path), the Alerts badge
     lights on an unread fixture and fades after the inbox visit marks
     it read, no horizontal overflow at 375px, no console errors.
-  - **PR 2 — remaining header conversions — not started.** Following
-    (`app/following.tsx`): Requests (badge) / Followers / Search text
-    links → `HeaderIconButton`s (`account-clock-outline` /
-    `account-multiple-outline` / `magnify`). Profile
-    (`app/profile.tsx`): Settings link → `cog-outline` icon action.
-    No other screen defines header actions (verified); in-body text
-    links stay with the general UX-pass item under Later.
+  - **PR 2 — remaining header conversions — Following half done**
+    (see the People-tab real-device fix in the Social discoverability
+    UI pass below, which converted Requests/Followers to
+    `HeaderIconButton`s with `account-clock-outline`/
+    `account-multiple-outline`, closing out the icon mapping planned
+    here). **Profile (`app/profile.tsx`) still open**: Settings link
+    → `cog-outline` icon action. No other screen defines header
+    actions (verified); in-body text links stay with the general
+    UX-pass item under Later.
 - Online demo (gated) — done and live at https://greenie-cwb.pages.dev.
   `.github/workflows/deploy.yml` exports the Expo web bundle
   (`app.json` `web.output: "single"`, SPA) and deploys it to Cloudflare
@@ -1955,6 +1957,27 @@ unrelated history.
   of a bare search icon, the Search Users placeholder and an
   already-followed result's inline "Following"/"A seguir" state all
   render correctly; `tsc`/`npm test` clean.
+  **Real-device follow-up**: on a phone, the People screen's "Requests"
+  label rendered behind (occluded by) the centered header title —
+  the header's `screenOptions.headerTitleAlign: "center"` positions
+  the title independent of how much room `headerRight` actually needs,
+  so a header-right row wide enough (Requests + Followers as full-word
+  text buttons, plus the Add icon) could overlap it on narrower real
+  screens even though the wider web preview viewport never showed it.
+  Fixed by finishing the icon conversion the "PR 2 — remaining header
+  conversions" backlog item (above) had already planned but never
+  started: Requests and Followers became `HeaderIconButton`s
+  (`account-clock-outline` / `account-multiple-outline`, matching
+  Add's `account-plus-outline`) instead of full-word text links,
+  shrinking the header-right row enough to clear the title with room
+  to spare. Requests' pending-badge dot moved onto `HeaderIconButton`'s
+  own `badge` prop instead of a hand-rolled wrapper, and the row's
+  `gap` dropped to `spacing.xs` (three compact icon buttons need less
+  breathing room than the old two-text-button layout). Verified live
+  at a 375px mobile viewport width (this environment has no real
+  device) via a DOM bounding-box check confirming the title and the
+  header actions no longer share any horizontal extent; `tsc`/
+  `npm test` clean.
 
 ### Later
 - Payments / monetization

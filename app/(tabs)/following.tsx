@@ -61,22 +61,28 @@ export default function FollowingScreen() {
 
   // Header actions live here (not the tabs layout) because Requests
   // carries its own pending-request badge dot -- same reasoning as
-  // plant-sitting.tsx's Share/Request actions.
+  // plant-sitting.tsx's Share/Request actions. All three use the
+  // icon+label HeaderIconButton treatment (not text links) so the row
+  // stays narrow enough not to collide with the centered header title
+  // on real phone screens -- three full-word text buttons was wide
+  // enough to visually overlap the title on-device.
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRightRow}>
-          <Pressable onPress={() => router.push("/follow-requests")} hitSlop={8} style={styles.badgeWrap}>
-            <Text style={[styles.headerButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-              {t("following.headerActions.requests")}
-            </Text>
-            {hasPendingRequests ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
-          </Pressable>
-          <Pressable onPress={() => router.push("/followers")} hitSlop={8}>
-            <Text style={[styles.headerButton, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
-              {t("following.headerActions.followers")}
-            </Text>
-          </Pressable>
+          <HeaderIconButton
+            icon="account-clock-outline"
+            label={t("following.headerActions.requests")}
+            onPress={() => router.push("/follow-requests")}
+            fonts={fonts}
+            badge={hasPendingRequests}
+          />
+          <HeaderIconButton
+            icon="account-multiple-outline"
+            label={t("following.headerActions.followers")}
+            onPress={() => router.push("/followers")}
+            fonts={fonts}
+          />
           <HeaderIconButton
             icon="account-plus-outline"
             label={t("following.headerActions.add")}
@@ -86,7 +92,7 @@ export default function FollowingScreen() {
         </View>
       ),
     });
-  }, [navigation, fonts, colors, hasPendingRequests, t]);
+  }, [navigation, fonts, hasPendingRequests, t]);
 
   if (status === "loading") {
     return (
@@ -167,23 +173,7 @@ const styles = StyleSheet.create({
   headerRightRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
-    marginRight: spacing.md,
-  },
-  badgeWrap: {
-    position: "relative",
-    paddingRight: 8,
-  },
-  badgeDot: {
-    position: "absolute",
-    top: -2,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  headerButton: {
-    fontSize: 15,
+    gap: spacing.xs,
   },
   filterInputWrap: {
     flexDirection: "row",
