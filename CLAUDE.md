@@ -1891,6 +1891,17 @@ unrelated history.
   canvas pixel-alpha bounding-box check matching the foreground layer's
   exactly) and the web preview's title/favicon confirmed live
   (`document.title` → `"Greenie"`, `/favicon.png` → `200 image/png`).
+  **Follow-up**: `icon.png`, `favicon.png`, and `splash-icon.png`
+  (the flat, non-adaptive assets) regenerated with a rounded-square
+  mask (20%-of-size corner radius, transparent outside it) around the
+  existing circle-badge composition, matching the rounded-corner
+  convention most web app icons/favicons use. The three Android
+  adaptive-icon layers were deliberately left square-cornered — the
+  launcher applies its own mask (circle/squircle/rounded-square
+  depending on device) over those, so pre-rounding them would just get
+  double-clipped. `public/favicon.png` re-synced from the regenerated
+  `assets/favicon.png`; re-verified live the same way (byte size match
+  confirms the new asset is being served).
 
 ### Later
 - Payments / monetization
