@@ -11,7 +11,9 @@ export const en = {
     },
     feed: {
       title: "Feed",
-      peopleAction: "People",
+    },
+    people: {
+      title: "People",
     },
     plantSitting: {
       title: "Plant Sitting",
@@ -463,7 +465,7 @@ export const en = {
     error: "Error: {error}",
     emptyState: "Not following anyone yet",
     noMatch: 'No one you follow matches "{query}"',
-    searchPlaceholder: "Search people you follow",
+    searchPlaceholder: "people you follow",
   },
   followers: {
     screenTitle: "Followers",
@@ -480,10 +482,14 @@ export const en = {
   },
   searchUsers: {
     screenTitle: "Search Users",
-    placeholder: "Search users by name or username",
+    placeholder: "users by name or username",
     error: "Error: {error}",
     promptState: "Type a name or username to search",
     emptyState: "No users found",
+    addButton: {
+      add: "Add",
+      following: "Following",
+    },
   },
   blockedUsers: {
     screenTitle: "Blocked Users",

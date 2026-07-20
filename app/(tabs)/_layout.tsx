@@ -103,15 +103,27 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
           ),
-          headerRight: () => (
-            <HeaderIconButton
-              icon="account-group-outline"
-              label={t("tabsLayout.feed.peopleAction")}
-              onPress={() => router.push("/following")}
-              fonts={fonts}
-              badge={hasPendingRequests}
-            />
+        }}
+      />
+      <Tabs.Screen
+        name="following"
+        options={{
+          title: t("tabsLayout.people.title"),
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="account-group-outline" size={size} color={color} />
           ),
+          tabBarBadge: hasPendingRequests ? "" : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.coral,
+            minWidth: 10,
+            maxWidth: 10,
+            height: 10,
+            borderRadius: 5,
+            marginTop: 2,
+          },
+          // headerRight (Requests/Followers/Search) is set by the screen
+          // itself via navigation.setOptions -- Requests carries its own
+          // pending-request badge dot, same pattern as plant-sitting.tsx.
         }}
       />
       <Tabs.Screen
