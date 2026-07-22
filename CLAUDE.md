@@ -2022,6 +2022,58 @@ unrelated history.
   device) via a DOM bounding-box check confirming the title and the
   header actions no longer share any horizontal extent; `tsc`/
   `npm test` clean.
+- Convert inline prompts to modals — done. Seven inline
+  confirm/choice prompts (a text link expanding in place into a
+  confirm/cancel or multi-choice row, sometimes boxed) converted to
+  modals matching the design already established by the AI photo
+  lookup's ambiguity-resolution modal on Add Plant. New shared
+  `components/ConfirmModal.tsx` lifts that modal's backdrop/card/
+  button styling verbatim (same conditionally-rendered-`Modal`
+  pattern the codebase already uses to work around RN Web not
+  reliably hiding `Modal` content on `visible={false}` alone) into a
+  reusable `{message, actions[], onCancel, cancelLabel?, busy?,
+  errorText?}` component — one action for a yes/no confirm, two for a
+  choice prompt. Converted: Block this account
+  (`app/user/[id].tsx`), Remove follower (`app/followers.tsx`, now a
+  screen-level modal instead of a per-row inline expansion, with a
+  new contextual message naming who's being removed since it's no
+  longer sitting next to the row), Cancel a sent plant-sitting
+  request (`app/(tabs)/plant-sitting.tsx`, same per-row-to-modal
+  shift), Confirm username change (`app/profile.tsx`), Delete a care
+  task + the overdue mark-done date-anchor choice (both in
+  `app/plant/[id].tsx`), and Confirm account deletion
+  (`components/AccountDeletionFlow.tsx` — one conversion covers both
+  Settings' Danger Zone and the public `/delete-account` page).
+  Deliberately left as single-tap, not converted: Unblock, Accept/
+  Decline follow requests, and sitting-request Accept/Decline — all
+  already low-stakes or instantly reversible by design. A real
+  behavior change rides along with the visual one: every converted
+  handler now only clears its "pending" state on success (previously
+  most cleared it optimistically before the request even started,
+  e.g. `handleBlock`), so a failed action keeps the modal open with
+  the error shown inline and a retry/cancel path, matching how the
+  reference AI-lookup modal already behaved. `app/add-plant.tsx`'s
+  own modal was deliberately left un-refactored — its three
+  per-kind branches (name mismatch / ambiguous / not-found) don't map
+  cleanly onto the new component's simple actions-list API, and
+  touching already-shipped, verified code for no user-visible gain
+  wasn't worth the risk; the two stay visually identical since
+  `ConfirmModal`'s styles were lifted from it directly. Two new i18n
+  keys (`followers.confirmRemove.message`,
+  `plantSitting.confirmCancelRequest.message`) for the two prompts
+  that lost their row context; every other converted prompt reuses
+  its existing message key. Verified: `tsc`/`npm test` clean, and
+  live on web — opened and cancelled all seven modals, confirmed
+  Cancel restores prior state cleanly, and confirmed both Português
+  translation (`"Remover @babel como seguidor?"`) and dark mode (the
+  modal card correctly resolving to the dark `paperRaised` background)
+  render correctly. Confirm actions were exercised live only where
+  safe against real seeded data (Block/Remove-follower/username-change
+  were opened and inspected but not actually committed, since the
+  available test data was either a real non-fixture account or a
+  precious username-cooldown-consuming change); Delete-task and
+  Delete-account were opened-and-cancelled only, consistent with how
+  destructive flows have been spot-checked elsewhere in this project.
 
 ### Later
 - Payments / monetization

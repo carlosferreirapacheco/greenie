@@ -26,6 +26,7 @@ import { HeightChart } from "../../components/HeightChart";
 import { DatePickerField } from "../../components/DatePickerField";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { todayISO } from "../../lib/dateGrid";
 import {
   createCareTask,
@@ -364,7 +365,11 @@ export default function PlantProfileScreen() {
     );
   }
 
+  const pendingDeleteTask = confirmDeleteId ? careTasks.find((task) => task.id === confirmDeleteId) ?? null : null;
+  const pendingMarkDoneTask = markDonePromptId ? careTasks.find((task) => task.id === markDonePromptId) ?? null : null;
+
   return (
+    <>
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: plantPrimaryName(plant) }} />
       {isOwner ? (
@@ -582,7 +587,7 @@ export default function PlantProfileScreen() {
             {t("plantDetail.careTasks.label")}
           </Text>
 
-          {tasksError ? (
+          {tasksError && !confirmDeleteId && !markDonePromptId ? (
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{tasksError}</Text>
           ) : null}
 
@@ -628,50 +633,6 @@ export default function PlantProfileScreen() {
                         {t("common.save")}
                       </Text>
                     </Pressable>
-                  </View>
-                ) : isOwner && confirmDeleteId === task.id ? (
-                  <View style={styles.taskEditRow}>
-                    <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                      {t("plantDetail.careTasks.deleteConfirmPrompt")}
-                    </Text>
-                    <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
-                      <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                        {t("common.cancel")}
-                      </Text>
-                    </Pressable>
-                    <Pressable onPress={() => handleConfirmDelete(task)} hitSlop={8} disabled={isBusy}>
-                      <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                        {t("plantDetail.careTasks.confirm")}
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : markDonePromptId === task.id ? (
-                  <View style={styles.taskPromptWrap}>
-                    <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                      {t("plantDetail.careTasks.overduePrompt")}
-                    </Text>
-                    <View style={styles.taskActionsRow}>
-                      <Pressable
-                        onPress={() => executeMarkDone(task, task.next_due ? new Date(task.next_due) : undefined)}
-                        hitSlop={8}
-                        disabled={isBusy}
-                      >
-                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                          {t("plantDetail.careTasks.originalDueDate")}
-                        </Text>
-                      </Pressable>
-                      <Pressable onPress={() => executeMarkDone(task)} hitSlop={8} disabled={isBusy}>
-                        <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                          {t("plantDetail.careTasks.today")}
-                        </Text>
-                      </Pressable>
-                      <Pressable onPress={() => setMarkDonePromptId(null)} hitSlop={8} disabled={isBusy}>
-                        <Text style={[styles.cancelLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                          {t("common.cancel")}
-                        </Text>
-                      </Pressable>
-                      {isBusy ? <ActivityIndicator color={colors.moss} /> : null}
-                    </View>
                   </View>
                 ) : (
                   <View style={styles.taskActionsRow}>
@@ -780,6 +741,48 @@ export default function PlantProfileScreen() {
         </Pressable>
       ) : null}
     </ScrollView>
+
+    {pendingDeleteTask ? (
+      <ConfirmModal
+        message={t("plantDetail.careTasks.deleteConfirmPrompt")}
+        actions={[
+          {
+            label: t("plantDetail.careTasks.confirm"),
+            tone: "destructive",
+            onPress: () => handleConfirmDelete(pendingDeleteTask),
+          },
+        ]}
+        onCancel={() => {
+          setConfirmDeleteId(null);
+          setTasksError(null);
+        }}
+        busy={busyTaskId === pendingDeleteTask.id}
+        errorText={tasksError}
+        fonts={fonts}
+      />
+    ) : null}
+
+    {pendingMarkDoneTask ? (
+      <ConfirmModal
+        message={t("plantDetail.careTasks.overduePrompt")}
+        actions={[
+          {
+            label: t("plantDetail.careTasks.originalDueDate"),
+            onPress: () =>
+              executeMarkDone(pendingMarkDoneTask, pendingMarkDoneTask.next_due ? new Date(pendingMarkDoneTask.next_due) : undefined),
+          },
+          { label: t("plantDetail.careTasks.today"), onPress: () => executeMarkDone(pendingMarkDoneTask) },
+        ]}
+        onCancel={() => {
+          setMarkDonePromptId(null);
+          setTasksError(null);
+        }}
+        busy={busyTaskId === pendingMarkDoneTask.id}
+        errorText={tasksError}
+        fonts={fonts}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -920,9 +923,6 @@ const styles = StyleSheet.create({
   },
   logProgressText: {
     fontSize: 15,
-  },
-  taskPromptWrap: {
-    gap: 6,
   },
   taskRow: {
     width: "100%",

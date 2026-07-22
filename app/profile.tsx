@@ -23,6 +23,7 @@ import { signOut } from "../lib/supabase/auth";
 import { unregisterPushForSignOut } from "../lib/pushNotificationManager";
 import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { PhotoPicker } from "../components/PhotoPicker";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -97,7 +98,6 @@ export default function ProfileScreen() {
     }
     isSaving.current = true;
 
-    setConfirmingUsername(false);
     setSaveStatus("saving");
     setSaveError(null);
 
@@ -112,12 +112,22 @@ export default function ProfileScreen() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : prev));
       setUsername(updated.username);
       setSaveStatus("saved");
+      setConfirmingUsername(false);
     } catch (err) {
+      // Leaves confirmingUsername set when it was the trigger -- the
+      // modal stays open with the error shown inline instead of
+      // silently vanishing.
       setSaveError(getErrorMessage(err));
       setSaveStatus("error");
     } finally {
       isSaving.current = false;
     }
+  }
+
+  function handleCancelUsernameConfirm() {
+    setConfirmingUsername(false);
+    setSaveStatus("idle");
+    setSaveError(null);
   }
 
   async function handleSave() {
@@ -312,7 +322,7 @@ export default function ProfileScreen() {
           />
         </View>
 
-        {saveStatus === "error" ? (
+        {!confirmingUsername && saveStatus === "error" ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{saveError}</Text>
         ) : null}
         {saveStatus === "saved" ? (
@@ -321,39 +331,19 @@ export default function ProfileScreen() {
           </Text>
         ) : null}
 
-        {confirmingUsername ? (
-          <View style={[styles.confirmBox, { borderColor: colors.line, backgroundColor: colors.sage }]}>
-            <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-              {t("profile.confirmUsernameChange.message", { days: cooldownDays, username: normalizedUsername })}
+        <Pressable
+          style={[styles.saveButton, { backgroundColor: colors.moss }]}
+          onPress={handleSave}
+          disabled={saveStatus === "saving"}
+        >
+          {saveStatus === "saving" ? (
+            <ActivityIndicator color={colors.paper} />
+          ) : (
+            <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+              {t("common.save")}
             </Text>
-            <View style={styles.confirmActions}>
-              <Pressable onPress={doSave} hitSlop={8}>
-                <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.mossStrong }]}>
-                  {t("profile.confirmUsernameChange.confirm")}
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => setConfirmingUsername(false)} hitSlop={8}>
-                <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  {t("common.cancel")}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : (
-          <Pressable
-            style={[styles.saveButton, { backgroundColor: colors.moss }]}
-            onPress={handleSave}
-            disabled={saveStatus === "saving"}
-          >
-            {saveStatus === "saving" ? (
-              <ActivityIndicator color={colors.paper} />
-            ) : (
-              <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                {t("common.save")}
-              </Text>
-            )}
-          </Pressable>
-        )}
+          )}
+        </Pressable>
 
         {signOutStatus === "error" ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{signOutError}</Text>
@@ -373,6 +363,17 @@ export default function ProfileScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      {confirmingUsername ? (
+        <ConfirmModal
+          message={t("profile.confirmUsernameChange.message", { days: cooldownDays, username: normalizedUsername })}
+          actions={[{ label: t("profile.confirmUsernameChange.confirm"), tone: "primary", onPress: doSave }]}
+          onCancel={handleCancelUsernameConfirm}
+          busy={saveStatus === "saving"}
+          errorText={saveStatus === "error" ? saveError : null}
+          fonts={fonts}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -447,23 +448,5 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-  },
-  confirmBox: {
-    width: "100%",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: spacing.sm,
-  },
-  confirmText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  confirmActions: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  confirmAction: {
-    fontSize: 14,
   },
 });

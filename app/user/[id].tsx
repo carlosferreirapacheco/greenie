@@ -14,6 +14,7 @@ import {
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -144,7 +145,6 @@ export default function UserProfileScreen() {
     }
     isActingOnBlock.current = true;
 
-    setConfirmingBlock(false);
     setBlockActionStatus("acting");
     setBlockActionError(null);
 
@@ -155,12 +155,21 @@ export default function UserProfileScreen() {
       setBlockStatus("blocked_by_me");
       setFollowStatus("none");
       setBlockActionStatus("idle");
+      setConfirmingBlock(false);
     } catch (err) {
+      // Deliberately leaves confirmingBlock true -- the modal stays open
+      // with the error shown inline instead of silently vanishing.
       setBlockActionError(getErrorMessage(err));
       setBlockActionStatus("error");
     } finally {
       isActingOnBlock.current = false;
     }
+  }
+
+  function handleCancelBlockConfirm() {
+    setConfirmingBlock(false);
+    setBlockActionStatus("idle");
+    setBlockActionError(null);
   }
 
   async function handleUnblock() {
@@ -277,36 +286,12 @@ export default function UserProfileScreen() {
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{toggleError}</Text>
           ) : null}
 
-          {confirmingBlock ? (
-            <View style={[styles.confirmBox, { borderColor: colors.coral, backgroundColor: colors.coralSoft }]}>
-              <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-                {t("userProfile.confirmBlock.message")}
-              </Text>
-              <View style={styles.confirmActions}>
-                <Pressable onPress={handleBlock} hitSlop={8}>
-                  <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                    {t("userProfile.confirmBlock.confirm")}
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => setConfirmingBlock(false)} hitSlop={8}>
-                  <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                    {t("common.cancel")}
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <Pressable onPress={() => setConfirmingBlock(true)} hitSlop={8}>
-              <Text style={[styles.blockLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-                {t("userProfile.blockLink")}
-              </Text>
-            </Pressable>
-          )}
+          <Pressable onPress={() => setConfirmingBlock(true)} hitSlop={8}>
+            <Text style={[styles.blockLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+              {t("userProfile.blockLink")}
+            </Text>
+          </Pressable>
         </>
-      ) : null}
-
-      {blockActionStatus === "error" ? (
-        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{blockActionError}</Text>
       ) : null}
 
       <View style={styles.plantsSection}>
@@ -368,6 +353,17 @@ export default function UserProfileScreen() {
           })
         )}
       </View>
+
+      {confirmingBlock ? (
+        <ConfirmModal
+          message={t("userProfile.confirmBlock.message")}
+          actions={[{ label: t("userProfile.confirmBlock.confirm"), tone: "destructive", onPress: handleBlock }]}
+          onCancel={handleCancelBlockConfirm}
+          busy={blockActionStatus === "acting"}
+          errorText={blockActionStatus === "error" ? blockActionError : null}
+          fonts={fonts}
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -431,25 +427,6 @@ const styles = StyleSheet.create({
   blockLink: {
     marginTop: spacing.xs,
     fontSize: 12.5,
-  },
-  confirmBox: {
-    marginTop: spacing.xs,
-    width: "100%",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: spacing.sm,
-  },
-  confirmText: {
-    fontSize: 13.5,
-    lineHeight: 19,
-  },
-  confirmActions: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  confirmAction: {
-    fontSize: 14,
   },
   plantsSection: {
     width: "100%",

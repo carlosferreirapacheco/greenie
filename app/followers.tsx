@@ -5,6 +5,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { getFollowers, removeFollower } from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -14,18 +15,12 @@ function FollowerRow({
   profile,
   fonts,
   busy,
-  confirming,
   onRemovePress,
-  onConfirmRemove,
-  onCancelRemove,
 }: {
   profile: Profile;
   fonts: ReturnType<typeof getFonts>;
   busy: boolean;
-  confirming: boolean;
   onRemovePress: () => void;
-  onConfirmRemove: () => void;
-  onCancelRemove: () => void;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -40,19 +35,6 @@ function FollowerRow({
       <View style={styles.actions}>
         {busy ? (
           <ActivityIndicator color={colors.coral} />
-        ) : confirming ? (
-          <>
-            <Pressable onPress={onConfirmRemove} hitSlop={8}>
-              <Text style={[styles.actionLink, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                {t("common.confirmSure")}
-              </Text>
-            </Pressable>
-            <Pressable onPress={onCancelRemove} hitSlop={8}>
-              <Text style={[styles.actionLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                {t("common.cancel")}
-              </Text>
-            </Pressable>
-          </>
         ) : (
           <Pressable onPress={onRemovePress} hitSlop={8}>
             <Text style={[styles.actionLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
@@ -75,7 +57,7 @@ export default function FollowersScreen() {
   const [followers, setFollowers] = useState<Profile[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<Profile | null>(null);
   const busyRef = useRef<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
@@ -106,13 +88,15 @@ export default function FollowersScreen() {
     }
     busyRef.current = followerId;
     setBusyId(followerId);
-    setConfirmingId(null);
     setActionError(null);
 
     try {
       await removeFollower(followerId);
       setFollowers((prev) => prev.filter((profile) => profile.id !== followerId));
+      setPendingRemoval(null);
     } catch (err) {
+      // Leaves pendingRemoval set -- the modal stays open with the error
+      // shown inline instead of silently vanishing.
       setActionError(getErrorMessage(err));
     } finally {
       busyRef.current = null;
@@ -152,9 +136,6 @@ export default function FollowersScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.paper }]}>
       {screen}
-      {actionError ? (
-        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{actionError}</Text>
-      ) : null}
       <FlatList
         style={styles.list}
         data={followers}
@@ -164,13 +145,25 @@ export default function FollowersScreen() {
             profile={item}
             fonts={fonts}
             busy={busyId === item.id}
-            confirming={confirmingId === item.id}
-            onRemovePress={() => setConfirmingId(item.id)}
-            onConfirmRemove={() => handleRemove(item.id)}
-            onCancelRemove={() => setConfirmingId(null)}
+            onRemovePress={() => setPendingRemoval(item)}
           />
         )}
       />
+
+      {pendingRemoval ? (
+        <ConfirmModal
+          message={t("followers.confirmRemove.message", {
+            name: pendingRemoval.display_name ?? `@${pendingRemoval.username}`,
+          })}
+          actions={[
+            { label: t("followers.row.remove"), tone: "destructive", onPress: () => handleRemove(pendingRemoval.id) },
+          ]}
+          onCancel={() => setPendingRemoval(null)}
+          busy={busyId === pendingRemoval.id}
+          errorText={actionError}
+          fonts={fonts}
+        />
+      ) : null}
     </View>
   );
 }
@@ -183,11 +176,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  errorText: {
-    fontSize: 13,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.sm,
   },
   list: {
     flex: 1,
