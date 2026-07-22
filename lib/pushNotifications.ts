@@ -47,3 +47,26 @@ export function notificationTargetPath(
       return null;
   }
 }
+
+export type PresentedNotificationInfo = {
+  identifier: string;
+  type: unknown;
+  plantId: unknown;
+};
+
+// Which currently-delivered OS notifications reference a plant that no
+// longer exists (deleted or archived out from under an already-sent
+// care_due push) -- callers dismiss these from the tray. Scoped to
+// care_due specifically since that's the only kind carrying a plantId
+// whose lifecycle this app can independently track; other kinds are
+// left alone even if their payload happens to carry a plantId-shaped
+// field.
+export function identifiersForDeletedPlants(
+  presented: PresentedNotificationInfo[],
+  currentPlantIds: string[]
+): string[] {
+  const validIds = new Set(currentPlantIds);
+  return presented
+    .filter((n) => n.type === "care_due" && typeof n.plantId === "string" && !validIds.has(n.plantId))
+    .map((n) => n.identifier);
+}

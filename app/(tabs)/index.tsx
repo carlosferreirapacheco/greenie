@@ -11,6 +11,7 @@ import {
   type PlantCareStatus,
 } from "../../lib/supabase/care_tasks";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { dismissStaleCareDueNotifications } from "../../lib/pushNotificationManager";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -59,6 +60,10 @@ export default function PlantListScreen() {
     getMyPlants()
       .then(async (data) => {
         setPlants(data);
+        // Safety net for plants removed out-of-band (e.g. directly via
+        // SQL) -- clears any already-delivered care_due tray
+        // notification for a plant that's no longer in this list.
+        dismissStaleCareDueNotifications(data.map((plant) => plant.id));
 
         const tasks = await getCareTasksForPlants(data.map((plant) => plant.id));
         const tasksByPlant: Record<string, typeof tasks> = {};

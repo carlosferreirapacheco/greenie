@@ -1253,6 +1253,65 @@ sharing them socially with other users.
   full reused sign-in form, "Email"/"Palavra-passe"/"Iniciar
   sessão"/"ou"/"Continuar com Google"). Also reconfirmed in English as
   a regression check.
+- Archive / restore / delete plants — done. Surfaced by a bug report
+  (a plant deleted directly via SQL left a stale `care_due` push
+  notification sitting in the OS tray, since nothing in this codebase
+  ever dismissed an already-delivered notification) but scoped up, per
+  user decision, into the real missing feature: plants previously had
+  no delete at all. Trash-then-purge pattern: **archive** is a
+  reversible pause, **restore** undoes it, **delete** (only reachable
+  once archived) is permanent. New nullable `plants.archived_at`
+  (migration `0022_plant_archiving.sql`) — no RLS changes needed, since
+  `plants_update_own`/`plants_delete_own` (`0001_init.sql`) are already
+  unrestricted owner-only policies and the owner branch of
+  `plants_select_visible` already grants unconditional access to a
+  plant's own owner; archived/active is purely a client-side
+  `.is("archived_at", null)` / `.not(...)` filter. The same migration
+  re-`cron.schedule()`s the existing `care-due-scan` job (same job
+  name replaces it in place) adding `and p.archived_at is null`, so an
+  archived plant stops generating `care_due` notifications — without
+  this, archiving wouldn't actually pause reminders.
+  `lib/supabase/plants.ts` gained `getArchivedPlants()`,
+  `archivePlant()`, `restorePlant()`, `deletePlant()`; `getMyPlants()`/
+  `getPlantsForUser()` both gained the active-only filter. A real
+  delete relies entirely on existing `on delete cascade` FKs
+  (`care_tasks.plant_id`, `plant_progress.plant_id`,
+  `notifications.plant_id`) — no manual cleanup code needed; Storage
+  objects (photos) are not cleaned up, the same already-accepted gap
+  noted elsewhere in this doc. The original bug fix: new pure
+  `identifiersForDeletedPlants()` (`lib/pushNotifications.ts`) and
+  native wrapper `dismissStaleCareDueNotifications()`
+  (`lib/pushNotificationManager.ts`, `getPresentedNotificationsAsync()`
+  → filter `care_due` entries whose plant is no longer current →
+  `dismissNotificationAsync()` each, silent try/catch, web no-ops) —
+  called fire-and-forget after a successful archive/delete, and as a
+  standing safety net in `app/(tabs)/index.tsx`'s existing
+  `fetchPlants()` (so out-of-band deletions like the original SQL
+  cleanup self-heal on the next Plants-tab focus, not just in-app ones).
+  New `app/archived-plants.tsx` (linked from a new `archive-outline`
+  header action next to Plants' existing `+ Add`) lists archived
+  plants with inline Restore (single tap, no confirm — low-stakes and
+  reversible, same precedent as Unblock) and Delete (`ConfirmModal`,
+  destructive tone) actions, plus an empty state. `app/plant/[id].tsx`
+  (owner-only) gained an "Archive this plant" link (opens a primary-tone
+  `ConfirmModal` explaining care reminders will pause) when active, or
+  an "ARCHIVED" badge when not — Log progress and "+ Add task" are both
+  hidden while archived; existing tasks' Mark done/Edit/Delete stay
+  available. Verified: migration applied + confirmed via SQL that
+  `care-due-scan`'s job definition now includes the `archived_at is
+  null` clause; `tsc --noEmit` + `npm test` clean; live web pass —
+  archived a real plant (disappeared from Plants, appeared on the new
+  screen), Restored it (reappeared in Plants), archived again and
+  opened the Delete confirm (checked the interpolated plant-name
+  message, then cancelled rather than actually deleting real seeded
+  dev data), Restored again to leave the account clean. Both new
+  `ConfirmModal`s (archive and delete) were also checked live in dark
+  mode and Português — correct themed colors and correctly translated/
+  interpolated text in both cases. The OS-notification-dismissal path
+  itself can't be verified in this browser-only environment (needs a
+  real device + a real already-delivered push); covered by
+  `lib/pushNotifications.test.ts` unit tests, full confirmation needs a
+  manual pass on the Android test device.
 
 ### Technical follow-ups
 - AI lookup non-2xx error investigation and durable logging — done.
