@@ -94,6 +94,7 @@ export const en = {
       placeholder: "e.g. 32",
     },
     saveButton: "Save plant",
+    lookupError: "Couldn't look up this plant. Please try again.",
     lookupModal: {
       nameMismatch: {
         message: 'AI identified this as "{aiName}", but you entered "{typedName}".',

@@ -106,8 +106,11 @@ export default function AddPlantScreen() {
         fillFromLookup(result);
       }
       setLookupStatus("idle");
-    } catch (err) {
-      setLookupError(getErrorMessage(err));
+    } catch {
+      // The specific cause is durably logged server-side (see
+      // ai_lookup_error_logs) -- the UI always shows one generic,
+      // translated message regardless of what actually failed.
+      setLookupError(t("addPlant.lookupError"));
       setLookupStatus("error");
     } finally {
       isLookingUp.current = false;
@@ -128,8 +131,9 @@ export default function AddPlantScreen() {
       fillFromLookup(result);
       setLookupStatus("idle");
       setLookupPrompt(null);
-    } catch (err) {
-      setLookupError(getErrorMessage(err));
+    } catch {
+      // Same reasoning as handlePhotoLookup's catch above.
+      setLookupError(t("addPlant.lookupError"));
       setLookupStatus("error");
     } finally {
       isLookingUp.current = false;
