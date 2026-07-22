@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -42,6 +43,8 @@ import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
+
+const SUPPORT_LINK_URL = "https://buymeacoffee.com/carlos.pacheco";
 
 // One On/Off row per notification kind, in inbox-relevance order. labelKey
 // is a settings.notifications.prefRows.* translation key, not literal text.
@@ -211,6 +214,12 @@ export default function SettingsScreen() {
       fetchPrivacySettings();
     }, [fetchPrivacySettings])
   );
+
+  function handleOpenSupportLink() {
+    Linking.openURL(SUPPORT_LINK_URL).catch((err) => {
+      console.error("Failed to open support link:", err);
+    });
+  }
 
   const [exportStatus, setExportStatus] = useState<"idle" | "exporting" | "error">("idle");
   const [exportError, setExportError] = useState<string | null>(null);
@@ -943,6 +952,20 @@ export default function SettingsScreen() {
             </Pressable>
           </>
         )}
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          {t("settings.support.sectionTitle")}
+        </Text>
+
+        <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {t("settings.support.sectionIntro")}
+        </Text>
+
+        <Pressable style={[styles.saveButton, { backgroundColor: colors.moss }]} onPress={handleOpenSupportLink}>
+          <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+            {t("settings.support.button")}
+          </Text>
+        </Pressable>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           {t("settings.yourData.sectionTitle")}

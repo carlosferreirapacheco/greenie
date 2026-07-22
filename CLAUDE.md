@@ -2071,9 +2071,37 @@ unrelated history.
   precious username-cooldown-consuming change); Delete-task and
   Delete-account were opened-and-cancelled only, consistent with how
   destructive flows have been spot-checked elsewhere in this project.
+- Support development donation link — done. A monetization scoping
+  pass concluded that gating the AI plant lookup wasn't worth it (the
+  Gemini call costs fractions of a cent per lookup, per a token-level
+  cost breakdown of `supabase/functions/lookup-plant`, so it'd take
+  six-figure MAU before it's a real budget line) — a lightweight
+  "buy me a coffee" tip jar was chosen instead over building real
+  payment infrastructure. New "Support" section in `app/settings.tsx`
+  between Notifications and "Your data" (a positive note ahead of the
+  account-management sections, not sandwiched next to Danger Zone),
+  mirroring that section's exact shape (title + one-line intro +
+  single `saveButton`-styled button, no new styles). Tapping it calls
+  React Native's built-in `Linking.openURL()` (core API, no new
+  dependency, first use of `Linking` in this codebase) to open
+  `https://buymeacoffee.com/carlos.pacheco` — a plain external link
+  with no in-app confirmation step, since it's not a purchase
+  happening inside the app; the actual transaction, if any, happens
+  entirely on Buy Me a Coffee's own site. Verified: `tsc`/`npm test`
+  clean, live on web (section renders in the right place with the
+  right copy, Português translation and dark-mode button color both
+  confirmed correct via computed-style checks). The actual click-through
+  to Buy Me a Coffee couldn't be confirmed live in this pass — this
+  environment's browser automation blocks `window.open` outright (even
+  a bare `window.open()` call returns `null` here), a new addition to
+  this project's existing list of browser-automation gaps (native file
+  picker, `FlatList` virtualized scroll) rather than a bug in the
+  implementation.
 
 ### Later
-- Payments / monetization
+- Payments / monetization — a donation link is done (see above); full
+  payment processing / feature-gating monetization remains open and
+  unscoped.
 - Admin dashboard
 - Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
