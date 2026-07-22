@@ -303,6 +303,12 @@ export const ptPT: typeof en = {
       savedText: "Definições de notificações guardadas",
       saveButton: "Guardar definições de notificações",
     },
+    support: {
+      sectionTitle: "Apoiar o Greenie",
+      sectionIntro:
+        "Se o Greenie lhe é útil, pode oferecer-me um café — totalmente opcional, é só uma forma de agradecer.",
+      button: "Oferecer um café",
+    },
     yourData: {
       sectionTitle: "Os seus dados",
       sectionIntro:

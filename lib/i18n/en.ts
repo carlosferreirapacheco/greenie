@@ -301,6 +301,12 @@ export const en = {
       savedText: "Notification settings saved",
       saveButton: "Save notification settings",
     },
+    support: {
+      sectionTitle: "Support Greenie",
+      sectionIntro:
+        "If Greenie's useful to you, you can buy me a coffee — totally optional, just a way to say thanks.",
+      button: "Buy me a coffee",
+    },
     yourData: {
       sectionTitle: "Your data",
       sectionIntro:
