@@ -329,6 +329,7 @@ export const en = {
     accept: "Accept",
     decline: "Decline",
     unblock: "Unblock",
+    report: "Report",
     chipOptions: {
       commentPolicy: {
         anyone: "Anyone",
@@ -428,6 +429,23 @@ export const en = {
     headerTitle: "Liked by",
     empty: "No likes yet",
     errorPrefix: "Error: {error}",
+  },
+  report: {
+    screenTitle: "Report",
+    reasonLabel: "Why are you reporting this?",
+    reasons: {
+      spam: "Spam",
+      harassment: "Harassment or bullying",
+      inappropriate_content: "Inappropriate content",
+      other: "Other",
+    },
+    detailsLabel: "Additional details (optional)",
+    detailsPlaceholder: "Anything else we should know?",
+    alsoBlock: "Also block this account",
+    submitButton: "Submit report",
+    successMessage: "Thanks — we'll review this report.",
+    blockFailed: "Report submitted, but we couldn't block this account: {error}",
+    doneButton: "Done",
   },
   heightChart: {
     captionEntry: "{date} · {height} cm",

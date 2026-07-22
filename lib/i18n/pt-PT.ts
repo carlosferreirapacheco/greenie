@@ -331,6 +331,7 @@ export const ptPT: typeof en = {
     accept: "Aceitar",
     decline: "Recusar",
     unblock: "Desbloquear",
+    report: "Denunciar",
     chipOptions: {
       commentPolicy: {
         anyone: "Todos",
@@ -430,6 +431,23 @@ export const ptPT: typeof en = {
     headerTitle: "Gostos de",
     empty: "Ainda sem gostos",
     errorPrefix: "Erro: {error}",
+  },
+  report: {
+    screenTitle: "Denunciar",
+    reasonLabel: "Porque está a denunciar isto?",
+    reasons: {
+      spam: "Spam",
+      harassment: "Assédio ou bullying",
+      inappropriate_content: "Conteúdo impróprio",
+      other: "Outro",
+    },
+    detailsLabel: "Detalhes adicionais (opcional)",
+    detailsPlaceholder: "Mais alguma coisa que devêssemos saber?",
+    alsoBlock: "Bloquear também esta conta",
+    submitButton: "Enviar denúncia",
+    successMessage: "Obrigado — vamos analisar esta denúncia.",
+    blockFailed: "Denúncia enviada, mas não foi possível bloquear esta conta: {error}",
+    doneButton: "Concluído",
   },
   heightChart: {
     captionEntry: "{date} · {height} cm",
