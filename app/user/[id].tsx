@@ -291,6 +291,15 @@ export default function UserProfileScreen() {
               {t("userProfile.blockLink")}
             </Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push({ pathname: "/report", params: { targetType: "user", targetId: id, authorId: id } })}
+            hitSlop={8}
+          >
+            <Text style={[styles.reportLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+              {t("common.report")}
+            </Text>
+          </Pressable>
         </>
       ) : null}
 
@@ -425,6 +434,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   blockLink: {
+    marginTop: spacing.xs,
+    fontSize: 12.5,
+  },
+  reportLink: {
     marginTop: spacing.xs,
     fontSize: 12.5,
   },

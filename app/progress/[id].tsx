@@ -54,6 +54,7 @@ export default function ProgressDetailScreen() {
   const [canComment, setCanComment] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [isPlantOwner, setIsPlantOwner] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
 
   const [setPhotoStatus, setSetPhotoStatus] = useState<"idle" | "saving" | "error">("idle");
   const [setPhotoError, setSetPhotoError] = useState<string | null>(null);
@@ -83,6 +84,7 @@ export default function ProgressDetailScreen() {
         setComments(commentsData);
         setIsOwner(reportData.user_id === currentUserId);
         setIsPlantOwner(reportData.plant_owner_id === currentUserId);
+        setCurrentUserId(currentUserId);
 
         // The report's own comment_policy (per-report since migration
         // 0012). 'disabled' silences everyone, the owner included.
@@ -344,6 +346,21 @@ export default function ProgressDetailScreen() {
               </Text>
             </Pressable>
           ) : null}
+          {!isOwner ? (
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/report",
+                  params: { targetType: "progress_report", targetId: report.id, authorId: report.user_id },
+                })
+              }
+              hitSlop={8}
+            >
+              <Text style={[styles.likeButton, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                {t("common.report")}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {isOwner ? (
@@ -430,9 +447,26 @@ export default function ProgressDetailScreen() {
                 <Text style={[styles.commentContent, { fontFamily: fonts.body, color: colors.ink }]}>
                   {comment.content}
                 </Text>
-                <Text style={[styles.commentTimestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                  {formatDisplayDate(comment.created_at)}
-                </Text>
+                <View style={styles.commentMeta}>
+                  <Text style={[styles.commentTimestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                    {formatDisplayDate(comment.created_at)}
+                  </Text>
+                  {comment.user_id !== currentUserId ? (
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/report",
+                          params: { targetType: "comment", targetId: comment.id, authorId: comment.user_id },
+                        })
+                      }
+                      hitSlop={8}
+                    >
+                      <Text style={[styles.commentTimestamp, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                        {t("common.report")}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               </View>
             ))}
 
@@ -552,9 +586,13 @@ const styles = StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 20,
   },
+  commentMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 1,
+  },
   commentTimestamp: {
     fontSize: 11,
-    marginTop: 1,
   },
   field: {
     gap: spacing.xs,

@@ -2156,12 +2156,80 @@ unrelated history.
   this project's existing list of browser-automation gaps (native file
   picker, `FlatList` virtualized scroll) rather than a bug in the
   implementation.
+- Report content and users — done. Prompted by planning a real Google
+  Play launch: Play's User Generated Content policy requires apps with
+  publicly-visible UGC (Greenie's feed, progress reports, comments) to
+  let users report content/users, not just block them — Greenie had
+  blocking (migration `0014_block_users.sql`) but no reporting at all,
+  likely a real rejection risk without it. Modeled directly on that
+  existing feature. New `reports` table (migration `0023_reports.sql`):
+  `reporter_id`, `target_type` (`progress_report`/`comment`/`user`),
+  `target_id` (a soft reference, no FK — points at three different
+  tables and should survive the target later being deleted), `reason`
+  (`spam`/`harassment`/`inappropriate_content`/`other`), optional
+  `details` text. RLS mirrors `blocks_select_own`'s shape: insert/select
+  scoped to the reporter's own submissions, no update/delete (an
+  append-only log) — verified live via a rolled-back SQL transaction
+  that a reporter can insert/see their own report, a second user sees
+  zero rows for it, and a spoofed insert (claiming another user's
+  `reporter_id`) is rejected with `42501`. **No admin UI in this
+  pass** — there's no admin dashboard yet (see the `### Later` entry,
+  now explicitly scoped to include report review), so the owner reviews
+  the `reports` table directly via Supabase Studio/SQL and acts with
+  existing tools (delete the offending row via service role, block the
+  reported user). New `lib/supabase/reports.ts` (`submitReport()`,
+  mirrors `blocks.ts`'s shape) + test. New `app/report.tsx` screen — a
+  form (not a `ConfirmModal`, since this needs a reason picker +
+  optional free-text field): reuses `ChipGroup` for the reason choice,
+  an optional details `TextInput`, and — per user decision — an "Also
+  block this account" checkbox for content reports (calls the existing
+  `blockUser()` right after a successful report; a secondary block
+  failure surfaces inline without losing the already-submitted report).
+  The checkbox is hidden when reporting a user profile directly, since
+  that page's own Block link already covers it one tap away. Entry
+  points: a "Report" link on `app/progress/[id].tsx` (the report itself,
+  hidden for the report's own owner, plus a per-comment link, hidden on
+  the viewer's own comments) and `app/user/[id].tsx` ("Report this
+  account", alongside the existing Block link). Full English +
+  Português i18n coverage (new `report.*` namespace, `common.report`).
+  Also added a production EAS build profile (`eas.json`): Play Store
+  submission needs an Android App Bundle, not the `development`/
+  `preview` profiles' APKs — new `production` profile builds
+  `app-bundle` with `autoIncrement: true` so `versionCode` bumps
+  automatically each build (works with the existing `cli.appVersionSource:
+  "remote"`). New `docs/google-play-launch.md`: a submission runbook
+  covering Data Safety section answers (cross-checked against
+  `lib/supabase/gdpr.ts`'s `collectMyData()`, which is the actual
+  source of truth for what this app stores — noted there that export
+  and the privacy policy's "What Greenie stores" section don't yet
+  mention `reports`, blocks, plant-sitting, or notifications, a
+  pre-existing gap worth a follow-up pass), content rating questionnaire
+  guidance, draft store listing copy, and a walkthrough of Google's
+  mandatory closed-testing requirement (12+ opted-in testers for 14
+  consecutive days, since the account being used for this launch has no
+  existing Play Developer registration and therefore can't publish
+  straight to production). Verified: `tsc`/`npm test` clean (363
+  passing); live web — submitted a report from a user profile, a
+  progress report (with "Also block" checked, confirmed both the report
+  row and the resulting block landed correctly), and a comment,
+  confirming each lands in `reports` with the right `target_type`/
+  `target_id`/`reason`; both dark mode and Português confirmed correct
+  on the new screen (light text on dark card, all labels/reasons/
+  success message translated). Real steps still open before an actual
+  submission — registering the Play Developer account, the legal review
+  of the privacy policy the user explicitly wants before launch, filling
+  in Play Console's own forms, and running the closed test — are called
+  out explicitly in the new doc as owner actions, not attempted here.
 
 ### Later
 - Payments / monetization — a donation link is done (see above); full
   payment processing / feature-gating monetization remains open and
   unscoped.
-- Admin dashboard
+- Admin dashboard — should include **report review**: a screen to list/
+  triage the `reports` table (migration `0023_reports.sql`, see the
+  in-app reporting feature above) and act on them, rather than the
+  owner-does-it-via-Supabase-Studio-SQL process that feature shipped
+  with.
 - Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
   and the initial-size field on Add Plant). Explicitly out of scope
