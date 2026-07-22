@@ -920,9 +920,6 @@ sharing them socially with other users.
   signed-in user's own plants). Delegated non-owner logging is now live
   via the Plant-sitting feature above — a sitter with an active,
   accepted assignment can log progress reports on the owner's plants.
-- Review feed behavior on multiple progress reports — audit how the feed
-  reads when a plant has several reports (ordering, whether they should
-  ever be grouped/collapsed under one plant); not a concrete feature yet
 - UI/UX revamp — persistent tab bar + icon navigation, replacing the
   text-link header navigation that had accumulated feature-by-feature
   and no longer fit a mobile screen (the concrete first chunk of the
