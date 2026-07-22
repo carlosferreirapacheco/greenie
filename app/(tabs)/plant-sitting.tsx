@@ -21,6 +21,7 @@ import { getCareTasksForPlants } from "../../lib/supabase/care_tasks";
 import { buildCareInstructionsText } from "../../lib/careInstructions";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -120,18 +121,12 @@ function SentRequestRow({
   assignment,
   fonts,
   busy,
-  confirming,
   onCancelPress,
-  onConfirmCancel,
-  onCancelCancel,
 }: {
   assignment: PlantSittingAssignment & { sitter: Profile };
   fonts: ReturnType<typeof getFonts>;
   busy: boolean;
-  confirming: boolean;
   onCancelPress: () => void;
-  onConfirmCancel: () => void;
-  onCancelCancel: () => void;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -157,19 +152,6 @@ function SentRequestRow({
         <View style={styles.actions}>
           {busy ? (
             <ActivityIndicator color={colors.coral} />
-          ) : confirming ? (
-            <>
-              <Pressable onPress={onConfirmCancel} hitSlop={8}>
-                <Text style={[styles.declineLink, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                  {t("common.confirmSure")}
-                </Text>
-              </Pressable>
-              <Pressable onPress={onCancelCancel} hitSlop={8}>
-                <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  {t("plantSitting.sentRequestRow.keep")}
-                </Text>
-              </Pressable>
-            </>
           ) : (
             <Pressable onPress={onCancelPress} hitSlop={8}>
               <Text style={[styles.declineLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
@@ -236,7 +218,7 @@ export default function PlantSittingScreen() {
 
   const [sentActionError, setSentActionError] = useState<string | null>(null);
   const [busySentId, setBusySentId] = useState<string | null>(null);
-  const [confirmingCancelId, setConfirmingCancelId] = useState<string | null>(null);
+  const [pendingCancel, setPendingCancel] = useState<(PlantSittingAssignment & { sitter: Profile }) | null>(null);
   const busySentRef = useRef<string | null>(null);
 
   const fetchAll = useCallback(() => {
@@ -361,7 +343,6 @@ export default function PlantSittingScreen() {
     }
     busySentRef.current = id;
     setBusySentId(id);
-    setConfirmingCancelId(null);
     setSentActionError(null);
 
     try {
@@ -370,7 +351,10 @@ export default function PlantSittingScreen() {
       // Cancelling moves the assignment into history, so refetch that
       // section rather than just dropping it from "My sitters".
       fetchAll();
+      setPendingCancel(null);
     } catch (err) {
+      // Leaves pendingCancel set -- the modal stays open with the error
+      // shown inline instead of silently vanishing.
       setSentActionError(getErrorMessage(err));
     } finally {
       busySentRef.current = null;
@@ -437,9 +421,6 @@ export default function PlantSittingScreen() {
       <Text style={[styles.sectionTitle, styles.sectionSpacing, { fontFamily: fonts.display, color: colors.ink }]}>
         {t("plantSitting.sectionTitle.mySitters")}
       </Text>
-      {sentActionError ? (
-        <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{sentActionError}</Text>
-      ) : null}
       {sentRequests.length === 0 ? (
         <Text style={[styles.emptyText, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           {t("plantSitting.emptyState.noSitters")}
@@ -451,10 +432,7 @@ export default function PlantSittingScreen() {
             assignment={assignment}
             fonts={fonts}
             busy={busySentId === assignment.id}
-            confirming={confirmingCancelId === assignment.id}
-            onCancelPress={() => setConfirmingCancelId(assignment.id)}
-            onConfirmCancel={() => handleCancel(assignment.id)}
-            onCancelCancel={() => setConfirmingCancelId(null)}
+            onCancelPress={() => setPendingCancel(assignment)}
           />
         ))
       )}
@@ -469,6 +447,22 @@ export default function PlantSittingScreen() {
       ) : (
         history.map((assignment) => <HistoryRow key={assignment.id} assignment={assignment} fonts={fonts} />)
       )}
+
+      {pendingCancel ? (
+        <ConfirmModal
+          message={t("plantSitting.confirmCancelRequest.message", {
+            name: pendingCancel.sitter.display_name ?? `@${pendingCancel.sitter.username}`,
+          })}
+          actions={[
+            { label: t("common.cancel"), tone: "destructive", onPress: () => handleCancel(pendingCancel.id) },
+          ]}
+          onCancel={() => setPendingCancel(null)}
+          cancelLabel={t("plantSitting.sentRequestRow.keep")}
+          busy={busySentId === pendingCancel.id}
+          errorText={sentActionError}
+          fonts={fonts}
+        />
+      ) : null}
     </ScrollView>
   );
 }

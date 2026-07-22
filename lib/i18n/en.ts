@@ -475,6 +475,9 @@ export const en = {
     row: {
       remove: "Remove",
     },
+    confirmRemove: {
+      message: "Remove {name} as a follower?",
+    },
   },
   followRequests: {
     screenTitle: "Follow Requests",
@@ -549,6 +552,9 @@ export const en = {
     },
     sentRequestRow: {
       keep: "Keep",
+    },
+    confirmCancelRequest: {
+      message: "Cancel your plant-sitting request to {name}?",
     },
   },
   requestSitting: {

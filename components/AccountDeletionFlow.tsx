@@ -7,6 +7,7 @@ import {
   requestAccountDeletionCode,
 } from "../lib/supabase/auth";
 import { getMyProfile } from "../lib/supabase/profiles";
+import { ConfirmModal } from "./ConfirmModal";
 import { getErrorMessage } from "../lib/errors";
 import { getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -88,7 +89,6 @@ export function AccountDeletionFlow({
     }
     isDeleting.current = true;
 
-    setConfirmingDelete(false);
     setDeleteStatus("deleting");
     setDeleteError(null);
 
@@ -98,15 +98,23 @@ export function AccountDeletionFlow({
       } else {
         await confirmAccountDeletion(deletePassword, deleteCode);
       }
-      onDeleted?.();
       // Settings has no onDeleted -- the root layout's onAuthStateChange
       // listener swaps to the sign-in stack once the session clears.
+      onDeleted?.();
     } catch (err) {
+      // Leaves confirmingDelete set -- the modal stays open with the
+      // error shown inline instead of silently vanishing.
       setDeleteError(getErrorMessage(err));
       setDeleteStatus("error");
     } finally {
       isDeleting.current = false;
     }
+  }
+
+  function handleCancelDeleteConfirm() {
+    setConfirmingDelete(false);
+    setDeleteStatus("idle");
+    setDeleteError(null);
   }
 
   // For passwordless (Google-only) accounts the typed username replaces
@@ -205,44 +213,37 @@ export function AccountDeletionFlow({
         </>
       )}
 
-      {deleteStatus === "error" ? (
+      {!confirmingDelete && deleteStatus === "error" ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{deleteError}</Text>
       ) : null}
 
       {codeStatus === "sent" ? (
-        confirmingDelete ? (
-          <View style={[styles.confirmBox, { borderColor: colors.coral, backgroundColor: colors.coralSoft }]}>
-            <Text style={[styles.confirmText, { fontFamily: fonts.body, color: colors.ink }]}>
-              {t("accountDeletionFlow.confirmDelete.message")}
+        <Pressable
+          style={[styles.saveButton, { backgroundColor: canDelete ? colors.coral : colors.line }]}
+          onPress={() => setConfirmingDelete(true)}
+          disabled={!canDelete}
+        >
+          {deleteStatus === "deleting" ? (
+            <ActivityIndicator color={colors.paper} />
+          ) : (
+            <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+              {t("accountDeletionFlow.deleteButton")}
             </Text>
-            <View style={styles.confirmActions}>
-              <Pressable onPress={handleDeleteAccount} hitSlop={8}>
-                <Text style={[styles.confirmAction, { fontFamily: fonts.bodySemiBold, color: colors.coral }]}>
-                  {t("accountDeletionFlow.confirmDelete.confirm")}
-                </Text>
-              </Pressable>
-              <Pressable onPress={() => setConfirmingDelete(false)} hitSlop={8}>
-                <Text style={[styles.confirmAction, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-                  {t("common.cancel")}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        ) : (
-          <Pressable
-            style={[styles.saveButton, { backgroundColor: canDelete ? colors.coral : colors.line }]}
-            onPress={() => setConfirmingDelete(true)}
-            disabled={!canDelete}
-          >
-            {deleteStatus === "deleting" ? (
-              <ActivityIndicator color={colors.paper} />
-            ) : (
-              <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
-                {t("accountDeletionFlow.deleteButton")}
-              </Text>
-            )}
-          </Pressable>
-        )
+          )}
+        </Pressable>
+      ) : null}
+
+      {confirmingDelete ? (
+        <ConfirmModal
+          message={t("accountDeletionFlow.confirmDelete.message")}
+          actions={[
+            { label: t("accountDeletionFlow.confirmDelete.confirm"), tone: "destructive", onPress: handleDeleteAccount },
+          ]}
+          onCancel={handleCancelDeleteConfirm}
+          busy={deleteStatus === "deleting"}
+          errorText={deleteStatus === "error" ? deleteError : null}
+          fonts={fonts}
+        />
       ) : null}
     </View>
   );
@@ -291,23 +292,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dangerOutlineButtonText: {
-    fontSize: 14,
-  },
-  confirmBox: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    gap: spacing.sm,
-  },
-  confirmText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  confirmActions: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  confirmAction: {
     fontSize: 14,
   },
 });

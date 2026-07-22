@@ -477,6 +477,9 @@ export const ptPT: typeof en = {
     row: {
       remove: "Remover",
     },
+    confirmRemove: {
+      message: "Remover {name} como seguidor?",
+    },
   },
   followRequests: {
     screenTitle: "Pedidos para Seguir",
@@ -551,6 +554,9 @@ export const ptPT: typeof en = {
     },
     sentRequestRow: {
       keep: "Manter",
+    },
+    confirmCancelRequest: {
+      message: "Cancelar o seu pedido de cuidado de plantas a {name}?",
     },
   },
   requestSitting: {
