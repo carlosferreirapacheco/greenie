@@ -82,9 +82,47 @@ export const ptPT: typeof en = {
       label: "Frequência de rega (dias)",
       placeholder: "ex.: 8",
     },
+    fertilizeFrequency: {
+      label: "Frequência de adubação (dias, opcional)",
+      placeholder: "ex.: 30",
+    },
+    repotFrequency: {
+      label: "Frequência de troca de terra (dias, opcional)",
+      placeholder: "ex.: 365",
+    },
     location: {
       label: "Localização (opcional)",
       placeholder: "ex.: Sala de estar, janela a nascente",
+    },
+    lightExposure: {
+      label: "Exposição à luz (opcional)",
+      options: {
+        lowLight: "Pouca luz",
+        mediumLight: "Luz média",
+        brightIndirect: "Luz indireta forte",
+        directSun: "Sol direto",
+      },
+    },
+    careDifficulty: {
+      label: "Dificuldade de cuidado (opcional)",
+      options: {
+        beginner: "Iniciante",
+        intermediate: "Intermédio",
+        advanced: "Avançado",
+      },
+    },
+    toxicToPets: {
+      label: "Tóxica para animais de estimação? (opcional)",
+    },
+    toxicToHumans: {
+      label: "Tóxica para humanos? (opcional)",
+    },
+    toxicity: {
+      options: {
+        yes: "Sim",
+        no: "Não",
+        unknown: "Desconhecido",
+      },
     },
     acquiredDate: {
       label: "Data de aquisição (opcional)",
@@ -361,6 +399,23 @@ export const ptPT: typeof en = {
       archiveLink: "Arquivar esta planta",
       confirmMessage:
         "Arquivar esta planta? Será escondida da sua lista de Plantas e os lembretes de cuidados serão pausados. Pode restaurá-la a qualquer momento em Plantas Arquivadas.",
+    },
+    lightExposure: {
+      low_light: "Pouca luz",
+      medium_light: "Luz média",
+      bright_indirect: "Luz indireta forte",
+      direct_sun: "Sol direto",
+    },
+    careDifficulty: {
+      beginner: "Iniciante",
+      intermediate: "Intermédio",
+      advanced: "Avançado",
+    },
+    toxicity: {
+      toxicToPets: "Tóxica para animais de estimação",
+      safeForPets: "Segura para animais de estimação",
+      toxicToHumans: "Tóxica para humanos",
+      safeForHumans: "Segura para humanos",
     },
     progress: {
       label: "Progresso",

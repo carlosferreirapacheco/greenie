@@ -1,4 +1,5 @@
 import { supabase } from "./client";
+import type { CareDifficulty, LightExposure, ToxicityAnswer } from "./ai";
 
 export type Plant = {
   id: string;
@@ -11,6 +12,10 @@ export type Plant = {
   created_at: string;
   nickname: string | null;
   archived_at: string | null;
+  light_exposure: LightExposure | null;
+  care_difficulty: CareDifficulty | null;
+  toxic_to_pets: ToxicityAnswer | null;
+  toxic_to_humans: ToxicityAnswer | null;
 };
 
 // Nickname takes the primary display slot when set; otherwise falls
@@ -201,6 +206,10 @@ export async function createPlant(input: {
   acquired_at: string | null;
   nickname: string | null;
   photo_url?: string | null;
+  light_exposure?: LightExposure | null;
+  care_difficulty?: CareDifficulty | null;
+  toxic_to_pets?: ToxicityAnswer | null;
+  toxic_to_humans?: ToxicityAnswer | null;
 }): Promise<Plant> {
   const {
     data: { user },
@@ -220,6 +229,10 @@ export async function createPlant(input: {
       acquired_at: input.acquired_at,
       nickname: input.nickname,
       photo_urls: input.photo_url ? [input.photo_url] : null,
+      light_exposure: input.light_exposure ?? null,
+      care_difficulty: input.care_difficulty ?? null,
+      toxic_to_pets: input.toxic_to_pets ?? null,
+      toxic_to_humans: input.toxic_to_humans ?? null,
     })
     .select()
     .single();

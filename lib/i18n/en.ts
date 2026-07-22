@@ -83,9 +83,47 @@ export const en = {
       label: "Watering frequency (days)",
       placeholder: "e.g. 8",
     },
+    fertilizeFrequency: {
+      label: "Fertilize frequency (days, optional)",
+      placeholder: "e.g. 30",
+    },
+    repotFrequency: {
+      label: "Repot frequency (days, optional)",
+      placeholder: "e.g. 365",
+    },
     location: {
       label: "Location (optional)",
       placeholder: "e.g. Living room, east window",
+    },
+    lightExposure: {
+      label: "Light exposure (optional)",
+      options: {
+        lowLight: "Low light",
+        mediumLight: "Medium light",
+        brightIndirect: "Bright indirect",
+        directSun: "Direct sun",
+      },
+    },
+    careDifficulty: {
+      label: "Care difficulty (optional)",
+      options: {
+        beginner: "Beginner",
+        intermediate: "Intermediate",
+        advanced: "Advanced",
+      },
+    },
+    toxicToPets: {
+      label: "Toxic to pets? (optional)",
+    },
+    toxicToHumans: {
+      label: "Toxic to humans? (optional)",
+    },
+    toxicity: {
+      options: {
+        yes: "Yes",
+        no: "No",
+        unknown: "Unknown",
+      },
     },
     acquiredDate: {
       label: "Acquired date (optional)",
@@ -359,6 +397,23 @@ export const en = {
       archiveLink: "Archive this plant",
       confirmMessage:
         "Archive this plant? It'll be hidden from your Plants list and its care reminders will pause. You can restore it anytime from Archived Plants.",
+    },
+    lightExposure: {
+      low_light: "Low light",
+      medium_light: "Medium light",
+      bright_indirect: "Bright indirect light",
+      direct_sun: "Direct sun",
+    },
+    careDifficulty: {
+      beginner: "Beginner",
+      intermediate: "Intermediate",
+      advanced: "Advanced",
+    },
+    toxicity: {
+      toxicToPets: "Toxic to pets",
+      safeForPets: "Safe for pets",
+      toxicToHumans: "Toxic to humans",
+      safeForHumans: "Safe for humans",
     },
     progress: {
       label: "Progress",

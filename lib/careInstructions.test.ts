@@ -19,6 +19,10 @@ function makePlant(overrides: Partial<Plant> = {}): Plant {
     created_at: "2026-01-01",
     nickname: null,
     archived_at: null,
+    light_exposure: null,
+    care_difficulty: null,
+    toxic_to_pets: null,
+    toxic_to_humans: null,
     ...overrides,
   };
 }
@@ -91,5 +95,37 @@ describe("buildCareInstructionsText", () => {
     expect(text).toContain("Snake plant");
     expect(text).toContain("Dracaena trifasciata");
     expect(text).not.toContain("Location: null");
+  });
+
+  it("includes light exposure and difficulty when set", () => {
+    const text = buildCareInstructionsText([
+      { ...makePlant({ light_exposure: "bright_indirect", care_difficulty: "beginner" }), tasks: [] },
+    ]);
+
+    expect(text).toContain("Light: Bright indirect light");
+    expect(text).toContain("Difficulty: Beginner");
+  });
+
+  it("shows toxicity as toxic/safe based on the stored answer, omitting unknown", () => {
+    const text = buildCareInstructionsText([
+      { ...makePlant({ toxic_to_pets: "yes", toxic_to_humans: "no" }), tasks: [] },
+    ]);
+
+    expect(text).toContain("Toxic to pets");
+    expect(text).toContain("Safe for humans");
+
+    const unknownText = buildCareInstructionsText([
+      { ...makePlant({ toxic_to_pets: "unknown", toxic_to_humans: null }), tasks: [] },
+    ]);
+
+    expect(unknownText).not.toContain("pets");
+    expect(unknownText).not.toContain("humans");
+  });
+
+  it("omits light exposure/difficulty lines entirely when unset", () => {
+    const text = buildCareInstructionsText([{ ...makePlant(), tasks: [] }]);
+
+    expect(text).not.toContain("Light:");
+    expect(text).not.toContain("Difficulty:");
   });
 });

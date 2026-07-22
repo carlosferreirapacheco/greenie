@@ -682,6 +682,67 @@ sharing them socially with other users.
     from Library" opens, and the photo field is required, so getting a
     photo into the form needs a manual web session or a real-device
     pass.
+  - Expand AI lookup: fertilize/repot frequency, light exposure,
+    difficulty, toxicity — done. Watering was the only care-task
+    frequency the AI ever suggested, and `location` (a free-text room
+    label) had no AI involvement at all — user-scoped extension adding
+    four more AI-derived fields per plant. `supabase/functions/lookup-plant`
+    (both the `{query}` and `{photoUrl}` variants) gained
+    `fertilizeFrequencyDaysMin/Max` and `repotFrequencyDaysMin/Max`
+    (averaged server-side exactly like watering already was — new
+    `fertilizeFrequencyDays`/`repotFrequencyDays` on the response), plus
+    three new fixed-category fields: `lightExposure` (`low_light`/
+    `medium_light`/`bright_indirect`/`direct_sun`), `careDifficulty`
+    (`beginner`/`intermediate`/`advanced`), and — split into two
+    structured yes/no/unknown fields rather than one, since a plant can
+    be pet-toxic and human-safe or vice versa — `toxicToPets`/
+    `toxicToHumans`. The photo variant's `not_found`/`ambiguous`
+    branches follow the pre-existing `0`/empty-string convention,
+    extended here to `"unknown"` for the three category fields. New
+    nullable columns on `plants` (migration `0024_plant_ai_info.sql`,
+    all `check` constraints, no RLS changes needed — same reasoning as
+    every other plant field). `app/add-plant.tsx` gained Fertilize/Repot
+    frequency fields (optional numeric inputs, identical styling to the
+    existing required Watering field — `canSave` untouched, only
+    watering stays required) and three `ChipGroup`s (reusing
+    `components/ChipGroup.tsx`, the same component `log-progress.tsx`/
+    `progress/[id].tsx` already use) for light exposure, difficulty, and
+    the two toxicity answers, all pre-filled from a successful AI lookup
+    and freely editable/clearable afterward. `handleSave()` now
+    conditionally creates `fertilize`/`repot` `care_tasks` rows (mirroring
+    the existing unconditional `water` task creation) whenever their
+    frequency field holds a valid positive number, whether AI-filled or
+    typed manually — left blank, they're simply skipped and can still be
+    added later via the plant screen's existing "+ Add task" flow.
+    `app/plant/[id].tsx` shows the four new fields as a single compact
+    read-only line under the existing `location` line (new local
+    `buildAiInfoLine()` helper, omitting any unset part — display-only
+    for this pass, no inline editor, matching how `species`/`location`
+    themselves aren't editable either). `lib/careInstructions.ts`'s
+    `buildCareInstructionsText()` — the plain-text export a plant-sitter
+    actually reads — gained the same info as extra lines per plant,
+    since that's the most direct beneficiary of this data existing at
+    all. Full English + Português i18n coverage. Verified: migration
+    applied + columns/constraints confirmed via SQL; edge function
+    redeployed and called live (authenticated, bypassing the UI) — a
+    text query for "pothos" returned sensible values end-to-end
+    (`bright_indirect`, `beginner`, toxic to both pets and humans, ~45/
+    ~547-day fertilize/repot frequencies), and a real (non-plant) photo
+    correctly returned the full `"unknown"`/`0` convention for every new
+    field on `not_found`; `tsc`/`npm test` clean (367 passing); live web
+    — all eight new Add Plant fields render and their `ChipGroup`
+    selections toggle correctly (checked in dark mode, which also
+    confirmed the selected/unselected chip contrast), and the plant
+    detail screen's new info line was confirmed against a real plant via
+    a temporary SQL update/revert, rendering correctly in Português
+    (`"Luz indireta forte · Iniciante · Tóxica para animais de
+    estimação · Segura para humanos"`). The photo-based "found" path and
+    the actual AI-prefill-then-save flow through the UI weren't
+    click-tested end-to-end in this pass — same pre-existing
+    native-file-picker gap noted throughout this section; the save
+    logic itself is exercised by `plants.test.ts`'s insert-shape
+    assertions and the identical, already-verified pattern watering
+    uses.
 - Manage plant care tasks — done. The plant profile screen
   (`app/plant/[id].tsx`, owner-only) now has a Care tasks section: mark a
   task done (advances `last_done`/`next_due`), edit its frequency, delete
