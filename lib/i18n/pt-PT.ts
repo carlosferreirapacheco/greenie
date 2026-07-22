@@ -7,6 +7,7 @@ export const ptPT: typeof en = {
     plants: {
       title: "Plantas",
       addAction: "Adicionar",
+      archivedAction: "Arquivadas",
     },
     feed: {
       title: "Feed",
@@ -354,6 +355,12 @@ export const ptPT: typeof en = {
       label: "Data de aquisição",
       editLink: "Editar",
     },
+    archived: {
+      badge: "Arquivada",
+      archiveLink: "Arquivar esta planta",
+      confirmMessage:
+        "Arquivar esta planta? Será escondida da sua lista de Plantas e os lembretes de cuidados serão pausados. Pode restaurá-la a qualquer momento em Plantas Arquivadas.",
+    },
     progress: {
       label: "Progresso",
       empty: "Ainda não há progresso registado",
@@ -507,6 +514,18 @@ export const ptPT: typeof en = {
     screenTitle: "Utilizadores Bloqueados",
     error: "Erro: {error}",
     emptyState: "Sem utilizadores bloqueados",
+  },
+  archivedPlants: {
+    screenTitle: "Plantas Arquivadas",
+    error: "Erro: {error}",
+    emptyState: "Sem plantas arquivadas",
+    row: {
+      restore: "Restaurar",
+      delete: "Eliminar",
+    },
+    confirmDelete: {
+      message: "Eliminar permanentemente {name}? Esta ação não pode ser desfeita.",
+    },
   },
   userProfile: {
     loadingTitle: "Perfil",

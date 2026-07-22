@@ -2,7 +2,12 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
-import { PUSH_ENABLED_STORAGE_KEY, notificationTargetPath, parseStoredFlag } from "./pushNotifications";
+import {
+  PUSH_ENABLED_STORAGE_KEY,
+  identifiersForDeletedPlants,
+  notificationTargetPath,
+  parseStoredFlag,
+} from "./pushNotifications";
 import { deletePushToken, upsertPushToken } from "./supabase/push_tokens";
 
 // Thin expo-notifications wrapper around the pure logic in
@@ -156,6 +161,30 @@ export function configurePushHandling(): void {
       // Non-critical -- delivery still works against the default
       // channel behavior if this fails.
     });
+  }
+}
+
+// Clears any already-delivered care_due tray notification for a plant
+// that's since been archived or deleted -- once send-push hands a push
+// off to Expo/APNs/FCM there's no channel back to that specific tray
+// entry other than asking the OS what's currently presented and
+// dismissing by identifier. Best-effort: a leftover tray notification
+// is cosmetic, not worth surfacing an error for.
+export async function dismissStaleCareDueNotifications(currentPlantIds: string[]): Promise<void> {
+  if (Platform.OS === "web") {
+    return;
+  }
+  try {
+    const presented = await Notifications.getPresentedNotificationsAsync();
+    const info = presented.map((n) => ({
+      identifier: n.request.identifier,
+      type: n.request.content.data?.type,
+      plantId: n.request.content.data?.plantId,
+    }));
+    const staleIds = identifiersForDeletedPlants(info, currentPlantIds);
+    await Promise.all(staleIds.map((id) => Notifications.dismissNotificationAsync(id)));
+  } catch {
+    // Non-critical -- see comment above.
   }
 }
 

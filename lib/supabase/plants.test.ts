@@ -36,9 +36,13 @@ jest.mock("./client", () => {
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
 import {
+  archivePlant,
+  deletePlant,
+  getArchivedPlants,
   getMyPlants,
   getPlantsForUser,
   getPlant,
+  restorePlant,
   updatePlantAcquiredAt,
   updatePlantNickname,
   updatePlantPhoto,
@@ -71,6 +75,7 @@ describe("getMyPlants", () => {
     expect(mockSupabase.from).toHaveBeenCalledWith("plants");
     expect(chain.select).toHaveBeenCalledWith("*");
     expect(chain.eq).toHaveBeenCalledWith("owner_id", "u1");
+    expect(chain.is).toHaveBeenCalledWith("archived_at", null);
     expect(chain.order).toHaveBeenCalledWith("created_at", { ascending: false });
     expect(result).toEqual([{ id: "p1" }]);
   });
@@ -93,8 +98,85 @@ describe("getPlantsForUser", () => {
 
     expect(mockSupabase.from).toHaveBeenCalledWith("plants");
     expect(chain.eq).toHaveBeenCalledWith("owner_id", "someone-elses-id");
+    expect(chain.is).toHaveBeenCalledWith("archived_at", null);
     expect(mockSupabase.auth.getUser).not.toHaveBeenCalled();
     expect(result).toEqual([{ id: "p1" }]);
+  });
+});
+
+describe("getArchivedPlants", () => {
+  it("throws Not signed in without querying when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(getArchivedPlants()).rejects.toThrow("Not signed in");
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("queries only archived plants for the signed-in user, most recently archived first", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: [{ id: "p1" }], error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const result = await getArchivedPlants();
+
+    expect(mockSupabase.from).toHaveBeenCalledWith("plants");
+    expect(chain.eq).toHaveBeenCalledWith("owner_id", "u1");
+    expect(chain.not).toHaveBeenCalledWith("archived_at", "is", null);
+    expect(chain.order).toHaveBeenCalledWith("archived_at", { ascending: false });
+    expect(result).toEqual([{ id: "p1" }]);
+  });
+});
+
+describe("archivePlant", () => {
+  it("sets archived_at to a timestamp and returns the updated row", async () => {
+    const chain = createChainableQueryMock({ data: { id: "p1", archived_at: "2026-01-01T00:00:00.000Z" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const result = await archivePlant("p1");
+
+    expect(chain.update).toHaveBeenCalledWith({ archived_at: expect.any(String) });
+    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+    expect(result).toEqual({ id: "p1", archived_at: "2026-01-01T00:00:00.000Z" });
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "db error" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(archivePlant("p1")).rejects.toBe(err);
+  });
+});
+
+describe("restorePlant", () => {
+  it("clears archived_at back to null", async () => {
+    const chain = createChainableQueryMock({ data: { id: "p1", archived_at: null }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    const result = await restorePlant("p1");
+
+    expect(chain.update).toHaveBeenCalledWith({ archived_at: null });
+    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+    expect(result).toEqual({ id: "p1", archived_at: null });
+  });
+});
+
+describe("deletePlant", () => {
+  it("deletes the plant by id", async () => {
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await deletePlant("p1");
+
+    expect(mockSupabase.from).toHaveBeenCalledWith("plants");
+    expect(chain.delete).toHaveBeenCalled();
+    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "db error" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(deletePlant("p1")).rejects.toBe(err);
   });
 });
 

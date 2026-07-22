@@ -11,6 +11,8 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
+  archivePlant,
+  getMyPlants,
   getPlant,
   plantCommonNameSubtitle,
   plantPrimaryName,
@@ -39,6 +41,7 @@ import {
   type CareTaskType,
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
+import { dismissStaleCareDueNotifications } from "../../lib/pushNotificationManager";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -111,6 +114,11 @@ export default function PlantProfileScreen() {
   const [newTaskType, setNewTaskType] = useState<CareTaskType | null>(null);
   const [newTaskFrequency, setNewTaskFrequency] = useState("");
 
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
+  const [archiveStatus, setArchiveStatus] = useState<"idle" | "archiving" | "error">("idle");
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const isArchiving = useRef(false);
+
   const fetchData = useCallback(() => {
     if (!id) {
       return;
@@ -146,6 +154,41 @@ export default function PlantProfileScreen() {
     setAcquiredAtInput(plant?.acquired_at ?? "");
     setSaveError(null);
     setIsEditingDate(true);
+  }
+
+  function handleCancelArchiveConfirm() {
+    setConfirmingArchive(false);
+    setArchiveStatus("idle");
+    setArchiveError(null);
+  }
+
+  async function handleArchive() {
+    if (!id || isArchiving.current) {
+      return;
+    }
+    isArchiving.current = true;
+
+    setArchiveStatus("archiving");
+    setArchiveError(null);
+
+    try {
+      const updated = await archivePlant(id);
+      setPlant(updated);
+      setConfirmingArchive(false);
+      setArchiveStatus("idle");
+      // Clears any already-delivered care_due tray notification for
+      // this plant now that it's paused. Best-effort, fire-and-forget.
+      getMyPlants()
+        .then((plants) => dismissStaleCareDueNotifications(plants.map((p) => p.id)))
+        .catch(() => {});
+    } catch (err) {
+      // Leaves confirmingArchive set -- the modal stays open with the
+      // error shown inline instead of silently vanishing.
+      setArchiveError(getErrorMessage(err));
+      setArchiveStatus("error");
+    } finally {
+      isArchiving.current = false;
+    }
   }
 
   async function handleSaveDate() {
@@ -401,6 +444,22 @@ export default function PlantProfileScreen() {
       ) : null}
       {plant.location ? (
         <Text style={[styles.location, { fontFamily: fonts.body, color: colors.inkSoft }]}>{plant.location}</Text>
+      ) : null}
+
+      {isOwner ? (
+        plant.archived_at ? (
+          <View style={[styles.unlistedTag, { backgroundColor: colors.sage }]}>
+            <Text style={[styles.unlistedTagText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
+              {t("plantDetail.archived.badge")}
+            </Text>
+          </View>
+        ) : (
+          <Pressable onPress={() => setConfirmingArchive(true)} hitSlop={8}>
+            <Text style={[styles.editLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+              {t("plantDetail.archived.archiveLink")}
+            </Text>
+          </Pressable>
+        )
       ) : null}
 
       <View style={styles.field}>
@@ -720,7 +779,9 @@ export default function PlantProfileScreen() {
                 </Pressable>
               </View>
             </View>
-          ) : isOwner && ALL_TASK_TYPES.some((taskType) => !careTasks.some((task) => task.type === taskType)) ? (
+          ) : isOwner &&
+            !plant.archived_at &&
+            ALL_TASK_TYPES.some((taskType) => !careTasks.some((task) => task.type === taskType)) ? (
             <Pressable onPress={handleStartAddTask} hitSlop={8} style={styles.addTaskLink}>
               <Text style={[styles.taskActionLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
                 {t("plantDetail.careTasks.addTask")}
@@ -730,7 +791,7 @@ export default function PlantProfileScreen() {
         </View>
       ) : null}
 
-      {isOwner || isSitting ? (
+      {(isOwner || isSitting) && !plant.archived_at ? (
         <Pressable
           style={[styles.logProgressButton, { backgroundColor: colors.sage }]}
           onPress={() => router.push({ pathname: "/log-progress", params: { plantId: plant.id } })}
@@ -779,6 +840,17 @@ export default function PlantProfileScreen() {
         }}
         busy={busyTaskId === pendingMarkDoneTask.id}
         errorText={tasksError}
+        fonts={fonts}
+      />
+    ) : null}
+
+    {confirmingArchive ? (
+      <ConfirmModal
+        message={t("plantDetail.archived.confirmMessage")}
+        actions={[{ label: t("plantDetail.archived.archiveLink"), onPress: handleArchive }]}
+        onCancel={handleCancelArchiveConfirm}
+        busy={archiveStatus === "archiving"}
+        errorText={archiveStatus === "error" ? archiveError : null}
         fonts={fonts}
       />
     ) : null}

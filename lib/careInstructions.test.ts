@@ -18,6 +18,7 @@ function makePlant(overrides: Partial<Plant> = {}): Plant {
     acquired_at: null,
     created_at: "2026-01-01",
     nickname: null,
+    archived_at: null,
     ...overrides,
   };
 }

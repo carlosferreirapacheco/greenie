@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
 import { router, Tabs, useNavigation } from "expo-router";
 import { useFonts } from "expo-font";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -117,12 +117,20 @@ export default function TabsLayout() {
           title: t("tabsLayout.plants.title"),
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="sprout" size={size} color={color} />,
           headerRight: () => (
-            <HeaderIconButton
-              icon="plus"
-              label={t("tabsLayout.plants.addAction")}
-              onPress={() => router.push("/add-plant")}
-              fonts={fonts}
-            />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
+              <HeaderIconButton
+                icon="archive-outline"
+                label={t("tabsLayout.plants.archivedAction")}
+                onPress={() => router.push("/archived-plants")}
+                fonts={fonts}
+              />
+              <HeaderIconButton
+                icon="plus"
+                label={t("tabsLayout.plants.addAction")}
+                onPress={() => router.push("/add-plant")}
+                fonts={fonts}
+              />
+            </View>
           ),
         }}
       />

@@ -10,6 +10,7 @@ export type Plant = {
   acquired_at: string | null;
   created_at: string;
   nickname: string | null;
+  archived_at: string | null;
 };
 
 // Nickname takes the primary display slot when set; otherwise falls
@@ -39,6 +40,7 @@ export async function getMyPlants(): Promise<Plant[]> {
     .from("plants")
     .select("*")
     .eq("owner_id", user.id)
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -53,7 +55,34 @@ export async function getPlantsForUser(ownerId: string): Promise<Plant[]> {
     .from("plants")
     .select("*")
     .eq("owner_id", ownerId)
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// Archived plants only, most recently archived first -- the dedicated
+// management screen for restore/delete, kept out of every other plant
+// list in the app.
+export async function getArchivedPlants(): Promise<Plant[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("plants")
+    .select("*")
+    .eq("owner_id", user.id)
+    .not("archived_at", "is", null)
+    .order("archived_at", { ascending: false });
 
   if (error) {
     throw error;
@@ -118,6 +147,51 @@ export async function updatePlantPhoto(id: string, photoUrl: string | null): Pro
   }
 
   return data;
+}
+
+// Reversible: hides the plant from every list (getMyPlants,
+// getPlantsForUser) and stops the hourly care-due scan from generating
+// new reminders for it, without touching care_tasks/plant_progress.
+export async function archivePlant(id: string): Promise<Plant> {
+  const { data, error } = await supabase
+    .from("plants")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function restorePlant(id: string): Promise<Plant> {
+  const { data, error } = await supabase
+    .from("plants")
+    .update({ archived_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// Permanent -- care_tasks/plant_progress/notifications for this plant
+// all cascade-delete at the DB level (on delete cascade FKs). Storage
+// objects (photos) are not cleaned up, a known accepted gap elsewhere
+// in this project.
+export async function deletePlant(id: string): Promise<void> {
+  const { error } = await supabase.from("plants").delete().eq("id", id);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function createPlant(input: {

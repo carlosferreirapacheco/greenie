@@ -1,4 +1,4 @@
-import { notificationTargetPath, parseStoredFlag } from "./pushNotifications";
+import { identifiersForDeletedPlants, notificationTargetPath, parseStoredFlag } from "./pushNotifications";
 
 describe("parseStoredFlag", () => {
   it("defaults to on when the key was never set", () => {
@@ -44,5 +44,31 @@ describe("notificationTargetPath", () => {
 
   it("returns null for unknown kinds (untyped push payloads)", () => {
     expect(notificationTargetPath("mystery", { plantId: "pl1" })).toBeNull();
+  });
+});
+
+describe("identifiersForDeletedPlants", () => {
+  it("dismisses a care_due entry whose plant is no longer in the current list", () => {
+    const presented = [{ identifier: "n1", type: "care_due", plantId: "deleted-plant" }];
+
+    expect(identifiersForDeletedPlants(presented, ["still-here"])).toEqual(["n1"]);
+  });
+
+  it("keeps a care_due entry whose plant is still in the current list", () => {
+    const presented = [{ identifier: "n1", type: "care_due", plantId: "still-here" }];
+
+    expect(identifiersForDeletedPlants(presented, ["still-here"])).toEqual([]);
+  });
+
+  it("ignores non-care_due types even if their data carries a plantId-shaped field", () => {
+    const presented = [{ identifier: "n1", type: "comment", plantId: "deleted-plant" }];
+
+    expect(identifiersForDeletedPlants(presented, [])).toEqual([]);
+  });
+
+  it("ignores entries with a non-string plantId", () => {
+    const presented = [{ identifier: "n1", type: "care_due", plantId: undefined }];
+
+    expect(identifiersForDeletedPlants(presented, [])).toEqual([]);
   });
 });

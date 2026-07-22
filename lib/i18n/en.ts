@@ -8,6 +8,7 @@ export const en = {
     plants: {
       title: "Plants",
       addAction: "Add",
+      archivedAction: "Archived",
     },
     feed: {
       title: "Feed",
@@ -352,6 +353,12 @@ export const en = {
       label: "Acquired date",
       editLink: "Edit",
     },
+    archived: {
+      badge: "Archived",
+      archiveLink: "Archive this plant",
+      confirmMessage:
+        "Archive this plant? It'll be hidden from your Plants list and its care reminders will pause. You can restore it anytime from Archived Plants.",
+    },
     progress: {
       label: "Progress",
       empty: "No progress logged yet",
@@ -505,6 +512,18 @@ export const en = {
     screenTitle: "Blocked Users",
     error: "Error: {error}",
     emptyState: "No blocked users",
+  },
+  archivedPlants: {
+    screenTitle: "Archived Plants",
+    error: "Error: {error}",
+    emptyState: "No archived plants",
+    row: {
+      restore: "Restore",
+      delete: "Delete",
+    },
+    confirmDelete: {
+      message: "Permanently delete {name}? This can't be undone.",
+    },
   },
   userProfile: {
     loadingTitle: "Profile",
