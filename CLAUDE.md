@@ -2224,12 +2224,35 @@ unrelated history.
 ### Later
 - Payments / monetization — a donation link is done (see above); full
   payment processing / feature-gating monetization remains open and
-  unscoped.
-- Admin dashboard — should include **report review**: a screen to list/
-  triage the `reports` table (migration `0023_reports.sql`, see the
-  in-app reporting feature above) and act on them, rather than the
-  owner-does-it-via-Supabase-Studio-SQL process that feature shipped
-  with.
+  unscoped. First concrete direction for optional paid content, scoped
+  with the user during a brainstorm on cosmetic (non-gating) extras: a
+  tiered **supporter badge** next to a user's display name, tier based
+  on how much they've given via Buy Me a Coffee — cosmetic only, no
+  functional effect, in keeping with the explicit decision to keep
+  paid content optional/cosmetic rather than feature-gating. Deliberately
+  scoped as **admin-managed, not automated** — no Buy Me a Coffee API/
+  webhook integration planned, since that would mean matching a BMC
+  payment to a Greenie account with no existing link between the two
+  platforms; tier assignment is expected to happen through the admin
+  dashboard below once that exists (the owner checks BMC's own
+  dashboard and sets the tier), not a live payment pipeline. Real IAP/
+  payment processing for anything beyond this remains unscoped.
+- Admin dashboard — should include:
+  - **Report review**: a screen to list/triage the `reports` table
+    (migration `0023_reports.sql`, see the in-app reporting feature
+    above) and act on them, rather than the owner-does-it-via-
+    Supabase-Studio-SQL process that feature shipped with.
+  - **Supporter badge tier assignment**: manually setting a user's
+    supporter tier based on Buy Me a Coffee donations the owner sees
+    on BMC's own dashboard (see the Payments / monetization item above
+    for why this is admin-managed rather than automated).
+- Care streaks — a real, free, non-gated feature (e.g. consecutive
+  on-time care tasks, or days without a missed one) — explicit user
+  decision, made specifically to keep this out of the cosmetic-paid-
+  content idea above (a milestone-icon cosmetic treatment was floated
+  during that brainstorm and declined in favor of streaks being a real
+  feature everyone gets, not a paid cosmetic). Unscoped beyond that
+  for now — no schema/design decisions made yet.
 - Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
   and the initial-size field on Add Plant). Explicitly out of scope
