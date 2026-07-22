@@ -3,6 +3,7 @@ jest.mock("./client", () => {
   return { supabase: createMockSupabaseClient() };
 });
 
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "./client";
 import { lookupPlantByPhoto, lookupPlantInfo } from "./ai";
 
@@ -27,17 +28,32 @@ describe("lookupPlantInfo", () => {
     expect(result).toEqual(data);
   });
 
-  it("throws the Supabase error on failure", async () => {
-    const err = { message: "Lookup failed" };
+  it("normalizes a Supabase error into a single generic message, not the raw error", async () => {
+    const err = { message: "Edge Function returned a non-2xx status code" };
     mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: err });
 
-    await expect(lookupPlantInfo("x", "en")).rejects.toBe(err);
+    await expect(lookupPlantInfo("x", "en")).rejects.toThrow("AI lookup failed");
   });
 
-  it("throws when the function returns no data at all", async () => {
+  it("logs the real reason from a FunctionsHttpError's response body without throwing it to the caller", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const response = new Response(JSON.stringify({ error: "Could not fetch photo: HTTP 404" }));
+    const httpError = new FunctionsHttpError(response);
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: httpError });
+
+    await expect(lookupPlantInfo("x", "en")).rejects.toThrow("AI lookup failed");
+    expect(consoleError).toHaveBeenCalledWith(
+      "lookup-plant failed:",
+      expect.objectContaining({ error: "Could not fetch photo: HTTP 404" })
+    );
+
+    consoleError.mockRestore();
+  });
+
+  it("throws the same generic message when the function returns no data at all", async () => {
     mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: null });
 
-    await expect(lookupPlantInfo("x", "en")).rejects.toThrow("Lookup returned no data");
+    await expect(lookupPlantInfo("x", "en")).rejects.toThrow("AI lookup failed");
   });
 });
 
@@ -71,18 +87,20 @@ describe("lookupPlantByPhoto", () => {
     });
   });
 
-  it("throws the Supabase error on failure", async () => {
-    const err = { message: "Lookup failed" };
+  it("normalizes a Supabase error into a single generic message, not the raw error", async () => {
+    const err = { message: "Edge Function returned a non-2xx status code" };
     mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: err });
 
-    await expect(lookupPlantByPhoto("https://example.com/photo.jpg", undefined, "en")).rejects.toBe(err);
+    await expect(lookupPlantByPhoto("https://example.com/photo.jpg", undefined, "en")).rejects.toThrow(
+      "AI lookup failed"
+    );
   });
 
-  it("throws when the function returns no data at all", async () => {
+  it("throws the same generic message when the function returns no data at all", async () => {
     mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: null });
 
     await expect(lookupPlantByPhoto("https://example.com/photo.jpg", undefined, "en")).rejects.toThrow(
-      "Lookup returned no data"
+      "AI lookup failed"
     );
   });
 });

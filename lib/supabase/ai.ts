@@ -1,5 +1,30 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "./client";
 import type { SupportedLocale } from "../i18n";
+
+// supabase-js's FunctionsHttpError always carries the same generic
+// ".message" ("Edge Function returned a non-2xx status code") regardless
+// of what lookup-plant actually failed on -- the real reason is only in
+// error.context (the raw Response). The edge function itself durably
+// logs the real cause server-side (see migration 0021,
+// ai_lookup_error_logs), so callers here don't need that detail beyond
+// this console.error for local debugging -- everything thrown from
+// these two functions is a single generic "AI lookup failed" Error,
+// letting screens show one friendly, translated message regardless of
+// cause.
+async function normalizeLookupError(error: unknown): Promise<Error> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.clone().json();
+      console.error("lookup-plant failed:", body);
+    } catch {
+      console.error("lookup-plant failed:", error);
+    }
+  } else {
+    console.error("lookup-plant failed:", error);
+  }
+  return new Error("AI lookup failed");
+}
 
 export type PlantLookupResult = {
   name: string;
@@ -16,11 +41,11 @@ export async function lookupPlantInfo(query: string, locale: SupportedLocale): P
   });
 
   if (error) {
-    throw error;
+    throw await normalizeLookupError(error);
   }
 
   if (!data) {
-    throw new Error("Lookup returned no data");
+    throw new Error("AI lookup failed");
   }
 
   return data;
@@ -44,11 +69,11 @@ export async function lookupPlantByPhoto(
   });
 
   if (error) {
-    throw error;
+    throw await normalizeLookupError(error);
   }
 
   if (!data) {
-    throw new Error("Lookup returned no data");
+    throw new Error("AI lookup failed");
   }
 
   return data;

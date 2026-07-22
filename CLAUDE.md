@@ -1258,6 +1258,50 @@ sharing them socially with other users.
   a regression check.
 
 ### Technical follow-ups
+- AI lookup non-2xx error investigation and durable logging — done.
+  Investigated tester reports of `lookup-plant` "returning a status code
+  not 2XX." The edge function itself was working correctly (confirmed
+  via live authenticated calls, both text and photo paths, and a diff
+  against the deployed source); the real gap was on the client. `supabase-js`'s
+  `FunctionsHttpError` always carries the same hardcoded generic
+  `.message` ("Edge Function returned a non-2xx status code") regardless
+  of what actually failed — the specific reason the edge function sends
+  back in its response body is only reachable via `error.context` (the
+  raw `Response`), which nothing read. That literal string is almost
+  certainly what testers were seeing and reporting verbatim. Two
+  separate fixes, per explicit user direction to keep the UI generic but
+  make causes diagnosable long-term: **(1) durable server-side logging.**
+  New `ai_lookup_error_logs` table (migration `0021`, RLS: insert-only,
+  scoped to `auth.uid() = user_id`, no select/update/delete for
+  anon/authenticated — reads happen only via SQL/MCP, not the app) so
+  failure causes survive well past Supabase's own ~24h log retention.
+  `supabase/functions/lookup-plant/index.ts` gained a `LookupStageError`
+  class tagging *which stage* failed (`fetch_photo` / `gemini_call` /
+  `empty_output` / `parse_json`) with the real detail, and a best-effort
+  `logFailure()` (using the caller's own forwarded JWT, not the
+  service-role key) that writes a row before returning the exact same
+  generic client-facing response as before — a logging failure can never
+  change what the caller gets back. **(2) generic, translated client
+  message.** `lib/supabase/ai.ts` now normalizes every failure from
+  `lookupPlantInfo()`/`lookupPlantByPhoto()` into one plain `Error("AI
+  lookup failed")` — reading `error.context.json()` first (when it's a
+  `FunctionsHttpError`) to `console.error()` the real reason for local
+  debugging, but never surfacing it further. `app/add-plant.tsx`'s two
+  lookup catch blocks now show a new translated
+  `addPlant.lookupError` key instead of the raw error text. Verified
+  live: authenticated calls confirmed both lookup paths still return
+  clean 200s; a deliberately broken photo URL returned the same generic
+  `{"error":"Lookup failed"}` at 500 as before, and produced a row in
+  `ai_lookup_error_logs` with the exact stage (`fetch_photo`) and detail
+  (`Could not fetch photo: HTTP 400`) — proving the split between
+  "generic to the user" and "detailed to us" works end-to-end; row
+  deleted after. `lib/supabase/ai.test.ts` extended (8 tests) including
+  one asserting a `FunctionsHttpError`'s response body is read and
+  logged without ever reaching the thrown error's message. The Add
+  Plant screen's lookup UI itself wasn't click-tested in this pass —
+  same pre-existing gap as the original photo-lookup feature: this
+  environment's browser automation can't drive the native OS
+  file-picker the now-required photo field needs.
 - Real device deployment (Android) — done. First-ever real-device pass,
   via an **EAS development build** (not Expo Go — Expo Go's Play Store
   build hadn't caught up to this project's SDK 57 yet when tried, a
