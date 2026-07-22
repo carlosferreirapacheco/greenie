@@ -1,11 +1,25 @@
 import type { Plant } from "./supabase/plants";
 import type { CareTask, CareTaskType } from "./supabase/care_tasks";
+import type { CareDifficulty, LightExposure } from "./supabase/ai";
 import { plantPrimaryName, plantCommonNameSubtitle } from "./supabase/plants";
 
 const TASK_LABELS: Record<CareTaskType, string> = {
   water: "Water",
   fertilize: "Fertilize",
   repot: "Repot",
+};
+
+const LIGHT_EXPOSURE_LABELS: Record<LightExposure, string> = {
+  low_light: "Low light",
+  medium_light: "Medium light",
+  bright_indirect: "Bright indirect light",
+  direct_sun: "Direct sun",
+};
+
+const CARE_DIFFICULTY_LABELS: Record<CareDifficulty, string> = {
+  beginner: "Beginner",
+  intermediate: "Intermediate",
+  advanced: "Advanced",
 };
 
 function formatDate(iso: string | null): string {
@@ -28,6 +42,22 @@ export function buildCareInstructionsText(plants: (Plant & { tasks: CareTask[] }
     }
     if (plant.location) {
       lines.push(`Location: ${plant.location}`);
+    }
+    if (plant.light_exposure) {
+      lines.push(`Light: ${LIGHT_EXPOSURE_LABELS[plant.light_exposure]}`);
+    }
+    if (plant.care_difficulty) {
+      lines.push(`Difficulty: ${CARE_DIFFICULTY_LABELS[plant.care_difficulty]}`);
+    }
+    if (plant.toxic_to_pets === "yes") {
+      lines.push("Toxic to pets");
+    } else if (plant.toxic_to_pets === "no") {
+      lines.push("Safe for pets");
+    }
+    if (plant.toxic_to_humans === "yes") {
+      lines.push("Toxic to humans");
+    } else if (plant.toxic_to_humans === "no") {
+      lines.push("Safe for humans");
     }
 
     if (plant.tasks.length === 0) {

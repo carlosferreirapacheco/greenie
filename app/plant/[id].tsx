@@ -61,6 +61,31 @@ function careTaskLabel(type: CareTask["type"], t: (key: string) => string): stri
   }
 }
 
+// Compact, comma-joined summary of the AI-derived plant info fields --
+// omits any part that's unset/null, and "unknown" toxicity answers are
+// treated the same as unset (both mean "we don't have that info",
+// no reason to distinguish them for the reader).
+function buildAiInfoLine(plant: Plant, t: (key: string) => string): string | null {
+  const parts: string[] = [];
+  if (plant.light_exposure) {
+    parts.push(t(`plantDetail.lightExposure.${plant.light_exposure}`));
+  }
+  if (plant.care_difficulty) {
+    parts.push(t(`plantDetail.careDifficulty.${plant.care_difficulty}`));
+  }
+  if (plant.toxic_to_pets === "yes") {
+    parts.push(t("plantDetail.toxicity.toxicToPets"));
+  } else if (plant.toxic_to_pets === "no") {
+    parts.push(t("plantDetail.toxicity.safeForPets"));
+  }
+  if (plant.toxic_to_humans === "yes") {
+    parts.push(t("plantDetail.toxicity.toxicToHumans"));
+  } else if (plant.toxic_to_humans === "no") {
+    parts.push(t("plantDetail.toxicity.safeForHumans"));
+  }
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 function statusText(status: "healthy" | "due_soon" | "overdue", t: (key: string) => string): string {
   return t(status === "due_soon" ? "index.status.dueSoon" : `index.status.${status}`);
 }
@@ -444,6 +469,11 @@ export default function PlantProfileScreen() {
       ) : null}
       {plant.location ? (
         <Text style={[styles.location, { fontFamily: fonts.body, color: colors.inkSoft }]}>{plant.location}</Text>
+      ) : null}
+      {buildAiInfoLine(plant, t) ? (
+        <Text style={[styles.location, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {buildAiInfoLine(plant, t)}
+        </Text>
       ) : null}
 
       {isOwner ? (

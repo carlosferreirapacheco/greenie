@@ -258,6 +258,10 @@ describe("createPlant", () => {
       acquired_at: "2026-01-01",
       nickname: "Big Fred",
       photo_urls: null,
+      light_exposure: null,
+      care_difficulty: null,
+      toxic_to_pets: null,
+      toxic_to_humans: null,
     });
   });
 
@@ -277,6 +281,33 @@ describe("createPlant", () => {
 
     expect(chain.insert).toHaveBeenCalledWith(
       expect.objectContaining({ photo_urls: ["https://example.com/photos/u1/plants/x.jpg"] })
+    );
+  });
+
+  it("passes through AI-derived plant info fields when provided", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { id: "p1" }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await createPlant({
+      name: "Pothos",
+      species: "Epipremnum aureum",
+      location: null,
+      acquired_at: null,
+      nickname: null,
+      light_exposure: "bright_indirect",
+      care_difficulty: "beginner",
+      toxic_to_pets: "yes",
+      toxic_to_humans: "no",
+    });
+
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        light_exposure: "bright_indirect",
+        care_difficulty: "beginner",
+        toxic_to_pets: "yes",
+        toxic_to_humans: "no",
+      })
     );
   });
 });

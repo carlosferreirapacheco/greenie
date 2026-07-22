@@ -63,11 +63,23 @@ async function logFailure(
   }
 }
 
+type LightExposure = "low_light" | "medium_light" | "bright_indirect" | "direct_sun";
+type CareDifficulty = "beginner" | "intermediate" | "advanced";
+type ToxicityAnswer = "yes" | "no" | "unknown";
+
 type PlantInfoInput = {
   name: string;
   species: string;
   wateringFrequencyDaysMin: number;
   wateringFrequencyDaysMax: number;
+  fertilizeFrequencyDaysMin: number;
+  fertilizeFrequencyDaysMax: number;
+  repotFrequencyDaysMin: number;
+  repotFrequencyDaysMax: number;
+  lightExposure: LightExposure;
+  careDifficulty: CareDifficulty;
+  toxicToPets: ToxicityAnswer;
+  toxicToHumans: ToxicityAnswer;
 };
 
 type PlantPhotoInfoInput = {
@@ -76,6 +88,17 @@ type PlantPhotoInfoInput = {
   species: string;
   wateringFrequencyDaysMin: number;
   wateringFrequencyDaysMax: number;
+  fertilizeFrequencyDaysMin: number;
+  fertilizeFrequencyDaysMax: number;
+  repotFrequencyDaysMin: number;
+  repotFrequencyDaysMax: number;
+  // "unknown" only ever appears here (not in PlantInfoInput) -- the
+  // photo variant can genuinely fail to identify anything, whereas the
+  // query variant always makes its best guess.
+  lightExposure: LightExposure | "unknown";
+  careDifficulty: CareDifficulty | "unknown";
+  toxicToPets: ToxicityAnswer;
+  toxicToHumans: ToxicityAnswer;
   candidateNames: string[];
 };
 
@@ -93,7 +116,7 @@ async function lookupByQuery(query: string, locale: unknown): Promise<Response> 
   try {
     response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `Identify this houseplant and its typical watering needs: "${query}". If the query is ambiguous or informal (e.g. "my new plant"), make your best reasonable guess for a common houseplant. Respond with the common name in ${languageName}.`,
+      contents: `Identify this houseplant and its typical care needs: "${query}". If the query is ambiguous or informal (e.g. "my new plant"), make your best reasonable guess for a common houseplant. Respond with the common name in ${languageName}.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -116,8 +139,57 @@ async function lookupByQuery(query: string, locale: unknown): Promise<Response> 
               description:
                 "Maximum days between waterings for a typical healthy specimen. Equal to min if there's a single well-known frequency.",
             },
+            fertilizeFrequencyDaysMin: {
+              type: "integer",
+              description: "Minimum days between fertilizing for a typical healthy specimen during its growing season.",
+            },
+            fertilizeFrequencyDaysMax: {
+              type: "integer",
+              description: "Maximum days between fertilizing. Equal to min if there's a single well-known frequency.",
+            },
+            repotFrequencyDaysMin: {
+              type: "integer",
+              description: "Minimum days between repottings for a typical healthy specimen (usually measured in years, expressed here as days).",
+            },
+            repotFrequencyDaysMax: {
+              type: "integer",
+              description: "Maximum days between repottings. Equal to min if there's a single well-known frequency.",
+            },
+            lightExposure: {
+              type: "string",
+              enum: ["low_light", "medium_light", "bright_indirect", "direct_sun"],
+              description: "The plant's ideal light exposure.",
+            },
+            careDifficulty: {
+              type: "string",
+              enum: ["beginner", "intermediate", "advanced"],
+              description: "How difficult this plant typically is to keep alive and healthy.",
+            },
+            toxicToPets: {
+              type: "string",
+              enum: ["yes", "no", "unknown"],
+              description: "Whether this plant is toxic to common pets (cats/dogs) if ingested.",
+            },
+            toxicToHumans: {
+              type: "string",
+              enum: ["yes", "no", "unknown"],
+              description: "Whether this plant is toxic to humans if ingested.",
+            },
           },
-          required: ["name", "species", "wateringFrequencyDaysMin", "wateringFrequencyDaysMax"],
+          required: [
+            "name",
+            "species",
+            "wateringFrequencyDaysMin",
+            "wateringFrequencyDaysMax",
+            "fertilizeFrequencyDaysMin",
+            "fertilizeFrequencyDaysMax",
+            "repotFrequencyDaysMin",
+            "repotFrequencyDaysMax",
+            "lightExposure",
+            "careDifficulty",
+            "toxicToPets",
+            "toxicToHumans",
+          ],
         },
       },
     });
@@ -140,12 +212,24 @@ async function lookupByQuery(query: string, locale: unknown): Promise<Response> 
   const wateringFrequencyDays = Math.floor(
     (input.wateringFrequencyDaysMin + input.wateringFrequencyDaysMax) / 2,
   );
+  const fertilizeFrequencyDays = Math.floor(
+    (input.fertilizeFrequencyDaysMin + input.fertilizeFrequencyDaysMax) / 2,
+  );
+  const repotFrequencyDays = Math.floor(
+    (input.repotFrequencyDaysMin + input.repotFrequencyDaysMax) / 2,
+  );
 
   return new Response(
     JSON.stringify({
       name: input.name,
       species: input.species,
       wateringFrequencyDays,
+      fertilizeFrequencyDays,
+      repotFrequencyDays,
+      lightExposure: input.lightExposure,
+      careDifficulty: input.careDifficulty,
+      toxicToPets: input.toxicToPets,
+      toxicToHumans: input.toxicToHumans,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
@@ -178,7 +262,7 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
       model: "gemini-2.5-flash",
       contents: [
         {
-          text: `Identify the houseplant in this photo and its typical watering needs.${hintText} Return status "found" if you can confidently identify a single common name and species from the photo. Return status "ambiguous" if multiple common names/species are plausible from the photo alone, and list 2-5 of them as candidateNames. Return status "not_found" if no houseplant is recognizable in the photo at all. Respond with the common name and any candidateNames in ${languageName}.`,
+          text: `Identify the houseplant in this photo and its typical care needs.${hintText} Return status "found" if you can confidently identify a single common name and species from the photo. Return status "ambiguous" if multiple common names/species are plausible from the photo alone, and list 2-5 of them as candidateNames. Return status "not_found" if no houseplant is recognizable in the photo at all. Respond with the common name and any candidateNames in ${languageName}.`,
         },
         { inlineData: { mimeType: "image/jpeg", data: photoBase64 } },
       ],
@@ -209,6 +293,46 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
               description:
                 "Maximum days between waterings for a typical healthy specimen if status is 'found', equal to min if there's a single well-known frequency; 0 otherwise.",
             },
+            fertilizeFrequencyDaysMin: {
+              type: "integer",
+              description:
+                "Minimum days between fertilizing for a typical healthy specimen during its growing season if status is 'found'; 0 otherwise.",
+            },
+            fertilizeFrequencyDaysMax: {
+              type: "integer",
+              description:
+                "Maximum days between fertilizing if status is 'found', equal to min if there's a single well-known frequency; 0 otherwise.",
+            },
+            repotFrequencyDaysMin: {
+              type: "integer",
+              description:
+                "Minimum days between repottings for a typical healthy specimen if status is 'found' (usually measured in years, expressed here as days); 0 otherwise.",
+            },
+            repotFrequencyDaysMax: {
+              type: "integer",
+              description:
+                "Maximum days between repottings if status is 'found', equal to min if there's a single well-known frequency; 0 otherwise.",
+            },
+            lightExposure: {
+              type: "string",
+              enum: ["low_light", "medium_light", "bright_indirect", "direct_sun", "unknown"],
+              description: "The plant's ideal light exposure if status is 'found'; 'unknown' otherwise.",
+            },
+            careDifficulty: {
+              type: "string",
+              enum: ["beginner", "intermediate", "advanced", "unknown"],
+              description: "How difficult this plant typically is to keep alive and healthy if status is 'found'; 'unknown' otherwise.",
+            },
+            toxicToPets: {
+              type: "string",
+              enum: ["yes", "no", "unknown"],
+              description: "Whether this plant is toxic to common pets (cats/dogs) if ingested, if status is 'found'; 'unknown' otherwise.",
+            },
+            toxicToHumans: {
+              type: "string",
+              enum: ["yes", "no", "unknown"],
+              description: "Whether this plant is toxic to humans if ingested, if status is 'found'; 'unknown' otherwise.",
+            },
             candidateNames: {
               type: "array",
               items: { type: "string" },
@@ -221,6 +345,14 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
             "species",
             "wateringFrequencyDaysMin",
             "wateringFrequencyDaysMax",
+            "fertilizeFrequencyDaysMin",
+            "fertilizeFrequencyDaysMax",
+            "repotFrequencyDaysMin",
+            "repotFrequencyDaysMax",
+            "lightExposure",
+            "careDifficulty",
+            "toxicToPets",
+            "toxicToHumans",
             "candidateNames",
           ],
         },
@@ -245,6 +377,14 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
     input.status === "found"
       ? Math.floor((input.wateringFrequencyDaysMin + input.wateringFrequencyDaysMax) / 2)
       : 0;
+  const fertilizeFrequencyDays =
+    input.status === "found"
+      ? Math.floor((input.fertilizeFrequencyDaysMin + input.fertilizeFrequencyDaysMax) / 2)
+      : 0;
+  const repotFrequencyDays =
+    input.status === "found"
+      ? Math.floor((input.repotFrequencyDaysMin + input.repotFrequencyDaysMax) / 2)
+      : 0;
 
   return new Response(
     JSON.stringify({
@@ -252,6 +392,12 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
       name: input.name,
       species: input.species,
       wateringFrequencyDays,
+      fertilizeFrequencyDays,
+      repotFrequencyDays,
+      lightExposure: input.lightExposure,
+      careDifficulty: input.careDifficulty,
+      toxicToPets: input.toxicToPets,
+      toxicToHumans: input.toxicToHumans,
       candidateNames: input.candidateNames,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },

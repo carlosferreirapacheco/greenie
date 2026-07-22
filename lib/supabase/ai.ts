@@ -26,10 +26,20 @@ async function normalizeLookupError(error: unknown): Promise<Error> {
   return new Error("AI lookup failed");
 }
 
+export type LightExposure = "low_light" | "medium_light" | "bright_indirect" | "direct_sun";
+export type CareDifficulty = "beginner" | "intermediate" | "advanced";
+export type ToxicityAnswer = "yes" | "no" | "unknown";
+
 export type PlantLookupResult = {
   name: string;
   species: string;
   wateringFrequencyDays: number;
+  fertilizeFrequencyDays: number;
+  repotFrequencyDays: number;
+  lightExposure: LightExposure;
+  careDifficulty: CareDifficulty;
+  toxicToPets: ToxicityAnswer;
+  toxicToHumans: ToxicityAnswer;
 };
 
 // locale steers which language Gemini returns the common name (and, for
@@ -56,6 +66,15 @@ export type PlantPhotoLookupResult = {
   name: string;
   species: string;
   wateringFrequencyDays: number;
+  fertilizeFrequencyDays: number;
+  repotFrequencyDays: number;
+  // "unknown" only ever appears here (not in PlantLookupResult) -- the
+  // photo variant can genuinely fail to identify anything, whereas the
+  // query variant always makes its best guess.
+  lightExposure: LightExposure | "unknown";
+  careDifficulty: CareDifficulty | "unknown";
+  toxicToPets: ToxicityAnswer;
+  toxicToHumans: ToxicityAnswer;
   candidateNames: string[];
 };
 

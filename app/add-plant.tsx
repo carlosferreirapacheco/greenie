@@ -13,20 +13,51 @@ import {
 } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
-import { lookupPlantByPhoto, lookupPlantInfo } from "../lib/supabase/ai";
+import {
+  lookupPlantByPhoto,
+  lookupPlantInfo,
+  type CareDifficulty,
+  type LightExposure,
+  type ToxicityAnswer,
+} from "../lib/supabase/ai";
 import { createPlant } from "../lib/supabase/plants";
 import { createCareTask } from "../lib/supabase/care_tasks";
 import { createProgressReport, effectiveCommentPolicy } from "../lib/supabase/plant_progress";
 import { DatePickerField } from "../components/DatePickerField";
 import { PhotoPicker } from "../components/PhotoPicker";
+import { ChipGroup } from "../components/ChipGroup";
 import { todayISO } from "../lib/dateGrid";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
 import { getErrorMessage } from "../lib/errors";
 
+type LookedUpFields = {
+  name: string;
+  species: string;
+  wateringFrequencyDays: number;
+  fertilizeFrequencyDays: number;
+  repotFrequencyDays: number;
+  lightExposure: LightExposure | "unknown";
+  careDifficulty: CareDifficulty | "unknown";
+  toxicToPets: ToxicityAnswer;
+  toxicToHumans: ToxicityAnswer;
+};
+
 type LookupPrompt =
-  | { kind: "nameMismatch"; typedName: string; aiName: string; aiSpecies: string; aiWateringFrequencyDays: number }
+  | {
+      kind: "nameMismatch";
+      typedName: string;
+      aiName: string;
+      aiSpecies: string;
+      aiWateringFrequencyDays: number;
+      aiFertilizeFrequencyDays: number;
+      aiRepotFrequencyDays: number;
+      aiLightExposure: LightExposure | "unknown";
+      aiCareDifficulty: CareDifficulty | "unknown";
+      aiToxicToPets: ToxicityAnswer;
+      aiToxicToHumans: ToxicityAnswer;
+    }
   | { kind: "ambiguous"; candidateNames: string[] }
   | { kind: "notFound" };
 
@@ -45,7 +76,13 @@ export default function AddPlantScreen() {
   const [nickname, setNickname] = useState("");
   const [species, setSpecies] = useState("");
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState("");
+  const [fertilizeFrequencyDays, setFertilizeFrequencyDays] = useState("");
+  const [repotFrequencyDays, setRepotFrequencyDays] = useState("");
+  const [lightExposure, setLightExposure] = useState<LightExposure | "">("");
   const [location, setLocation] = useState("");
+  const [careDifficulty, setCareDifficulty] = useState<CareDifficulty | "">("");
+  const [toxicToPets, setToxicToPets] = useState<ToxicityAnswer | "">("");
+  const [toxicToHumans, setToxicToHumans] = useState<ToxicityAnswer | "">("");
   const [acquiredAt, setAcquiredAt] = useState("");
   const [initialHeightCm, setInitialHeightCm] = useState("");
 
@@ -70,10 +107,16 @@ export default function AddPlantScreen() {
     Number(wateringFrequencyDays) > 0 &&
     saveStatus !== "saving";
 
-  function fillFromLookup(fields: { name: string; species: string; wateringFrequencyDays: number }) {
+  function fillFromLookup(fields: LookedUpFields) {
     setName(fields.name);
     setSpecies(fields.species);
     setWateringFrequencyDays(String(fields.wateringFrequencyDays));
+    setFertilizeFrequencyDays(String(fields.fertilizeFrequencyDays));
+    setRepotFrequencyDays(String(fields.repotFrequencyDays));
+    setLightExposure(fields.lightExposure === "unknown" ? "" : fields.lightExposure);
+    setCareDifficulty(fields.careDifficulty === "unknown" ? "" : fields.careDifficulty);
+    setToxicToPets(fields.toxicToPets);
+    setToxicToHumans(fields.toxicToHumans);
   }
 
   async function handleLookup() {
@@ -101,6 +144,12 @@ export default function AddPlantScreen() {
           aiName: result.name,
           aiSpecies: result.species,
           aiWateringFrequencyDays: result.wateringFrequencyDays,
+          aiFertilizeFrequencyDays: result.fertilizeFrequencyDays,
+          aiRepotFrequencyDays: result.repotFrequencyDays,
+          aiLightExposure: result.lightExposure,
+          aiCareDifficulty: result.careDifficulty,
+          aiToxicToPets: result.toxicToPets,
+          aiToxicToHumans: result.toxicToHumans,
         });
       } else {
         fillFromLookup(result);
@@ -153,6 +202,12 @@ export default function AddPlantScreen() {
       name: lookupPrompt.aiName,
       species: lookupPrompt.aiSpecies,
       wateringFrequencyDays: lookupPrompt.aiWateringFrequencyDays,
+      fertilizeFrequencyDays: lookupPrompt.aiFertilizeFrequencyDays,
+      repotFrequencyDays: lookupPrompt.aiRepotFrequencyDays,
+      lightExposure: lookupPrompt.aiLightExposure,
+      careDifficulty: lookupPrompt.aiCareDifficulty,
+      toxicToPets: lookupPrompt.aiToxicToPets,
+      toxicToHumans: lookupPrompt.aiToxicToHumans,
     });
     setLookupPrompt(null);
   }
@@ -174,6 +229,10 @@ export default function AddPlantScreen() {
         acquired_at: acquiredAt.trim().length > 0 ? acquiredAt.trim() : null,
         nickname: nickname.trim().length > 0 ? nickname.trim() : null,
         photo_url: photoUrl,
+        light_exposure: lightExposure || null,
+        care_difficulty: careDifficulty || null,
+        toxic_to_pets: toxicToPets || null,
+        toxic_to_humans: toxicToHumans || null,
       });
 
       const frequencyDays = Number(wateringFrequencyDays);
@@ -185,6 +244,33 @@ export default function AddPlantScreen() {
         frequency_days: frequencyDays,
         next_due: nextDue,
       });
+
+      // Both optional -- only created when the field holds a valid
+      // positive number, whether that came from the AI lookup or the
+      // user typed it in themselves. Skipped otherwise; the existing
+      // "+ Add task" flow on the plant screen still covers adding them
+      // later.
+      const trimmedFertilize = fertilizeFrequencyDays.trim();
+      if (trimmedFertilize.length > 0 && Number.isFinite(Number(trimmedFertilize)) && Number(trimmedFertilize) > 0) {
+        const days = Number(trimmedFertilize);
+        await createCareTask({
+          plant_id: plant.id,
+          type: "fertilize",
+          frequency_days: days,
+          next_due: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
+      const trimmedRepot = repotFrequencyDays.trim();
+      if (trimmedRepot.length > 0 && Number.isFinite(Number(trimmedRepot)) && Number(trimmedRepot) > 0) {
+        const days = Number(trimmedRepot);
+        await createCareTask({
+          plant_id: plant.id,
+          type: "repot",
+          frequency_days: days,
+          next_due: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
 
       const trimmedInitialHeight = initialHeightCm.trim();
       if (trimmedInitialHeight.length > 0) {
@@ -293,6 +379,34 @@ export default function AddPlantScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.fertilizeFrequency.label")}
+          </Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={fertilizeFrequencyDays}
+            onChangeText={setFertilizeFrequencyDays}
+            placeholder={t("addPlant.fertilizeFrequency.placeholder")}
+            placeholderTextColor={colors.inkSoft}
+            keyboardType="number-pad"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.repotFrequency.label")}
+          </Text>
+          <TextInput
+            style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
+            value={repotFrequencyDays}
+            onChangeText={setRepotFrequencyDays}
+            placeholder={t("addPlant.repotFrequency.placeholder")}
+            placeholderTextColor={colors.inkSoft}
+            keyboardType="number-pad"
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             {t("addPlant.location.label")}
           </Text>
           <TextInput
@@ -301,6 +415,71 @@ export default function AddPlantScreen() {
             onChangeText={setLocation}
             placeholder={t("addPlant.location.placeholder")}
             placeholderTextColor={colors.inkSoft}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.lightExposure.label")}
+          </Text>
+          <ChipGroup
+            fonts={fonts}
+            value={lightExposure}
+            onChange={setLightExposure}
+            options={[
+              { value: "low_light", label: t("addPlant.lightExposure.options.lowLight") },
+              { value: "medium_light", label: t("addPlant.lightExposure.options.mediumLight") },
+              { value: "bright_indirect", label: t("addPlant.lightExposure.options.brightIndirect") },
+              { value: "direct_sun", label: t("addPlant.lightExposure.options.directSun") },
+            ]}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.careDifficulty.label")}
+          </Text>
+          <ChipGroup
+            fonts={fonts}
+            value={careDifficulty}
+            onChange={setCareDifficulty}
+            options={[
+              { value: "beginner", label: t("addPlant.careDifficulty.options.beginner") },
+              { value: "intermediate", label: t("addPlant.careDifficulty.options.intermediate") },
+              { value: "advanced", label: t("addPlant.careDifficulty.options.advanced") },
+            ]}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.toxicToPets.label")}
+          </Text>
+          <ChipGroup
+            fonts={fonts}
+            value={toxicToPets}
+            onChange={setToxicToPets}
+            options={[
+              { value: "yes", label: t("addPlant.toxicity.options.yes") },
+              { value: "no", label: t("addPlant.toxicity.options.no") },
+              { value: "unknown", label: t("addPlant.toxicity.options.unknown") },
+            ]}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("addPlant.toxicToHumans.label")}
+          </Text>
+          <ChipGroup
+            fonts={fonts}
+            value={toxicToHumans}
+            onChange={setToxicToHumans}
+            options={[
+              { value: "yes", label: t("addPlant.toxicity.options.yes") },
+              { value: "no", label: t("addPlant.toxicity.options.no") },
+              { value: "unknown", label: t("addPlant.toxicity.options.unknown") },
+            ]}
           />
         </View>
 
