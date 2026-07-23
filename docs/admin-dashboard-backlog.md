@@ -271,13 +271,27 @@ Cloudflare Access gate.
   already a trusted server gated by `requireAdmin()`. Needs one new
   env var, `RESEND_API_KEY`, in `greenie-backoffice`'s own
   `.env.local` (owner action — same Resend account already used for
-  the main project's email, value not available to this session since
-  it's a secret). The action is committed and verified to run
-  correctly end-to-end (account resolved, export collected, Resend
-  request built and sent) but **not live-confirmed to actually
-  deliver** until that key is added — a live test surfaced a clean
-  `401 API key is invalid`, proving the whole pipeline is wired
-  correctly and failing only at the expected point.
+  the main project's email; done). Verified live end-to-end in two
+  stages: before the key was added, a test run surfaced a clean `401
+  API key is invalid` (proving the whole pipeline — account resolved,
+  export collected, Resend request built — was wired correctly and
+  failing only at the expected point); after the owner added the key,
+  a real send completed against a dev-fixture account
+  (`emailUserDataExport` → 200, ~1.9s Resend round-trip) and against
+  the owner's own account to a real inbox. **A real reliability issue
+  surfaced during this verification, worth remembering**: the Auth
+  Admin API's `listUsers()` — which User lookup and this export both
+  depend on for resolving `auth.users` email/ban fields — fails
+  *intermittently* with the same `unrecognized JWT kid <nil> for
+  algorithm ES256` (403 `bad_jwt`) error that `getUserById()` hits
+  consistently with this project's `sb_secret_` key format, in
+  stretches long enough that a single retry doesn't always clear it.
+  Mitigated with a shared `listUsersWithRetry()` (3 attempts) wrapping
+  every `listUsers` call site in `src/lib/users.ts`/`src/lib/gdpr.ts`;
+  if the flakiness persists or worsens, the durable fix is replacing
+  these Auth-Admin-API reads with a `security definer` SQL function
+  over `auth.users` (a main-repo migration), which would sidestep the
+  key-validation path entirely.
   **Erasure stays deferred, by explicit decision, not oversight.**
   `delete-account` (`supabase/functions/delete-account`) also only
   ever deletes the *authenticated caller* — checked directly, not
