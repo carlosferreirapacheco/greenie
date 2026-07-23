@@ -52,7 +52,12 @@ sharing them socially with other users.
   plant_sitter_attribution [allowed/disabled, migration 0015, see
   Plant-sitting below], is_admin [boolean, default false, migration
   0025 — gates the future admin backoffice app; client-unreachable by
-  a guard trigger, see docs/admin-dashboard-backlog.md])
+  a guard trigger, see docs/admin-dashboard-backlog.md],
+  total_donated [numeric, default 0, migration 0028 — running total of
+  Buy Me a Coffee donations auto-matched via the bmc-webhook Edge
+  Function or manually reconciled in the backoffice; drives the
+  (not-yet-built) supporter badge tier, see the Later backlog's
+  Payments/monetization item])
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently
   `username_change_cooldown_days` and `privacy_policy_updated_at` (the
@@ -88,6 +93,16 @@ sharing them socially with other users.
   security definer triggers, each gated on one of seven
   `profiles.notify_*` boolean columns added in the same migration —
   see the Notifications backlog item)
+- `bmc_donations` (id, bmc_event_id [unique, BMC's own idempotency
+  key], event_type, supporter_email, supporter_name, message, amount,
+  currency, matched_user_id [nullable, references auth.users],
+  match_method [email/username_mention/manual, nullable], created_at)
+  — migration 0028; durable log of every Buy Me a Coffee webhook
+  delivery, doubling as the backoffice's reconciliation queue for
+  donations the `bmc-webhook` Edge Function couldn't auto-match to a
+  Greenie account. No client RLS policies at all — service-role/
+  backoffice only, same shape as `ai_lookup_error_logs`/
+  `app_error_logs`. See the Later backlog's Payments/monetization item
 
 ## Working style
 - Work in small, verifiable steps. After scaffolding or adding a feature,
@@ -2345,16 +2360,28 @@ unrelated history.
   unscoped. First concrete direction for optional paid content, scoped
   with the user during a brainstorm on cosmetic (non-gating) extras: a
   tiered **supporter badge** next to a user's display name, tier based
-  on how much they've given via Buy Me a Coffee — cosmetic only, no
+  on total lifetime Buy Me a Coffee donations — cosmetic only, no
   functional effect, in keeping with the explicit decision to keep
-  paid content optional/cosmetic rather than feature-gating. Deliberately
-  scoped as **admin-managed, not automated** — no Buy Me a Coffee API/
-  webhook integration planned, since that would mean matching a BMC
-  payment to a Greenie account with no existing link between the two
-  platforms; tier assignment is expected to happen through the admin
-  dashboard below once that exists (the owner checks BMC's own
-  dashboard and sets the tier), not a live payment pipeline. Real IAP/
-  payment processing for anything beyond this remains unscoped.
+  paid content optional/cosmetic rather than feature-gating. Tiers
+  (per user decision): Bronze €3+, Silver €10+, Gold €25+, Platinum
+  €100+.
+  **Revisited from the original "admin-managed, not automated" plan**:
+  BMC's current webhook API is real and confirmed current
+  (`donation.created` etc., HMAC-signed) — enough to auto-match a
+  donation to a Greenie account by email or a self-reported
+  `@username`, not guaranteed (BMC has no concept of a Greenie
+  account), but real. **The backend half is done** — see
+  `docs/admin-dashboard-backlog.md`'s "Supporter donation tracking"
+  entry for the full write-up (migration `0028_supporter_donations.sql`,
+  the `bmc-webhook` Edge Function, and the backoffice's `/supporters`
+  reconciliation queue). `profiles.total_donated` is now populated and
+  correctable by an admin for the cases the webhook can't auto-match.
+  **Badge display in the mobile app** (tier derivation, the actual
+  badge component, wiring into profile/feed/progress screens, and a
+  donation-flow hint modal explaining tiers and asking supporters to
+  include their `@username`) is deliberately deferred to its own
+  future plan — nothing about this is visible in the app yet. Real
+  IAP/payment processing for anything beyond this remains unscoped.
 - Admin dashboard — unscoped beyond report review and supporter-badge
   tier assignment (see the Payments/monetization item above). Full
   feature backlog, access-control design, platform choice, and
