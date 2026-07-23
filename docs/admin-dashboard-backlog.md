@@ -116,21 +116,62 @@ Cloudflare Access gate.
 
 ### Moderation (highest priority — closes the real Play Store gap)
 
-- **Report review**. List/triage the `reports` table (migration
-  `0023_reports.sql`): filter by `target_type`/`reason`, resolve each
-  soft `target_id` reference by looking it up in the right table
-  (`plant_progress`, `comments`, or `profiles` depending on
-  `target_type` — there's no FK, so this is always a manual lookup,
-  not a join), show the reporter and the reported content/user
-  side-by-side, and act: delete the offending row, block the reported
-  user (reusing the existing `blocks` table/RLS shape — an admin block
-  is really just inserting a row with the reporter's... no, the
-  *platform's* intent, which argues for a dedicated admin-only removal
-  path rather than reusing user-facing `blockUser()`, which is scoped
-  to `auth.uid()` as the blocker), or dismiss with no action. Needs a
-  `resolved_at`/`resolved_by` pair added to `reports` (new nullable
-  columns) so the queue only shows open reports and there's a record
-  of who handled what.
+- **Report review** — done, in `greenie-backoffice` (the first real
+  feature built on the skeleton). List/triage the `reports` table
+  (migration `0023_reports.sql`, `0026_report_resolution.sql` for the
+  new `resolved_at`/`resolved_by`/`resolution` columns): filter by
+  `?status=open|resolved|all`, each `target_id` resolved against the
+  right table per `target_type` (`plant_progress`, `comments`, or
+  `profiles` — no FK, always a manual lookup, batch-fetched in
+  `src/lib/reports.ts` to avoid N+1), reporter and target shown
+  side-by-side. Three actions, each its own Server Action in
+  `src/app/reports/actions.ts` that re-checks `requireAdmin()` itself:
+  **delete the reported content** (not offered for `target_type:
+  "user"`, no content to delete), **dismiss** (resolve with no
+  action), and **ban** — scope grew here per an explicit user decision
+  during planning: rather than reusing the user-facing `blockUser()`
+  (wrong semantics for a platform action, and the original sketch's
+  own uncertainty about this is exactly why it came up for
+  discussion), banning uses Supabase Auth's own built-in primitive,
+  `supabase.auth.admin.updateUserById(userId, { ban_duration:
+  "876000h" })` — confirmed current via `search_docs` before writing
+  any code. This blocks future sign-ins and token refreshes at the
+  Auth layer itself, with zero RLS or schema changes needed anywhere
+  else in the app. Honest limit, not oversold: an already-issued,
+  still-unexpired access token keeps working until it naturally
+  expires or the user tries to refresh it — this is "can't sign in or
+  stay signed in going forward," not instant mid-session revocation.
+  Every report row is its own audit trail (`resolved_at`/`resolved_by`/
+  `resolution`) — deliberately no separate audit table for this
+  report-driven path.
+  Destructive actions go behind a controlled `AlertDialog`
+  (`src/components/report-action-dialog.tsx`) — deliberately **not**
+  shadcn's own `AlertDialogAction`, which auto-closes on click
+  regardless of what its handler does, which would hide the
+  pending/error state an async Server Action needs; a plain `Button`
+  under the component's own `open`/`isPending` state instead.
+  Verified live end-to-end against seeded throwaway fixtures (a test
+  plant/progress-report/comment, three reports covering all three
+  `target_type`s, reporter/target both dev-fixture accounts, never
+  real user data): delete correctly cascades — confirmed live when
+  deleting the progress report also removed its attached comment,
+  which then correctly surfaced Report review's own "content no
+  longer exists" fallback for the second report, an unplanned but
+  welcome proof of that fallback path — dismiss and ban both resolve
+  correctly, ban sets `auth.users.banned_until` to ~100 years out, and
+  all three resolutions render correctly under the Resolved/All
+  filters. All seeded data removed and the test account unbanned
+  afterward.
+- **Direct content search & removal**. Independent of a report existing
+  at all — search progress reports/comments/plants by owner or
+  free-text, for the case where something needs to come down before
+  anyone's gotten around to reporting it (or Play Store's own review
+  flags something). Thin wrapper over the same delete calls Report
+  review already needed — its own future slice, not bundled into that
+  pass.
+- **Unban** — the report-review ban action is deliberately one-way;
+  reversing it belongs on the future "User lookup & account actions"
+  screen below, where an admin can see a user's full status first.
 - **Direct content search & removal**. Independent of a report existing
   at all — search progress reports/comments/plants by owner or
   free-text, for the case where something needs to come down before
@@ -208,10 +249,10 @@ Cloudflare Access gate.
 
 ## Suggested phasing
 
-1. **Access control foundation** (blocks everything else) + **Report
-   review** + **direct content search & removal** — the pair Google
-   Play's UGC policy actually cares about, and the most-requested
-   reason this dashboard exists at all.
+1. **Access control foundation** (blocks everything else) — done.
+   **Report review** — done. **Direct content search & removal** —
+   still open, the other half of the pair Google Play's UGC policy
+   actually cares about.
 2. **User lookup & account actions** + **manual GDPR requests** —
    support/compliance safety nets, cheap once #1 exists since they
    mostly wrap already-built functions.
