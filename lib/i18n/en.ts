@@ -283,6 +283,11 @@ export const en = {
         googleLinked: "Google account linked ({email}).",
         webOnlyHint: "Linking a Google account is available on the web for now.",
         confirmLinkButton: "Confirm & link Google account",
+        unlinkButton: "Unlink",
+        confirmUnlink: {
+          message: "Unlink your Google account ({email})? You can link it again anytime.",
+          confirmButton: "Unlink",
+        },
       },
     },
     privacy: {

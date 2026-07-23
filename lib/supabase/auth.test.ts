@@ -36,6 +36,7 @@ import {
   getLinkedGoogleEmail,
   changeAccountEmail,
   linkGoogleAccount,
+  unlinkGoogleIdentity,
   completePendingGoogleLinkSync,
 } from "./auth";
 
@@ -296,6 +297,43 @@ describe("getLinkedGoogleEmail", () => {
     mockSupabase.auth.getUserIdentities.mockResolvedValue({ data: null, error: err });
 
     await expect(getLinkedGoogleEmail()).rejects.toBe(err);
+  });
+});
+
+describe("unlinkGoogleIdentity", () => {
+  it("unlinks the google identity when linked", async () => {
+    const googleIdentity = { provider: "google", identity_data: { email: "carlos@gmail.com" } };
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "email" }, googleIdentity] },
+      error: null,
+    });
+    mockSupabase.auth.unlinkIdentity.mockResolvedValue({ data: {}, error: null });
+
+    await unlinkGoogleIdentity();
+
+    expect(mockSupabase.auth.unlinkIdentity).toHaveBeenCalledWith(googleIdentity);
+  });
+
+  it("throws without calling unlinkIdentity when no google identity is linked", async () => {
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [{ provider: "email" }] },
+      error: null,
+    });
+
+    await expect(unlinkGoogleIdentity()).rejects.toThrow("No linked Google account");
+    expect(mockSupabase.auth.unlinkIdentity).not.toHaveBeenCalled();
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const googleIdentity = { provider: "google", identity_data: { email: "carlos@gmail.com" } };
+    mockSupabase.auth.getUserIdentities.mockResolvedValue({
+      data: { identities: [googleIdentity] },
+      error: null,
+    });
+    const err = { message: "Cannot unlink last identity" };
+    mockSupabase.auth.unlinkIdentity.mockResolvedValue({ data: {}, error: err });
+
+    await expect(unlinkGoogleIdentity()).rejects.toBe(err);
   });
 });
 

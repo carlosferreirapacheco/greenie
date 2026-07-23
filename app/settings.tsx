@@ -22,6 +22,7 @@ import {
   getLinkedGoogleEmail,
   linkGoogleAccount,
   requestCurrentEmailConfirmationCode,
+  unlinkGoogleIdentity,
   updatePasswordWithReauth,
   verifyCurrentEmailConfirmationCode,
 } from "../lib/supabase/auth";
@@ -39,6 +40,7 @@ import {
 import { getPushEnabled, setPushEnabled } from "../lib/pushNotificationManager";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -155,6 +157,9 @@ export default function SettingsScreen() {
   const [googleLinkStatus, setGoogleLinkStatus] = useState<"idle" | "linking" | "error">("idle");
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
   const [googleSyncBanner, setGoogleSyncBanner] = useState<string | null>(null);
+  const [showUnlinkGoogleConfirm, setShowUnlinkGoogleConfirm] = useState(false);
+  const [unlinkGoogleStatus, setUnlinkGoogleStatus] = useState<"idle" | "unlinking" | "error">("idle");
+  const [unlinkGoogleError, setUnlinkGoogleError] = useState<string | null>(null);
   const isSendingGoogleLinkCode = useRef(false);
   const isLinkingGoogle = useRef(false);
 
@@ -454,6 +459,21 @@ export default function SettingsScreen() {
     }
   }
 
+  async function handleUnlinkGoogle() {
+    setUnlinkGoogleStatus("unlinking");
+    setUnlinkGoogleError(null);
+
+    try {
+      await unlinkGoogleIdentity();
+      setGoogleLinkedEmail(null);
+      setShowUnlinkGoogleConfirm(false);
+      setUnlinkGoogleStatus("idle");
+    } catch (err) {
+      setUnlinkGoogleError(getErrorMessage(err));
+      setUnlinkGoogleStatus("error");
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
@@ -681,9 +701,18 @@ export default function SettingsScreen() {
             {t("settings.emailLinkedAccounts.linkedAccounts.label")}
           </Text>
           {googleLinkedEmail ? (
-            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-              {t("settings.emailLinkedAccounts.linkedAccounts.googleLinked", { email: googleLinkedEmail })}
-            </Text>
+            <>
+              <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                {t("settings.emailLinkedAccounts.linkedAccounts.googleLinked", { email: googleLinkedEmail })}
+              </Text>
+              {hasPassword ? (
+                <Pressable onPress={() => setShowUnlinkGoogleConfirm(true)} hitSlop={4}>
+                  <Text style={[styles.policyLink, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
+                    {t("settings.emailLinkedAccounts.linkedAccounts.unlinkButton")}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </>
           ) : Platform.OS !== "web" ? (
             <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
               {t("settings.emailLinkedAccounts.linkedAccounts.webOnlyHint")}
@@ -1020,6 +1049,28 @@ export default function SettingsScreen() {
 
         <AccountDeletionFlow fonts={fonts} />
       </ScrollView>
+
+      {showUnlinkGoogleConfirm ? (
+        <ConfirmModal
+          message={t("settings.emailLinkedAccounts.linkedAccounts.confirmUnlink.message", {
+            email: googleLinkedEmail ?? "",
+          })}
+          actions={[
+            {
+              label: t("settings.emailLinkedAccounts.linkedAccounts.confirmUnlink.confirmButton"),
+              tone: "destructive",
+              onPress: handleUnlinkGoogle,
+            },
+          ]}
+          onCancel={() => {
+            setShowUnlinkGoogleConfirm(false);
+            setUnlinkGoogleError(null);
+          }}
+          busy={unlinkGoogleStatus === "unlinking"}
+          errorText={unlinkGoogleError}
+          fonts={fonts}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
