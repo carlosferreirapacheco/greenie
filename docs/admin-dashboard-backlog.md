@@ -427,6 +427,55 @@ Cloudflare Access gate.
   explicit ordering. Verified live: every number cross-checked
   independently via direct SQL against the same live data and matched
   exactly (Accounts 5, Signups 1/5, Plants 4/5, Progress reports 1/1).
+  **Follow-up pass — retention/engagement, feature adoption, and a
+  growth trend chart — done.** User asked for a deeper "product
+  metrics" pass beyond the original point-in-time counts; scoped via
+  `AskUserQuestion` to all three directions at once. Two real
+  constraints shaped the design, checked before building anything:
+  (1) dark mode and language preference are `AsyncStorage`-only in the
+  mobile app — no server signal exists, so they're excluded from
+  feature adoption entirely, called out explicitly in the dashboard's
+  own copy rather than silently omitted; (2) there's no "AI lookup
+  succeeded" log, only failures (`ai_lookup_error_logs`) — adoption
+  uses a labeled approximation instead (whether a plant has any
+  AI-derived field set), since those fields are also hand-editable.
+  A third finding shaped retention specifically: real per-sign-in
+  history exists in `auth.sessions.created_at` (confirmed live — 14
+  rows, 4 distinct users, not aggressively pruned), which would enable
+  true periodic retention curves, but that table lives in the `auth`
+  schema and isn't reachable via `supabase-js .from()` even with the
+  service-role client (PostgREST only exposes `public`/configured
+  schemas) — reaching it would need a new `security definer` RPC (the
+  `username_available()` pattern from the main app). Decided against
+  that for now, given the effort/value tradeoff at this app's current
+  scale, in favor of a simpler *cumulative* retention metric ("came
+  back at least once N+ days after signup") derived entirely from
+  `auth.users.created_at`/`last_sign_in_at`, both already fetched via
+  the existing `listUsersWithRetry()`. New `src/lib/metrics.ts`
+  functions: `getRetentionMetrics()` (D7/D30 cumulative-return rate,
+  zero-plant-account rate, avg plants/account, avg reports/plant, %
+  of plants with 2+ reports), `getFeatureAdoption()` (AI-info-present
+  rate, plant-sitting/follow/like/comment/push-registration adoption
+  rates, care-task-type breakdown — one aggregate query per signal
+  against already-exposed `public` tables, no new schema), and
+  `getGrowthTrend()` (weekly-bucketed signups/plants/reports for the
+  last 8 weeks, reusing the same `created_at` arrays
+  `getProductInsights()` already fetches). New `src/lib/chart.ts`
+  holds the pure weekly-bucketing helper (`bucketWeekly()`) and new
+  `src/components/growth-trend-chart.tsx` renders it as a hand-rolled
+  inline-SVG grouped bar chart — deliberately not a charting library
+  (Recharts/shadcn's chart component), matching the main app's own
+  established "hand-roll simple charts" precedent
+  (`lib/chart.ts`/`components/HeightChart.tsx` there). All three new
+  sections render on the home dashboard under "Product insights",
+  still shown first. Verified live: every new metric cross-checked
+  independently via direct SQL against the same live data and matched
+  exactly (D7 returned 50% [2/4 eligible], D30 0% [0/0 eligible],
+  zero-plant accounts 20% [1/5], avg plants/account 1.0, avg
+  reports/plant 0.2, AI info 0% [0/5 plants], any-follow 80% [4/5],
+  push-registered 20% [1/5], care tasks water:5, growth-chart weekly
+  totals summing to the exact signups/plants/reports totals shown
+  elsewhere on the page); `tsc --noEmit` clean.
 
 ### Configuration
 
