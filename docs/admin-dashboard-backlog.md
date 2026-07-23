@@ -181,22 +181,60 @@ Cloudflare Access gate.
   browsing; a logged trail of every lookup. For now, moderation stays
   report-driven only — the rare unreported-content case is handled the
   way it always has been, via direct SQL.
-- **Unban** — the report-review ban action is deliberately one-way;
-  reversing it belongs on the future "User lookup & account actions"
-  screen below, where an admin can see a user's full status first.
+- **Unban** — done, see "User lookup & account actions" below (the
+  report-review ban action itself is deliberately still one-way; this
+  is where it gets reversed).
 
 ### Users & support
 
-- **User lookup & account actions**. Search by username/email, view a
-  profile summary (plants, follower counts, report history — both
-  reports filed *by* them and *against* them), and take action:
-  force-unlink a Google identity gone wrong, manually trigger the
-  account-deletion Edge Function on someone's behalf (support request
-  where the user can't complete the normal two-factor flow themselves —
-  needs its own careful auth story, since bypassing the password+OTP
-  check is exactly what that flow exists to prevent), or just have
-  enough visibility to answer a support email without an ad hoc SQL
-  query every time.
+- **User lookup & account actions** — the **unban slice is done**;
+  force-unlinking a Google identity and triggering account deletion on
+  someone's behalf are deliberately deferred (see below). Search (by
+  username, `profiles.username ilike`, or by email — `listUsers()`
+  filtered client-side, since the Admin API has no server-side email
+  filter) resolves to `src/app/users/[id]/page.tsx`, a profile summary
+  built around one explicit design constraint from the user: **only
+  public, non-sensitive content**, not a service-role bypass of the
+  app's own privacy settings just because the backend technically can.
+  Confirmed the exact boundary by reading the live RLS policies
+  directly (`pg_policies` for `plants_select_visible`/
+  `plant_progress_select_visible`) and deliberately replicating only
+  the fully-public branch (`profile_visibility`/`progress_visibility =
+  'public'`) — never the `is_accepted_follower` branch, since that
+  depends on *who's looking*, not on what's actually public, and an
+  admin's own follow relationships shouldn't leak extra access into a
+  support tool. Progress reports additionally require `shared_to_feed
+  = true`, stricter than RLS alone — an unlisted report is a
+  deliberate non-sharing choice the summary respects too. Account/
+  moderation metadata (`email`, `banned_until`, reports where the user
+  is reporter or a direct `target_type: "user"` target) is shown
+  regardless of content visibility, since it's not the user's content
+  and is already admin-only. `src/lib/users.ts` hit a real, current bug
+  live: `admin.auth.admin.getUserById()` throws `"unrecognized JWT kid
+  <nil> for algorithm ES256"` (403 `bad_jwt`) with this project's
+  `sb_secret_...` key format, even via the same admin client that
+  works fine elsewhere — worked around by using `listUsers({ perPage:
+  1000 })` + `.find()` instead (already proven working in the search
+  path), not a bug in application logic. **Unban** itself
+  (`src/app/users/actions.ts`) reuses `ReportActionDialog` from Report
+  review (already generalized, not report-specific) and calls
+  `admin.auth.admin.updateUserById(userId, { ban_duration: "none" })`.
+  Verified live end-to-end against dev-fixture accounts only: username
+  and email search both resolve correctly; a private-account summary
+  shows zero plants/reports (matching the mobile app's own
+  non-follower empty state); a seeded shared + unlisted progress
+  report pair shows only the shared one; banning via SQL then
+  unbanning through the UI clears `auth.users.banned_until`,
+  UI-verified via Server Action `revalidatePath` with no manual
+  reload. All seeded test data cleaned up afterward. Committed
+  directly to `master` in `greenie-backoffice` (this repo's own
+  established convention, unlike the main app's branch+PR rule).
+  **Deferred, each its own future pass**: force-unlinking a Google
+  identity gone wrong, and manually triggering the account-deletion
+  Edge Function on someone's behalf (a support request where the user
+  can't complete the normal two-factor flow themselves — needs its own
+  careful auth story, since bypassing the password+OTP check is
+  exactly what that flow exists to prevent).
 - **Manual GDPR data subject requests**. A lookup-by-email path that
   reuses `collectMyData()` (`lib/supabase/gdpr.ts`) to produce the same
   export the in-app "Download my data" button does, for the case where
@@ -260,9 +298,10 @@ Cloudflare Access gate.
    now; **direct content search & removal** is shelved over privacy
    concerns (see the Features section above) rather than built as
    originally scoped.
-2. **User lookup & account actions** + **manual GDPR requests** —
-   support/compliance safety nets, cheap once #1 exists since they
-   mostly wrap already-built functions.
+2. **User lookup & account actions** — the unban slice is done; Google
+   identity unlink and on-behalf-of account deletion remain open. +
+   **manual GDPR requests** — a compliance safety net, cheap since it
+   mostly wraps an already-built function.
 3. **AI lookup error log review** + **`app_config` viewer** — low
    effort, read-only, no new schema.
 4. **Supporter badge tier assignment** — once the supporter badge
