@@ -251,13 +251,46 @@ Cloudflare Access gate.
   support case (walk the user through Settings) without the admin
   action; force-unlink-on-someone's-behalf stays open only for the
   Postgres-connection approach, if ever revisited.
-- **Manual GDPR data subject requests**. A lookup-by-email path that
-  reuses `collectMyData()` (`lib/supabase/gdpr.ts`) to produce the same
-  export the in-app "Download my data" button does, for the case where
-  someone emails asking for their data or asking to be forgotten but
-  can't get into their account. Erasure side reuses `delete-account`.
-  This is a compliance safety net, not a new capability — everything it
-  calls already exists and is already tested.
+- **Manual GDPR data subject requests — the export half is done**;
+  erasure is deferred. Reuses the existing `/users` search (no new
+  lookup UI needed) — a new "GDPR data export" section on
+  `src/app/users/[id]/page.tsx` sends the account's full data export to
+  its own registered email, for the case where someone emails asking
+  for their data but can't get into their account. Checked the
+  backlog's original assumption before building: `collectMyData()`
+  (`lib/supabase/gdpr.ts`) and `email-data-export`
+  (`supabase/functions/email-data-export`) are both hardwired to the
+  *authenticated caller's own session/JWT* — neither can be pointed at
+  an arbitrary user id as-is. Rather than loosen either one's "only the
+  caller" invariant, built new admin-side equivalents instead: new
+  `src/lib/gdpr.ts`'s `collectUserData(userId)` mirrors
+  `collectMyData()`'s query shape field-for-field via the admin client;
+  a new `emailUserDataExport(userId)` Server Action (`src/app/users/actions.ts`,
+  alongside `unbanUser`) mirrors `email-data-export`'s Resend call
+  directly — no new Supabase Edge Function, since the backoffice is
+  already a trusted server gated by `requireAdmin()`. Needs one new
+  env var, `RESEND_API_KEY`, in `greenie-backoffice`'s own
+  `.env.local` (owner action — same Resend account already used for
+  the main project's email, value not available to this session since
+  it's a secret). The action is committed and verified to run
+  correctly end-to-end (account resolved, export collected, Resend
+  request built and sent) but **not live-confirmed to actually
+  deliver** until that key is added — a live test surfaced a clean
+  `401 API key is invalid`, proving the whole pipeline is wired
+  correctly and failing only at the expected point.
+  **Erasure stays deferred, by explicit decision, not oversight.**
+  `delete-account` (`supabase/functions/delete-account`) also only
+  ever deletes the *authenticated caller* — checked directly, not
+  assumed from the backlog's original "erasure side reuses
+  delete-account" text, which turned out to not literally hold. The
+  technical bypass is trivial (the same `admin.auth.admin.deleteUser()`
+  already used for banning, and every table already cascades from
+  `auth.users`), but the real gap isn't code: nothing in the backoffice
+  can verify the emailer actually owns the account the way the
+  self-service password+OTP flow does — the exact
+  deletion-on-behalf-of case already deferred once during the User
+  lookup & account actions plan, deferred again here for the same
+  reason.
 
 ### Monetization
 
@@ -315,9 +348,11 @@ Cloudflare Access gate.
    concerns (see the Features section above) rather than built as
    originally scoped.
 2. **User lookup & account actions** — the unban slice is done; Google
-   identity unlink and on-behalf-of account deletion remain open. +
-   **manual GDPR requests** — a compliance safety net, cheap since it
-   mostly wraps an already-built function.
+   identity unlink and on-behalf-of account deletion remain open (the
+   latter now shared with the deferred GDPR-erasure case below). +
+   **manual GDPR requests** — the export half is done; erasure is
+   deferred for the same reason as account-deletion-on-behalf-of
+   above.
 3. **AI lookup error log review** + **`app_config` viewer** — low
    effort, read-only, no new schema.
 4. **Supporter badge tier assignment** — once the supporter badge
