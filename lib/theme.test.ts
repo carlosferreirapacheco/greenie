@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { getFonts, resolveScheme } from "./theme";
+import { getFonts, resolveScheme, getBadgeColors, getSupporterTierColors, palettes } from "./theme";
 
 describe("getFonts", () => {
   it("returns the loaded Google Font family names when fontsLoaded is true", () => {
@@ -55,5 +55,40 @@ describe("resolveScheme", () => {
 
   it("passes dark through regardless of system scheme", () => {
     expect(resolveScheme("dark", "light")).toBe("dark");
+  });
+});
+
+describe("getSupporterTierColors", () => {
+  it("makes gold delegate to the app's own gold/goldSoft tokens", () => {
+    expect(getSupporterTierColors("light", palettes.light).gold).toEqual({
+      fg: palettes.light.gold,
+      soft: palettes.light.goldSoft,
+    });
+    expect(getSupporterTierColors("dark", palettes.dark).gold).toEqual({
+      fg: palettes.dark.gold,
+      soft: palettes.dark.goldSoft,
+    });
+  });
+
+  it("gives bronze/silver/platinum their own purpose-built tones, not palette colors", () => {
+    const tiers = getSupporterTierColors("light", palettes.light);
+    expect(tiers.bronze.fg).not.toBe(palettes.light.gold);
+    expect(tiers.silver.fg).not.toBe(palettes.light.gold);
+    expect(tiers.platinum.fg).not.toBe(palettes.light.gold);
+  });
+});
+
+describe("getBadgeColors", () => {
+  it("resolves a supporter tier badge via getSupporterTierColors", () => {
+    expect(getBadgeColors({ kind: "supporter_tier", tier: "platinum" }, "light", palettes.light)).toEqual(
+      getSupporterTierColors("light", palettes.light).platinum
+    );
+  });
+
+  it("resolves a beta tester badge to the moss pair, not a tier tone", () => {
+    expect(getBadgeColors({ kind: "beta_tester" }, "light", palettes.light)).toEqual({
+      fg: palettes.light.mossStrong,
+      soft: palettes.light.sage,
+    });
   });
 });

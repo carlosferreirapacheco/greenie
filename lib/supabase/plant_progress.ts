@@ -2,6 +2,7 @@ import { supabase } from "./client";
 import { getFollowing } from "./follows";
 import { getLikesForProgress } from "./likes";
 import { getCommentsForProgressIds, type CommentWithAuthor } from "./comments";
+import { getVisibleBadges, type ResolvedBadge } from "../badges";
 
 // Per-report (moved off profiles in migration 0012): who may comment.
 // 'disabled' hides existing comments too (RLS) without deleting them.
@@ -35,6 +36,7 @@ export type FeedItem = ProgressReport & {
   author_display_name: string | null;
   author_username: string | null;
   author_avatar_url: string | null;
+  author_badges: ResolvedBadge[];
   plant_name: string;
   plant_nickname: string | null;
   plant_species: string | null;
@@ -63,7 +65,15 @@ export type FeedItem = ProgressReport & {
   latest_comment: CommentWithAuthor | null;
 };
 
-type AuthorInfo = { display_name: string | null; username: string; avatar_url: string | null };
+type AuthorInfo = {
+  display_name: string | null;
+  username: string;
+  avatar_url: string | null;
+  total_donated: number;
+  is_beta_tester: boolean;
+  show_supporter_badge: boolean;
+  show_beta_tester_badge: boolean;
+};
 
 // Shared by getFeed (many reports, author info already known from the
 // following list) and getProgressReport (a single report, author info
@@ -101,7 +111,9 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
   if (ownerIds.length > 0) {
     const { data: ownerProfiles, error: ownerProfilesError } = await supabase
       .from("profiles")
-      .select("id, display_name, username, avatar_url, plant_sitter_attribution")
+      .select(
+        "id, display_name, username, avatar_url, plant_sitter_attribution, total_donated, is_beta_tester, show_supporter_badge, show_beta_tester_badge"
+      )
       .in("id", ownerIds);
 
     if (ownerProfilesError) {
@@ -113,6 +125,10 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
         display_name: profile.display_name,
         username: profile.username,
         avatar_url: profile.avatar_url,
+        total_donated: profile.total_donated,
+        is_beta_tester: profile.is_beta_tester,
+        show_supporter_badge: profile.show_supporter_badge,
+        show_beta_tester_badge: profile.show_beta_tester_badge,
       });
       shareAllowedByOwnerId.set(profile.id, profile.plant_sitter_attribution === "allowed");
     }
@@ -154,6 +170,12 @@ async function hydrateReports(reports: ProgressReport[], authorInfoById: Map<str
       author_display_name: authorInfo?.display_name ?? null,
       author_username: authorInfo?.username ?? null,
       author_avatar_url: authorInfo?.avatar_url ?? null,
+      author_badges: getVisibleBadges({
+        total_donated: authorInfo?.total_donated ?? 0,
+        is_beta_tester: authorInfo?.is_beta_tester ?? false,
+        show_supporter_badge: authorInfo?.show_supporter_badge ?? true,
+        show_beta_tester_badge: authorInfo?.show_beta_tester_badge ?? true,
+      }),
       plant_name: plant?.name ?? "Unknown plant",
       plant_nickname: plant?.nickname ?? null,
       plant_species: plant?.species ?? null,
@@ -188,7 +210,15 @@ export async function getFeed(options?: { before?: string }): Promise<FeedPage> 
   const authorInfoById = new Map<string, AuthorInfo>(
     following.map((person) => [
       person.id,
-      { display_name: person.display_name, username: person.username, avatar_url: person.avatar_url },
+      {
+        display_name: person.display_name,
+        username: person.username,
+        avatar_url: person.avatar_url,
+        total_donated: person.total_donated,
+        is_beta_tester: person.is_beta_tester,
+        show_supporter_badge: person.show_supporter_badge,
+        show_beta_tester_badge: person.show_beta_tester_badge,
+      },
     ])
   );
 
@@ -235,7 +265,7 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
 
   const { data: author, error: authorError } = await supabase
     .from("profiles")
-    .select("display_name, username, avatar_url")
+    .select("display_name, username, avatar_url, total_donated, is_beta_tester, show_supporter_badge, show_beta_tester_badge")
     .eq("id", report.user_id)
     .single();
 
@@ -244,7 +274,18 @@ export async function getProgressReport(id: string): Promise<FeedItem> {
   }
 
   const authorInfoById = new Map<string, AuthorInfo>([
-    [report.user_id, { display_name: author.display_name, username: author.username, avatar_url: author.avatar_url }],
+    [
+      report.user_id,
+      {
+        display_name: author.display_name,
+        username: author.username,
+        avatar_url: author.avatar_url,
+        total_donated: author.total_donated,
+        is_beta_tester: author.is_beta_tester,
+        show_supporter_badge: author.show_supporter_badge,
+        show_beta_tester_badge: author.show_beta_tester_badge,
+      },
+    ],
   ]);
   const [item] = await hydrateReports([report], authorInfoById);
   return item;

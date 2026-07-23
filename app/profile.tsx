@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -25,6 +25,8 @@ import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { HeaderIconButton } from "../components/HeaderIconButton";
+import { BadgeChipRow } from "../components/badges/BadgeChipRow";
+import { getVisibleBadges } from "../lib/badges";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -86,6 +88,19 @@ export default function ProfileScreen() {
     useCallback(() => {
       fetchProfile();
     }, [fetchProfile])
+  );
+
+  const badges = useMemo(
+    () =>
+      profile
+        ? getVisibleBadges({
+            total_donated: profile.total_donated,
+            is_beta_tester: profile.is_beta_tester,
+            show_supporter_badge: profile.show_supporter_badge,
+            show_beta_tester_badge: profile.show_beta_tester_badge,
+          })
+        : [],
+    [profile]
   );
 
   const normalizedUsername = normalizeUsername(username);
@@ -238,6 +253,8 @@ export default function ProfileScreen() {
         {avatarSaveError ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{avatarSaveError}</Text>
         ) : null}
+
+        <BadgeChipRow badges={badges} fonts={fonts} />
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>

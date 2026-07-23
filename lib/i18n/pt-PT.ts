@@ -353,6 +353,20 @@ export const ptPT: typeof en = {
         "Se o Greenie lhe é útil, pode oferecer-me um café — totalmente opcional, é só uma forma de agradecer.",
       button: "Oferecer um café",
     },
+    badges: {
+      sectionTitle: "Distintivos",
+      sectionIntro: "Escolha que distintivos aparecem junto ao seu nome em todo o Greenie.",
+      supporterToggle: {
+        label: "Mostrar distintivo de apoiante",
+        desc: "Mostra o seu nível de apoiante junto ao seu nome em toda a aplicação.",
+      },
+      betaTesterToggle: {
+        label: "Mostrar distintivo de testador beta",
+        desc: "Mostra o seu distintivo de testador beta junto ao seu nome em toda a aplicação.",
+      },
+      saveButton: "Guardar definições de distintivos",
+      savedText: "Definições de distintivos guardadas",
+    },
     yourData: {
       sectionTitle: "Os seus dados",
       sectionIntro:
@@ -385,6 +399,17 @@ export const ptPT: typeof en = {
         shareToFeed: "Partilhar no feed",
         dontShare: "Não partilhar",
       },
+    },
+  },
+  badges: {
+    supporterTier: {
+      bronze: "Bronze",
+      silver: "Prata",
+      gold: "Ouro",
+      platinum: "Platina",
+    },
+    betaTester: {
+      label: "Testador beta",
     },
   },
   plantDetail: {

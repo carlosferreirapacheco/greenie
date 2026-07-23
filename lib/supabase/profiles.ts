@@ -18,6 +18,10 @@ export type Profile = {
   follow_policy: FollowPolicy;
   progress_visibility: ProgressVisibility;
   plant_sitter_attribution: PlantSitterAttribution;
+  total_donated: number;
+  is_beta_tester: boolean;
+  show_supporter_badge: boolean;
+  show_beta_tester_badge: boolean;
   notify_comments: boolean;
   notify_likes: boolean;
   notify_follow_requests: boolean;
@@ -225,6 +229,35 @@ export async function updatePrivacySettings(input: {
 }
 
 export async function updateNotificationSettings(input: NotificationSettings): Promise<Profile> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(input)
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+// Per-badge-kind visibility, not one master switch -- see lib/badges.ts.
+export type BadgeSettings = {
+  show_supporter_badge: boolean;
+  show_beta_tester_badge: boolean;
+};
+
+export async function updateBadgeSettings(input: BadgeSettings): Promise<Profile> {
   const {
     data: { user },
   } = await supabase.auth.getUser();

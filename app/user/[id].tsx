@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -15,6 +15,8 @@ import {
 import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { ConfirmModal } from "../../components/ConfirmModal";
+import { BadgeChipRow } from "../../components/badges/BadgeChipRow";
+import { getVisibleBadges } from "../../lib/badges";
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -65,6 +67,21 @@ export default function UserProfileScreen() {
   // async, so a ref is needed to reliably block a second rapid tap.
   const isToggling = useRef(false);
   const isActingOnBlock = useRef(false);
+
+  // Computed unconditionally (not after the loading/error early returns
+  // below) -- a hook can't be called only on some renders.
+  const badges = useMemo(
+    () =>
+      profile
+        ? getVisibleBadges({
+            total_donated: profile.total_donated,
+            is_beta_tester: profile.is_beta_tester,
+            show_supporter_badge: profile.show_supporter_badge,
+            show_beta_tester_badge: profile.show_beta_tester_badge,
+          })
+        : [],
+    [profile]
+  );
 
   const fetchProfile = useCallback(() => {
     if (!id) {
@@ -228,6 +245,10 @@ export default function UserProfileScreen() {
       {displayName ? (
         <Text style={[styles.username, { fontFamily: fonts.body, color: colors.inkSoft }]}>{atUsername}</Text>
       ) : null}
+
+      <View style={styles.badgesRow}>
+        <BadgeChipRow badges={badges} fonts={fonts} />
+      </View>
 
       <Text style={[styles.bio, { fontFamily: fonts.body, color: profile?.bio ? colors.ink : colors.inkSoft }]}>
         {profile?.bio ?? t("userProfile.noBio")}
@@ -394,6 +415,10 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 13,
     marginTop: -spacing.xs,
+  },
+  badgesRow: {
+    flexDirection: "row",
+    marginTop: spacing.xs,
   },
   bio: {
     fontSize: 14,

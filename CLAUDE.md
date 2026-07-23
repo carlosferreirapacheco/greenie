@@ -56,8 +56,12 @@ sharing them socially with other users.
   total_donated [numeric, default 0, migration 0028 — running total of
   Buy Me a Coffee donations auto-matched via the bmc-webhook Edge
   Function or manually reconciled in the backoffice; drives the
-  (not-yet-built) supporter badge tier, see the Later backlog's
-  Payments/monetization item])
+  supporter badge tier via lib/badges.ts's computeSupporterTier(), see
+  the Product features' Supporter tier badges item], is_beta_tester
+  [boolean, default false, migration 0029 — set manually via SQL for
+  now, no admin UI yet], show_supporter_badge / show_beta_tester_badge
+  [boolean, default true, migration 0029 — independent per-badge-kind
+  visibility toggles, not one master switch])
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently
   `username_change_cooldown_days` and `privacy_policy_updated_at` (the
@@ -2353,35 +2357,98 @@ unrelated history.
   of the privacy policy the user explicitly wants before launch, filling
   in Play Console's own forms, and running the closed test — are called
   out explicitly in the new doc as owner actions, not attempted here.
+- Supporter tier badges + beta-tester badge — done. The mobile-app
+  display half of the Payments/monetization item below — the backend
+  (`profiles.total_donated`, the BMC webhook, backoffice reconciliation)
+  already shipped separately; this is what actually renders a badge.
+  Design was worked out over several rounds of an Artifact-based visual
+  review with the user (colors, icon alternatives, sizing, treatments)
+  before any code was written. **Tiers** from `total_donated`: Bronze
+  €3+, Silver €10+, Gold €25+, Platinum €100+, no badge below €3.
+  **Colors**: purpose-built per-tier tokens for bronze/silver/platinum;
+  gold deliberately reuses the app's own existing `colors.gold`/
+  `goldSoft` (one source of truth, not a duplicate token). **Icons**:
+  hand-drawn growth-stage glyphs — seed (bronze) → sprout (silver) →
+  leaf (gold) → a stylized blossom (platinum, picked over three other
+  platinum alternatives explored in the review, then resized twice
+  after user feedback that it read smaller/less prominent than the
+  lower tiers — the fix was pure geometry scaling, not a redesign, so
+  platinum now reads at least as prominent as gold). **Beta-tester
+  badge**: a wholly separate concept from the donation ladder — a new
+  `profiles.is_beta_tester` boolean (set manually via SQL for now, no
+  admin UI in this pass, same precedent as Report content/users),
+  rewarding early testers regardless of whether they ever donated.
+  Watering-can icon, colored in the app's own `moss`/`mossStrong` (not
+  a tier tone), signaling "recognition from the team" rather than "a
+  cheap tier." **Two display treatments**, both user-specified: an
+  outlined, tier/moss-tinted chip with icon + label under the display
+  name on profile screens only (`components/badges/BadgeChipRow.tsx`),
+  and an icon-only ~16px row everywhere else a name renders — feed
+  rows, the progress-report author line, comment author lines
+  (`components/badges/BadgeIconRow.tsx`). **Multiple badges,
+  independently toggleable, capped at 3**: per explicit user decision,
+  there's no single master "show my badge" switch — each badge kind
+  (`profiles.show_supporter_badge`, `show_beta_tester_badge`, migration
+  `0029_supporter_badges.sql`) has its own opt-out, and a toggle only
+  appears in Settings for a kind the account currently qualifies for.
+  Every currently-enabled badge renders, ordered (tier, then beta
+  tester) and capped at 3 total by a single pure `getVisibleBadges()`
+  in the new `lib/badges.ts` — only 2 kinds exist today, but the
+  resolver-list design means a 3rd kind is one more resolver, not a
+  rework of any of the ~5 render sites. `components/badges/BadgeIcon.tsx`
+  hand-translates the 5 glyphs (seed/sprout/leaf/blossom/watering-can)
+  from the reviewed design artifact into `react-native-svg` (`Svg`,
+  `Path`, `Ellipse`, `Circle`, `G` — the library's plain SVG `transform`
+  strings ported over unchanged). New Settings "Badges" section (right
+  after Support) reuses the existing ChipGroup-based on/off pattern
+  (this app has no native `Switch` anywhere) rather than inventing a
+  new toggle control. `lib/supabase/profiles.ts`/`plant_progress.ts`/
+  `comments.ts` all extended to select the 4 new columns and compute
+  `author_badges`/the profile's own badges via `getVisibleBadges()`.
+  **Deliberately not wired this pass**: the feed's latest-comment
+  preview and plant-owner-mention lines (both nested spans inside
+  truncated/multi-span `Text`, a materially different integration than
+  the row `View`s every other site already had) — sequenced as an easy
+  fast-follow, not silently dropped. Verified: migration applied +
+  `get_advisors` clean; `tsc`/`npm test` clean (395 passing, incl. new
+  `lib/badges.test.ts` and extended `theme`/`profiles`/`plant_progress`/
+  `comments` tests); live web against two seeded accounts with
+  different tier/beta-tester/toggle combinations — the profile chip
+  (icon, color, label all confirmed via computed-style checks matching
+  the exact hex tokens), the Settings toggle round-tripping through a
+  real save to the database and back, and the report-header icon row
+  all confirmed correct, including dark mode. **One real bug found and
+  fixed during this pass**: the profile-badges `useMemo` on
+  `app/user/[id].tsx` was initially placed after the screen's loading/
+  error early returns, so it was only called on some renders — React's
+  "change in the order of Hooks" error, caught live (the page rendered
+  blank) and fixed by moving the hook above the early returns, matching
+  the Rules of Hooks. The comment-row wrapper (`commentAuthorRow`) uses
+  the identical, already-verified pattern but wasn't click-tested live
+  itself — the dev database has exactly one progress report, and it has
+  comments disabled, so there was no real comment thread to view it on;
+  not fabricated with throwaway data for this pass.
 
 ### Later
-- Payments / monetization — a donation link is done (see above); full
-  payment processing / feature-gating monetization remains open and
-  unscoped. First concrete direction for optional paid content, scoped
-  with the user during a brainstorm on cosmetic (non-gating) extras: a
-  tiered **supporter badge** next to a user's display name, tier based
-  on total lifetime Buy Me a Coffee donations — cosmetic only, no
-  functional effect, in keeping with the explicit decision to keep
-  paid content optional/cosmetic rather than feature-gating. Tiers
-  (per user decision): Bronze €3+, Silver €10+, Gold €25+, Platinum
-  €100+.
-  **Revisited from the original "admin-managed, not automated" plan**:
-  BMC's current webhook API is real and confirmed current
-  (`donation.created` etc., HMAC-signed) — enough to auto-match a
-  donation to a Greenie account by email or a self-reported
+- Payments / monetization — a donation link and the supporter/beta
+  badges (see above) are done; full payment processing / feature-gating
+  monetization remains open and unscoped. Tiers (per user decision):
+  Bronze €3+, Silver €10+, Gold €25+, Platinum €100+, total lifetime
+  Buy Me a Coffee donations — cosmetic only, no functional effect, in
+  keeping with the explicit decision to keep paid content optional/
+  cosmetic rather than feature-gating.
+  BMC's webhook API (`donation.created` etc., HMAC-signed) auto-matches
+  a donation to a Greenie account by email or a self-reported
   `@username`, not guaranteed (BMC has no concept of a Greenie
-  account), but real. **The backend half is done** — see
-  `docs/admin-dashboard-backlog.md`'s "Supporter donation tracking"
-  entry for the full write-up (migration `0028_supporter_donations.sql`,
-  the `bmc-webhook` Edge Function, and the backoffice's `/supporters`
-  reconciliation queue). `profiles.total_donated` is now populated and
-  correctable by an admin for the cases the webhook can't auto-match.
-  **Badge display in the mobile app** (tier derivation, the actual
-  badge component, wiring into profile/feed/progress screens, and a
-  donation-flow hint modal explaining tiers and asking supporters to
-  include their `@username`) is deliberately deferred to its own
-  future plan — nothing about this is visible in the app yet. Real
-  IAP/payment processing for anything beyond this remains unscoped.
+  account), but real — see `docs/admin-dashboard-backlog.md`'s
+  "Supporter donation tracking" entry for the backend write-up
+  (migration `0028_supporter_donations.sql`, the `bmc-webhook` Edge
+  Function, and the backoffice's `/supporters` reconciliation queue).
+  A donation-flow hint modal explaining tiers and asking supporters to
+  include their `@username` (scoped, then deferred, during the backend
+  pass) remains unbuilt — worth revisiting now that badges are actually
+  visible to explain. Real IAP/payment processing for anything beyond
+  this remains unscoped.
 - Admin dashboard — unscoped beyond report review and supporter-badge
   tier assignment (see the Payments/monetization item above). Full
   feature backlog, access-control design, platform choice, and

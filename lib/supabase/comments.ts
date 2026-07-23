@@ -1,4 +1,5 @@
 import { supabase } from "./client";
+import { getVisibleBadges, type ResolvedBadge } from "../badges";
 
 export type Comment = {
   id: string;
@@ -11,6 +12,7 @@ export type Comment = {
 export type CommentWithAuthor = Comment & {
   author_display_name: string | null;
   author_username: string | null;
+  author_badges: ResolvedBadge[];
 };
 
 async function hydrateAuthors(comments: Comment[]): Promise<CommentWithAuthor[]> {
@@ -21,7 +23,7 @@ async function hydrateAuthors(comments: Comment[]): Promise<CommentWithAuthor[]>
   const userIds = [...new Set(comments.map((comment) => comment.user_id))];
   const { data: authors, error } = await supabase
     .from("profiles")
-    .select("id, display_name, username")
+    .select("id, display_name, username, total_donated, is_beta_tester, show_supporter_badge, show_beta_tester_badge")
     .in("id", userIds);
 
   if (error) {
@@ -36,6 +38,12 @@ async function hydrateAuthors(comments: Comment[]): Promise<CommentWithAuthor[]>
       ...comment,
       author_display_name: author?.display_name ?? null,
       author_username: author?.username ?? null,
+      author_badges: getVisibleBadges({
+        total_donated: author?.total_donated ?? 0,
+        is_beta_tester: author?.is_beta_tester ?? false,
+        show_supporter_badge: author?.show_supporter_badge ?? true,
+        show_beta_tester_badge: author?.show_beta_tester_badge ?? true,
+      }),
     };
   });
 }

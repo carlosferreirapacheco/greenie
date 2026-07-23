@@ -10,6 +10,7 @@ import {
   getMyProfile,
   getProfile,
   searchProfiles,
+  updateBadgeSettings,
   updateMyProfile,
   updateNotificationSettings,
   updatePrivacySettings,
@@ -219,6 +220,27 @@ describe("updateNotificationSettings", () => {
     mockSupabase.from.mockReturnValue(chain);
 
     await updateNotificationSettings(settings);
+
+    expect(chain.update).toHaveBeenCalledWith(settings);
+    expect(chain.eq).toHaveBeenCalledWith("id", "u1");
+  });
+});
+
+describe("updateBadgeSettings", () => {
+  const settings = { show_supporter_badge: false, show_beta_tester_badge: true };
+
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(updateBadgeSettings(settings)).rejects.toThrow("Not signed in");
+  });
+
+  it("updates both badge visibility flags for the signed-in user", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({ data: { id: "u1", ...settings }, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await updateBadgeSettings(settings);
 
     expect(chain.update).toHaveBeenCalledWith(settings);
     expect(chain.eq).toHaveBeenCalledWith("id", "u1");
