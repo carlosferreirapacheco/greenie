@@ -50,7 +50,9 @@ sharing them socially with other users.
   progress_visibility — a fourth, comment_policy, moved to
   plant_progress as a per-report setting in migration 0012 — plus
   plant_sitter_attribution [allowed/disabled, migration 0015, see
-  Plant-sitting below])
+  Plant-sitting below], is_admin [boolean, default false, migration
+  0025 — gates the future admin backoffice app; client-unreachable by
+  a guard trigger, see docs/admin-dashboard-backlog.md])
 - `app_config` (key, value) — app-level settings readable by signed-in
   users, written only via migrations; currently
   `username_change_cooldown_days` and `privacy_policy_updated_at` (the

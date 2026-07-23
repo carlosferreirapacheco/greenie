@@ -19,46 +19,80 @@ using the app and Google's UGC policy expecting reports to actually get
 handled. This backlog exists to turn "SQL I remember how to write" into
 screens that don't depend on that.
 
-## Prerequisite: access control
+## Prerequisite: access control — done
 
 Every feature below needs this solved first — none of them are safely
-buildable without it.
+buildable without it. Decided and built (migration `0025_admin_access.sql`):
+a separate web app on its own domain (`backoffice.greenie-app.com`,
+scoped from the actual owned domain — see below), sharing only the
+Supabase database with the main app, no shared codebase or session.
 
-- **Who is an admin?** Two real options: (a) a new `profiles.is_admin`
-  boolean, matching the schema-driven pattern every other
-  permission in this app already uses (`notify_*`, `profile_visibility`,
-  etc.), settable only via migration/direct SQL, never client-writable;
-  or (b) a hardcoded allowlist of user IDs checked in the dashboard's
-  own auth layer, no schema change at all. Given there's currently
-  exactly one admin (the app's owner), (b) is the cheaper start and
-  defers the schema decision until a second admin is ever needed — but
-  it means "who's an admin" lives in code/env, not the database, which
-  is worth being deliberate about rather than defaulting into.
-- **RLS implications**: admin actions (deleting another user's content,
-  reading `reports`/`ai_lookup_error_logs` across all users) can't go
-  through the normal `authenticated`-role RLS policies those tables
-  already have (`reports_select_own` etc. are intentionally scoped to
-  the reporter). Either every admin screen calls a `security definer`
-  RPC that checks the admin allowlist/flag internally before doing
-  anything (keeps the service-role key out of the client entirely,
-  consistent with `delete-account`/`email-data-export`'s existing
-  pattern of least-privileged Edge Functions), or the dashboard is a
-  server-side-only tool that uses the service role directly and is
-  never shipped as client-side code at all. The Edge Function approach
-  matches how every other privileged operation in this app already
-  works and is the recommended default.
-- **Platform**: does this live inside the existing Expo app as a
-  hidden, admin-gated route (reuses `expo-router`, the design system,
-  `t()` i18n — but ships inside the same bundle end users download,
-  and RN's web-first admin screens would be a strange fit for anything
-  table/filter-heavy), or as a small separate internal web tool (own
-  repo or a `/admin` Next.js-style app, free to use normal web
-  patterns — tables, filters, bulk actions — without fighting React
-  Native primitives, at the cost of a second codebase and its own
-  auth)? Recommendation: a separate lightweight internal tool. Nothing
-  about admin work needs to work on a phone, and every feature below is
-  fundamentally "filter a table, click a row, take an action" — plain
-  web is a better fit than screens built for a mobile app.
+- **Who is an admin?** `profiles.is_admin` (a new boolean column) —
+  the schema-driven option, matching every other permission in this
+  app (`notify_*`, `profile_visibility`, etc.) and supporting more than
+  one admin later with no redeploy. **Critical safeguard**:
+  `profiles_update_own` (`0002_profiles.sql:18`) is `using (auth.uid()
+  = id)` with **no `with check` clause at all**, so without a guard any
+  signed-in user could self-grant admin through the exact same
+  `supabase.from("profiles").update(...)` call `updateProfile()`
+  already uses for bio/display name — confirmed live via a rolled-back
+  transaction before the fix existed. Fixed with a `before update`
+  trigger (`guard_is_admin`) that silently reverts any client-submitted
+  change to `is_admin` whenever `current_user in ('anon',
+  'authenticated')` — those are literal Postgres roles PostgREST
+  assumes per the caller's JWT, so the column becomes physically
+  unreachable from any client request regardless of what the UPDATE
+  policy allows; only direct SQL/migrations (`postgres`) or a
+  service-role client pass through untouched. **Two real bugs found
+  and fixed while verifying live, both worth remembering**: (1) the
+  first version checked `auth.role()`, which reads a PostgREST-only JWT
+  session GUC that simply isn't set when running outside a real client
+  request (migrations, Studio, MCP) — it returned `NULL` there and
+  silently reverted the migration's own seed update. (2) the fix's
+  first attempt marked the trigger function `security definer`, which
+  made `current_user` inside the function body evaluate to the
+  *function's owner* (`postgres`) rather than the invoking role — a
+  classic `SECURITY DEFINER` trap — so a simulated authenticated
+  self-grant attempt wasn't reverted either. Switching to `security
+  invoker` (the default, and this project's own documented preference)
+  fixed it for real, verified via three rolled-back transactions: an
+  `authenticated`-role self-grant is reverted, a `service_role` update
+  succeeds, and the seeded admin row survived both. The first admin
+  row (the account's owner) was seeded in the same migration.
+- **RLS implications**: admin work (report review, user lookup, ad hoc
+  content search) is inherently query-heavy in a way that doesn't fit
+  a handful of narrow `security definer` RPCs the way
+  `delete-account`/`email-data-export` do for their one job each.
+  Decided instead: the backoffice app has its own backend (server-side
+  code, not client-side), and the existing `SUPABASE_SECRET_KEY`
+  (already an env var) is used **only** there — never shipped to the
+  client bundle. Every server-side handler funnels through one shared
+  `requireAdmin()`-style check first (read the caller's Supabase
+  session, look up `profiles.is_admin` via the service-role client,
+  reject if not true) *then* performs the privileged read/write. RLS
+  on the main tables stays completely untouched — the backoffice's
+  trusted, authorization-checked backend is what bypasses it, not a
+  policy change.
+- **Outer gate**: Cloudflare Access in front of the whole
+  `backoffice.greenie-app.com` domain, reusing the exact mechanism
+  already gating the demo site (`docs/demo-hosting.md`) and the same
+  Cloudflare account/Zero Trust team — an unauthorized visitor never
+  reaches the login screen at all, email/password is a second layer
+  behind it.
+- **Sign-in**: email/password only, against the same Supabase Auth
+  project/`auth.users` table the main app uses (no new auth system, no
+  Google OAuth on this domain for now) — an admin's existing Greenie
+  credentials work unchanged. Because it's a different domain there's
+  no shared cookie/localStorage session with the main app; a fresh
+  sign-in on first visit is expected, not a bug.
+- **Platform**: a separate lightweight internal web tool (framework and
+  hosting not committed yet — Next.js on Cloudflare Pages is a
+  reasonable default given the existing familiarity from the demo site
+  — see the Features section below for what's still open), not a
+  hidden route inside the existing Expo app. Nothing about admin work
+  needs to work on a phone, and every feature below is fundamentally
+  "filter a table, click a row, take an action" — plain web is a
+  better fit than screens built for a mobile app.
 
 ## Features
 
@@ -173,15 +207,14 @@ buildable without it.
 
 ## Open questions (resolve during planning, before implementation)
 
-- Access model: `profiles.is_admin` column vs. hardcoded allowlist (see
-  Prerequisite section above) — leaning allowlist for now, but confirm
-  before writing any code.
 - Does every destructive admin action (content deletion, forced account
   deletion) need its own audit log, separate from `reports.resolved_by`?
   Given this app already tracks moderation provenance nowhere else,
   probably yes for at least deletions — but scope that explicitly
   rather than assuming.
-- Platform choice (in-app hidden route vs. separate tool) — recommended
-  above as a separate tool, but that's a real cost (second codebase,
-  second deploy, second auth surface) worth confirming is wanted before
-  committing.
+- Backoffice app's exact framework/hosting and repo structure (new repo
+  vs. a folder in this one) — access control (above) is settled, but
+  the app itself hasn't been scaffolded yet.
+- One-time Cloudflare Access setup for `backoffice.greenie-app.com`
+  (owner action, mirrors `docs/demo-hosting.md`'s runbook) — not done
+  yet, needed before the backoffice app is reachable at all.
