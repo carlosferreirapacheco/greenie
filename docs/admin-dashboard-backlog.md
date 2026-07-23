@@ -234,7 +234,9 @@ Cloudflare Access gate.
   Edge Function on someone's behalf (a support request where the user
   can't complete the normal two-factor flow themselves — needs its own
   careful auth story, since bypassing the password+OTP check is
-  exactly what that flow exists to prevent).
+  exactly what that flow exists to prevent). *(Both since resolved:
+  see the force-unlink re-scoping note below, and manual account
+  deletion under Manual GDPR data subject requests.)*
   **Force-unlink specifically re-scoped, not just deferred**:
   investigated and found there's no supported way to build it as an
   admin action at all — `supabase.auth.admin` has no identity-unlink
@@ -292,19 +294,43 @@ Cloudflare Access gate.
   these Auth-Admin-API reads with a `security definer` SQL function
   over `auth.users` (a main-repo migration), which would sidestep the
   key-validation path entirely.
-  **Erasure stays deferred, by explicit decision, not oversight.**
-  `delete-account` (`supabase/functions/delete-account`) also only
-  ever deletes the *authenticated caller* — checked directly, not
-  assumed from the backlog's original "erasure side reuses
-  delete-account" text, which turned out to not literally hold. The
-  technical bypass is trivial (the same `admin.auth.admin.deleteUser()`
-  already used for banning, and every table already cascades from
-  `auth.users`), but the real gap isn't code: nothing in the backoffice
-  can verify the emailer actually owns the account the way the
-  self-service password+OTP flow does — the exact
-  deletion-on-behalf-of case already deferred once during the User
-  lookup & account actions plan, deferred again here for the same
-  reason.
+  **Erasure (manual account deletion) — now done too**, after being
+  deferred twice. The blocker was never code (`delete-account` only
+  deletes the authenticated caller, but the
+  `admin.auth.admin.deleteUser()` bypass is trivial and every table
+  already cascades from `auth.users`) — it was that nothing in the
+  backoffice could verify the emailer actually owns the account the
+  way the self-service password+OTP flow does. Resolved by a
+  user-designed flow that carries the app's own proof-of-mailbox
+  mechanism over to the admin trigger: a "Danger zone" section on
+  `src/app/users/[id]/page.tsx` sends a one-time code to the
+  **account's own registered email** (the exact `signInWithOtp({
+  shouldCreateUser: false })` + "Your Greenie verification code"
+  mechanism the in-app passwordless deletion uses), the owner reads
+  the code back to the admin through the support thread the request
+  came in on, and only a valid code — verified via `verifyOtp({
+  email, token, type: "email" })` — lets
+  `admin.auth.admin.deleteUser()` run. Possession of the code proves
+  mailbox control regardless of who clicks the button, so a
+  malicious/social-engineered deletion request dies at the relay
+  step. Implementation notes: the OTP send/verify run on a throwaway
+  publishable-key client (`src/lib/supabase/anon.ts`) since
+  `verifyOtp` returns a session for the target user on success —
+  discarded, never stored; the email is always re-resolved
+  server-side from the userId, never taken from the client;
+  `deleteUser` is retried (same 3-attempt pattern as
+  `listUsersWithRetry`) so a transient `bad_jwt` doesn't burn the
+  just-consumed code; the two-step dialog is
+  `src/components/delete-account-dialog.tsx` (purpose-built —
+  `ReportActionDialog` has no input field). No audit record beyond
+  the support thread itself, accepted for v1 (same reasoning as
+  Report review's row-as-audit-trail, except here deletion leaves no
+  row at all). Verified live end-to-end with a throwaway account
+  created just for the test (`+deltest` Gmail alias — a real inbox):
+  a wrong code showed "Token has expired or is invalid" inline and
+  deleted nothing; the real code — relayed by the owner, the human
+  loop exercised as part of the test — deleted the account, confirmed
+  via SQL (`auth.users` row and cascaded `profiles` row both gone).
 
 ### Monetization
 
