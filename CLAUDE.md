@@ -1028,15 +1028,29 @@ sharing them socially with other users.
     from Sitting (web's "not supported" banner path), the Alerts badge
     lights on an unread fixture and fades after the inbox visit marks
     it read, no horizontal overflow at 375px, no console errors.
-  - **PR 2 — remaining header conversions — Following half done**
-    (see the People-tab real-device fix in the Social discoverability
-    UI pass below, which converted Requests/Followers to
-    `HeaderIconButton`s with `account-clock-outline`/
-    `account-multiple-outline`, closing out the icon mapping planned
-    here). **Profile (`app/profile.tsx`) still open**: Settings link
-    → `cog-outline` icon action. No other screen defines header
-    actions (verified); in-body text links stay with the general
-    UX-pass item under Later.
+  - **PR 2 — remaining header conversions — done.** (See the People-tab
+    real-device fix in the Social discoverability UI pass below, which
+    converted Requests/Followers to `HeaderIconButton`s with
+    `account-clock-outline`/`account-multiple-outline`, closing out
+    the icon mapping planned here.) **Profile (`app/profile.tsx`)**:
+    the Settings link converted to `HeaderIconButton` (`cog-outline`,
+    label reusing the existing `t("settings.screenTitle")` string, no
+    new i18n key needed). While reading the file to plan this, found
+    and fixed a real bug in the same pass: the old text link was only
+    ever defined on the loading- and error-state `Stack.Screen`s —
+    the ready state (what a signed-in user sees essentially all the
+    time) had no `headerRight` at all, so Settings was unreachable
+    from the header in normal use. All three states now share one
+    `settingsHeaderRight` function. This closes out the last
+    remaining plain-text header action in the app — no other screen
+    defines one (verified); in-body text links stay with the general
+    UX-pass item under Later. Verified live on web: the cog icon +
+    label renders and navigates to `/settings` in the ready state
+    (previously broken), the loading/error states share the identical
+    function so they're covered by the same code path, dark mode
+    correctly tints the icon/label with the dark palette's moss color,
+    and Português (`Definições`) and English (`Settings`) both render
+    correctly.
 - Online demo (gated) — done and live at https://greenie-cwb.pages.dev.
   `.github/workflows/deploy.yml` exports the Expo web bundle
   (`app.json` `web.output: "single"`, SPA) and deploys it to Cloudflare

@@ -24,6 +24,7 @@ import { unregisterPushForSignOut } from "../lib/pushNotificationManager";
 import { deletePhotoByUrl } from "../lib/supabase/storage";
 import { PhotoPicker } from "../components/PhotoPicker";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { HeaderIconButton } from "../components/HeaderIconButton";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
@@ -197,21 +198,14 @@ export default function ProfileScreen() {
     }
   }
 
+  const settingsHeaderRight = () => (
+    <HeaderIconButton icon="cog-outline" label={t("settings.screenTitle")} onPress={() => router.push("/settings")} fonts={fonts} />
+  );
+
   if (status === "loading") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen
-          options={{
-            title: t("profile.screenTitle"),
-            headerRight: () => (
-              <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
-                <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                  {t("settings.screenTitle")}
-                </Text>
-              </Pressable>
-            ),
-          }}
-        />
+        <Stack.Screen options={{ title: t("profile.screenTitle"), headerRight: settingsHeaderRight }} />
         <ActivityIndicator color={colors.moss} />
       </View>
     );
@@ -220,18 +214,7 @@ export default function ProfileScreen() {
   if (status === "error") {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
-        <Stack.Screen
-          options={{
-            title: t("profile.screenTitle"),
-            headerRight: () => (
-              <Pressable onPress={() => router.push("/settings")} hitSlop={8} style={styles.settingsLinkWrap}>
-                <Text style={[styles.settingsLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
-                  {t("settings.screenTitle")}
-                </Text>
-              </Pressable>
-            ),
-          }}
-        />
+        <Stack.Screen options={{ title: t("profile.screenTitle"), headerRight: settingsHeaderRight }} />
         <Text style={{ fontFamily: fonts.body, color: colors.ink }}>{t("profile.error", { error: error ?? "" })}</Text>
       </View>
     );
@@ -242,7 +225,7 @@ export default function ProfileScreen() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Stack.Screen options={{ title: t("profile.screenTitle") }} />
+      <Stack.Screen options={{ title: t("profile.screenTitle"), headerRight: settingsHeaderRight }} />
       <ScrollView contentContainerStyle={styles.content}>
         <PhotoPicker
           value={profile?.avatar_url ?? null}
@@ -438,12 +421,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   signOutButtonText: {
-    fontSize: 15,
-  },
-  settingsLinkWrap: {
-    marginRight: spacing.md,
-  },
-  settingsLink: {
     fontSize: 15,
   },
   hint: {
