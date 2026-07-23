@@ -2,6 +2,7 @@ import { Platform, type ColorSchemeName } from "react-native";
 import { Lora_400Regular_Italic, Lora_500Medium, Lora_600SemiBold } from "@expo-google-fonts/lora";
 import { WorkSans_400Regular, WorkSans_500Medium, WorkSans_600SemiBold } from "@expo-google-fonts/work-sans";
 import type { PlantCareStatus } from "./supabase/care_tasks";
+import type { ResolvedBadge, SupporterTier } from "./badges";
 
 // Passed to useFonts() by any screen that needs to know when fonts are
 // ready. A single source so swapping fonts later is a one-file change.
@@ -135,4 +136,37 @@ export function getStatusColors(colors: Palette): Record<PlantCareStatus, { bg: 
     due_soon: { bg: colors.goldSoft, fg: colors.gold, dot: colors.gold },
     overdue: { bg: colors.coralSoft, fg: colors.coral, dot: colors.coral },
   };
+}
+
+export type BadgeColors = { fg: string; soft: string };
+
+// Purpose-built per-tier tones (bronze/silver/platinum), not reused
+// from Palette -- except gold, which deliberately reuses
+// colors.gold/goldSoft (same hex values, one source of truth). Values
+// transcribed from the reviewed supporter-badge-options design artifact.
+const tierTokensByScheme: Record<ThemeScheme, Record<"bronze" | "silver" | "platinum", BadgeColors>> = {
+  light: {
+    bronze: { fg: "#B0713D", soft: "#ECD9C4" },
+    silver: { fg: "#8C97A0", soft: "#E4E8EA" },
+    platinum: { fg: "#6E7B9E", soft: "#E1E4EE" },
+  },
+  dark: {
+    bronze: { fg: "#CB8B57", soft: "#3B2C1E" },
+    silver: { fg: "#A7B0B8", soft: "#2A2E31" },
+    platinum: { fg: "#93A0C4", soft: "#262A3A" },
+  },
+};
+
+export function getSupporterTierColors(scheme: ThemeScheme, colors: Palette): Record<SupporterTier, BadgeColors> {
+  return { ...tierTokensByScheme[scheme], gold: { fg: colors.gold, soft: colors.goldSoft } };
+}
+
+// Beta tester deliberately reuses the app's own moss pair, not a tier
+// tone -- mirrors ChipGroup's selected-state pair (sage bg, mossStrong
+// text), signaling "recognition from the team" rather than "a tier."
+export function getBadgeColors(badge: ResolvedBadge, scheme: ThemeScheme, colors: Palette): BadgeColors {
+  if (badge.kind === "supporter_tier") {
+    return getSupporterTierColors(scheme, colors)[badge.tier];
+  }
+  return { fg: colors.mossStrong, soft: colors.sage };
 }

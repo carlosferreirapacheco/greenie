@@ -351,6 +351,20 @@ export const en = {
         "If Greenie's useful to you, you can buy me a coffee — totally optional, just a way to say thanks.",
       button: "Buy me a coffee",
     },
+    badges: {
+      sectionTitle: "Badges",
+      sectionIntro: "Choose which badges show next to your name across Greenie.",
+      supporterToggle: {
+        label: "Show supporter badge",
+        desc: "Display your supporter tier next to your name across the app.",
+      },
+      betaTesterToggle: {
+        label: "Show beta tester badge",
+        desc: "Display your beta tester badge next to your name across the app.",
+      },
+      saveButton: "Save badge settings",
+      savedText: "Badge settings saved",
+    },
     yourData: {
       sectionTitle: "Your data",
       sectionIntro:
@@ -383,6 +397,17 @@ export const en = {
         shareToFeed: "Share to feed",
         dontShare: "Don't share",
       },
+    },
+  },
+  badges: {
+    supporterTier: {
+      bronze: "Bronze",
+      silver: "Silver",
+      gold: "Gold",
+      platinum: "Platinum",
+    },
+    betaTester: {
+      label: "Beta tester",
     },
   },
   plantDetail: {

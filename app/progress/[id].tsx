@@ -27,6 +27,7 @@ import { getFollowStatus } from "../../lib/supabase/follows";
 import { deletePhotoByUrl } from "../../lib/supabase/storage";
 import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { BadgeIconRow } from "../../components/badges/BadgeIconRow";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -246,6 +247,7 @@ export default function ProgressDetailScreen() {
             <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
               {report.author_display_name ?? `@${report.author_username}`}
             </Text>
+            <BadgeIconRow badges={report.author_badges} />
           </Pressable>
           <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
             {formatDisplayDate(report.created_at)}
@@ -439,10 +441,11 @@ export default function ProgressDetailScreen() {
 
             {comments.map((comment) => (
               <View key={comment.id} style={styles.comment}>
-                <Pressable onPress={() => router.push(`/user/${comment.user_id}`)}>
+                <Pressable style={styles.commentAuthorRow} onPress={() => router.push(`/user/${comment.user_id}`)}>
                   <Text style={[styles.commentAuthor, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
                     {comment.author_display_name ?? `@${comment.author_username}`}
                   </Text>
+                  <BadgeIconRow badges={comment.author_badges} />
                 </Pressable>
                 <Text style={[styles.commentContent, { fontFamily: fonts.body, color: colors.ink }]}>
                   {comment.content}
@@ -578,6 +581,11 @@ const styles = StyleSheet.create({
   },
   comment: {
     marginBottom: spacing.sm,
+  },
+  commentAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   commentAuthor: {
     fontSize: 13,

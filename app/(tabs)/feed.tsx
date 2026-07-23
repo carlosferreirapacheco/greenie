@@ -6,6 +6,7 @@ import { getFeed, type FeedItem } from "../../lib/supabase/plant_progress";
 import { likeProgress, unlikeProgress } from "../../lib/supabase/likes";
 import { plantCommonNameSubtitle, plantPrimaryName } from "../../lib/supabase/plants";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { BadgeIconRow } from "../../components/badges/BadgeIconRow";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -60,6 +61,7 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
           <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
             {item.author_display_name ?? `@${item.author_username}`}
           </Text>
+          <BadgeIconRow badges={item.author_badges} />
         </Pressable>
         <Text style={[styles.timestamp, { fontFamily: fonts.body, color: colors.inkSoft }]}>
           {formatDisplayDate(item.created_at)}

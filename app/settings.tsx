@@ -29,14 +29,17 @@ import {
 import { collectMyData, emailMyDataExport } from "../lib/supabase/gdpr";
 import {
   getMyProfile,
+  updateBadgeSettings,
   updateNotificationSettings,
   updatePrivacySettings,
+  type BadgeSettings,
   type FollowPolicy,
   type NotificationSettings,
   type PlantSitterAttribution,
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
+import { computeSupporterTier, type SupporterTier } from "../lib/badges";
 import { getPushEnabled, setPushEnabled } from "../lib/pushNotificationManager";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
@@ -59,6 +62,29 @@ const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; labelKey: strin
   { key: "notify_follow_accepted", labelKey: "settings.notifications.prefRows.followRequestAccepted" },
   { key: "notify_sitting_requests", labelKey: "settings.notifications.prefRows.sittingRequests" },
   { key: "notify_sitting_responses", labelKey: "settings.notifications.prefRows.sittingResponses" },
+];
+
+// A row only appears once the account actually qualifies for that
+// badge kind -- a future 3rd badge kind is one more entry here, not a
+// rework of the section below.
+const BADGE_TOGGLE_ROWS: {
+  key: keyof BadgeSettings;
+  labelKey: string;
+  descKey: string;
+  isEligible: (ctx: { supporterTier: SupporterTier | null; isBetaTester: boolean }) => boolean;
+}[] = [
+  {
+    key: "show_supporter_badge",
+    labelKey: "settings.badges.supporterToggle.label",
+    descKey: "settings.badges.supporterToggle.desc",
+    isEligible: (ctx) => ctx.supporterTier !== null,
+  },
+  {
+    key: "show_beta_tester_badge",
+    labelKey: "settings.badges.betaTesterToggle.label",
+    descKey: "settings.badges.betaTesterToggle.desc",
+    isEligible: (ctx) => ctx.isBetaTester,
+  },
 ];
 
 export default function SettingsScreen() {
@@ -124,6 +150,13 @@ export default function SettingsScreen() {
   const [notifSaveError, setNotifSaveError] = useState<string | null>(null);
   const isSavingNotifications = useRef(false);
 
+  const [supporterTier, setSupporterTier] = useState<SupporterTier | null>(null);
+  const [isBetaTester, setIsBetaTester] = useState(false);
+  const [badgeSettings, setBadgeSettings] = useState<BadgeSettings | null>(null);
+  const [badgeSaveStatus, setBadgeSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [badgeSaveError, setBadgeSaveError] = useState<string | null>(null);
+  const isSavingBadges = useRef(false);
+
   // Device-local (AsyncStorage), not an account setting -- null while
   // the stored value loads. Instant persist like the theme preference.
   const [pushOn, setPushOn] = useState<boolean | null>(null);
@@ -179,6 +212,12 @@ export default function SettingsScreen() {
           notify_follow_accepted: profile.notify_follow_accepted,
           notify_sitting_requests: profile.notify_sitting_requests,
           notify_sitting_responses: profile.notify_sitting_responses,
+        });
+        setSupporterTier(computeSupporterTier(profile.total_donated));
+        setIsBetaTester(profile.is_beta_tester);
+        setBadgeSettings({
+          show_supporter_badge: profile.show_supporter_badge,
+          show_beta_tester_badge: profile.show_beta_tester_badge,
         });
         setAccountEmail(profile.email);
         setPrivacyStatus("ready");
@@ -368,6 +407,26 @@ export default function SettingsScreen() {
       setNotifSaveStatus("error");
     } finally {
       isSavingNotifications.current = false;
+    }
+  }
+
+  async function handleSaveBadges() {
+    if (!badgeSettings || isSavingBadges.current) {
+      return;
+    }
+    isSavingBadges.current = true;
+
+    setBadgeSaveStatus("saving");
+    setBadgeSaveError(null);
+
+    try {
+      await updateBadgeSettings(badgeSettings);
+      setBadgeSaveStatus("saved");
+    } catch (err) {
+      setBadgeSaveError(getErrorMessage(err));
+      setBadgeSaveStatus("error");
+    } finally {
+      isSavingBadges.current = false;
     }
   }
 
@@ -995,6 +1054,66 @@ export default function SettingsScreen() {
             {t("settings.support.button")}
           </Text>
         </Pressable>
+
+        {(() => {
+          const eligibleBadgeRows = BADGE_TOGGLE_ROWS.filter((row) => row.isEligible({ supporterTier, isBetaTester }));
+          if (eligibleBadgeRows.length === 0 || !badgeSettings) {
+            return null;
+          }
+          return (
+            <>
+              <Text
+                style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}
+              >
+                {t("settings.badges.sectionTitle")}
+              </Text>
+              <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                {t("settings.badges.sectionIntro")}
+              </Text>
+
+              {eligibleBadgeRows.map(({ key, labelKey, descKey }) => (
+                <View key={key} style={styles.field}>
+                  <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>{t(labelKey)}</Text>
+                  <ChipGroup
+                    fonts={fonts}
+                    value={badgeSettings[key] ? "on" : "off"}
+                    onChange={(value) =>
+                      setBadgeSettings((settings) => (settings ? { ...settings, [key]: value === "on" } : settings))
+                    }
+                    options={[
+                      { value: "on", label: t("settings.notifications.prefOptions.on") },
+                      { value: "off", label: t("settings.notifications.prefOptions.off") },
+                    ]}
+                  />
+                  <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>{t(descKey)}</Text>
+                </View>
+              ))}
+
+              {badgeSaveStatus === "error" ? (
+                <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{badgeSaveError}</Text>
+              ) : null}
+              {badgeSaveStatus === "saved" ? (
+                <Text style={[styles.savedText, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                  {t("settings.badges.savedText")}
+                </Text>
+              ) : null}
+
+              <Pressable
+                style={[styles.saveButton, { backgroundColor: colors.moss }]}
+                onPress={handleSaveBadges}
+                disabled={badgeSaveStatus === "saving"}
+              >
+                {badgeSaveStatus === "saving" ? (
+                  <ActivityIndicator color={colors.paper} />
+                ) : (
+                  <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
+                    {t("settings.badges.saveButton")}
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          );
+        })()}
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           {t("settings.yourData.sectionTitle")}

@@ -393,13 +393,12 @@ Cloudflare Access gate.
   the UI with (the `/supporters` route was confirmed to at least
   correctly gate through `requireAdmin()` rather than erroring). All
   seeded test data removed afterward. **Badge display in the mobile
-  app** (tier derivation, the `SupporterBadge` component, wiring into
-  profile/feed/progress screens, and a donation-flow hint modal in
+  app is done** — see CLAUDE.md's "Supporter tier badges + beta-tester
+  badge" entry for the full write-up (tier derivation via
+  `lib/badges.ts`, `components/badges/` chip/icon components, wiring
+  into profile/feed/progress screens). A donation-flow hint modal in
   Settings explaining tiers and asking supporters to include their
-  `@username`) is deferred to its own separate future plan, per
-  explicit user decision — this pass ends with `total_donated`
-  populated and reconcilable, nothing user-visible in the mobile app
-  yet.
+  `@username` remains unbuilt.
 
 ### Observability & health
 

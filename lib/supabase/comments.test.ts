@@ -39,6 +39,7 @@ describe("getCommentsForProgress", () => {
         created_at: "2026-01-01",
         author_display_name: "Sammy",
         author_username: "sammy",
+        author_badges: [],
       },
     ]);
   });
@@ -54,6 +55,32 @@ describe("getCommentsForProgress", () => {
     const result = await getCommentsForProgress("p1");
 
     expect(result[0].author_display_name).toBeNull();
+  });
+
+  it("resolves author_badges from the author's donation total and beta-tester/toggle fields", async () => {
+    const commentsChain = createChainableQueryMock({
+      data: [{ id: "c1", progress_id: "p1", user_id: "u1", content: "Nice!", created_at: "2026-01-01" }],
+      error: null,
+    });
+    const authorsChain = createChainableQueryMock({
+      data: [
+        {
+          id: "u1",
+          display_name: "Sammy",
+          username: "sammy",
+          total_donated: 150,
+          is_beta_tester: false,
+          show_supporter_badge: true,
+          show_beta_tester_badge: true,
+        },
+      ],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(commentsChain).mockReturnValueOnce(authorsChain);
+
+    const result = await getCommentsForProgress("p1");
+
+    expect(result[0].author_badges).toEqual([{ kind: "supporter_tier", tier: "platinum" }]);
   });
 
   it("returns an empty array without an author lookup when there are no comments", async () => {

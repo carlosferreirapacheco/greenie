@@ -225,6 +225,68 @@ describe("getProgressReport", () => {
     expect(result.plant_owner_share_allowed).toBe(false);
   });
 
+  it("resolves author_badges from the author's donation total and beta-tester/toggle fields", async () => {
+    const report = {
+      id: "pr5",
+      plant_id: "pl1",
+      user_id: "author1",
+      height_cm: null,
+      notes: null,
+      photo_url: null,
+      created_at: "2026-01-01",
+      comment_policy: "public",
+      shared_to_feed: true,
+    };
+
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: report, error: null }))
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: {
+            display_name: "Carlos",
+            username: "carlos",
+            total_donated: 50,
+            is_beta_tester: true,
+            show_supporter_badge: true,
+            show_beta_tester_badge: false,
+          },
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [{ id: "pl1", name: "Pothos", species: null, nickname: null, owner_id: "author1" }],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(
+        createChainableQueryMock({
+          data: [
+            {
+              id: "author1",
+              display_name: "Carlos",
+              username: "carlos",
+              plant_sitter_attribution: "allowed",
+              total_donated: 50,
+              is_beta_tester: true,
+              show_supporter_badge: true,
+              show_beta_tester_badge: false,
+            },
+          ],
+          error: null,
+        })
+      )
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }))
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null }));
+
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "viewer1" } } });
+
+    const result = await getProgressReport("pr5");
+
+    // gold tier (>=25 <100) shown, beta badge suppressed by its own toggle.
+    expect(result.author_badges).toEqual([{ kind: "supporter_tier", tier: "gold" }]);
+  });
+
   it("falls back to 'Unknown plant' and no counts when the plant and engagement are missing", async () => {
     const report = {
       id: "pr2",
@@ -405,6 +467,36 @@ describe("getFeed", () => {
     const result = await getFeed();
 
     expect(result.nextCursor).toBe(reports[19].created_at);
+  });
+
+  it("resolves author_badges from following's donation/beta-tester/toggle fields, honoring toggles", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([
+      {
+        id: "person1",
+        display_name: "Ann",
+        username: "ann",
+        total_donated: 5,
+        is_beta_tester: true,
+        show_supporter_badge: true,
+        show_beta_tester_badge: true,
+      },
+    ]);
+    const reports = [
+      { id: "pr1", plant_id: "pl1", user_id: "person1", created_at: "2026-07-01T00:00:00Z" },
+    ];
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: reports, error: null })) // plant_progress
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // plants
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // likes
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })); // comments
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await getFeed();
+
+    expect(result.items[0].author_badges).toEqual([
+      { kind: "supporter_tier", tier: "bronze" },
+      { kind: "beta_tester" },
+    ]);
   });
 });
 
