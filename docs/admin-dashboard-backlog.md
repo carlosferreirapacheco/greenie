@@ -479,14 +479,24 @@ Cloudflare Access gate.
 
 ### Configuration
 
-- **`app_config` viewer**. Read-only display of
-  `username_change_cooldown_days` and `privacy_policy_updated_at` so
-  checking current values doesn't require SQL. Deliberately **not**
-  editable from the dashboard — `app_config` is "written only via
-  migrations" by explicit existing convention (see CLAUDE.md's Data
-  model section), and an admin-editable form would quietly undo that
-  guarantee. If that convention ever changes, it should be a deliberate
-  decision, not a side effect of this dashboard being convenient.
+- **`app_config` viewer — done.** New `src/lib/config.ts`'s
+  `getAppConfig()` (server-only, admin client) fetches every row from
+  `app_config` generically — no hardcoded key list — so a future
+  migration adding a new row shows up automatically with no dashboard
+  change. New `/config` page (`requireAdmin()`-gated, same pattern as
+  every other page) renders a plain key/value list, linked from the
+  home page's header nav alongside Reports/Users. Deliberately **not**
+  editable — `app_config` is "written only via migrations" by explicit
+  existing convention (see CLAUDE.md's Data model section), and an
+  admin-editable form would quietly undo that guarantee; the page's own
+  copy states this. **Verification note**: `tsc --noEmit` is clean and
+  the underlying data was independently confirmed via direct SQL
+  (`username_change_cooldown_days: 5`, `privacy_policy_updated_at:
+  2026-07-09T00:00:00Z`), but the browser preview's session had expired
+  by the time this was built, and re-authenticating wasn't done here
+  (entering a password isn't something this assistant does) — so the
+  page itself wasn't click-tested live in this pass. Worth a quick
+  visual spot-check next time the dashboard is opened.
 
 ## Suggested phasing
 
