@@ -18,6 +18,12 @@
       "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
       "runtimeArgs": ["/c", "set PATH=C:\\Program Files\\nodejs;%PATH% && npx serve dist --single -l 8090"],
       "port": 8090
+    },
+    {
+      "name": "greenie-backoffice",
+      "runtimeExecutable": "C:\\Windows\\System32\\cmd.exe",
+      "runtimeArgs": ["/c", "cd /d C:\\Source\\greenie-backoffice && set PATH=C:\\Program Files\\nodejs;%PATH% && npx next dev --port 3001"],
+      "port": 3001
     }
   ]
 }

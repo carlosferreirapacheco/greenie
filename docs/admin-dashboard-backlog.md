@@ -85,14 +85,32 @@ Supabase database with the main app, no shared codebase or session.
   credentials work unchanged. Because it's a different domain there's
   no shared cookie/localStorage session with the main app; a fresh
   sign-in on first visit is expected, not a bug.
-- **Platform**: a separate lightweight internal web tool (framework and
-  hosting not committed yet — Next.js on Cloudflare Pages is a
-  reasonable default given the existing familiarity from the demo site
-  — see the Features section below for what's still open), not a
-  hidden route inside the existing Expo app. Nothing about admin work
-  needs to work on a phone, and every feature below is fundamentally
-  "filter a table, click a row, take an action" — plain web is a
-  better fit than screens built for a mobile app.
+- **Platform**: a separate lightweight internal web tool, not a hidden
+  route inside the existing Expo app. Nothing about admin work needs to
+  work on a phone, and every feature below is fundamentally "filter a
+  table, click a row, take an action" — plain web is a better fit than
+  screens built for a mobile app.
+
+**The skeleton is scaffolded and live-verified**: a new standalone
+private repo, [`carlosferreirapacheco/greenie-backoffice`](https://github.com/carlosferreirapacheco/greenie-backoffice)
+(Next.js App Router + Tailwind + shadcn/ui). `src/lib/auth/requireAdmin.ts`
+is where the design above actually became code — validates the caller's
+session via `getClaims()` (never `getSession()`/`getUser()`, per
+Supabase's own current guidance: only `getClaims()` verifies the JWT
+signature), then checks `profiles.is_admin` with a service-role client
+(`src/lib/supabase/admin.ts`, guarded with `import "server-only"` so it
+can never be pulled into a client bundle). One protected page (`/`)
+proves the chain end-to-end. Verified live: no session → redirects to
+`/login`; a signed-in non-admin → `requireAdmin()` throws "Not
+authorized"; a real admin → the page renders correctly; and — checked
+against an actual production build's output, not just dev mode — the
+service-role key does not appear in the client bundle (a first grep for
+the literal string `sb_secret_` did match a client chunk, but turned out
+to be only the Supabase SDK's own generic key-prefix-detection code, not
+the real key; confirmed by searching for the actual key value instead).
+Deferred to when the app has a first real feature to deploy: Cloudflare
+Pages hosting, the `backoffice.greenie-app.com` domain, and the
+Cloudflare Access gate.
 
 ## Features
 
@@ -212,9 +230,9 @@ Supabase database with the main app, no shared codebase or session.
   Given this app already tracks moderation provenance nowhere else,
   probably yes for at least deletions — but scope that explicitly
   rather than assuming.
-- Backoffice app's exact framework/hosting and repo structure (new repo
-  vs. a folder in this one) — access control (above) is settled, but
-  the app itself hasn't been scaffolded yet.
+- Framework/repo decided and scaffolded (Next.js, standalone repo — see
+  the Prerequisite section above). Still open: actual hosting
+  (Cloudflare Pages is the working assumption, not yet set up).
 - One-time Cloudflare Access setup for `backoffice.greenie-app.com`
   (owner action, mirrors `docs/demo-hosting.md`'s runbook) — not done
   yet, needed before the backoffice app is reachable at all.
