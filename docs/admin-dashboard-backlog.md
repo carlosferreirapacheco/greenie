@@ -343,31 +343,90 @@ Cloudflare Access gate.
 
 ### Observability & health
 
-- **AI lookup error log review**. `ai_lookup_error_logs` (migration
-  `0021`) already exists specifically for this and already has real
-  data flowing into it, but the only way to read it today is a direct
-  SQL query. A simple filterable list (by stage — `fetch_photo` /
-  `gemini_call` / `empty_output` / `parse_json` — and by date) turns
-  "notice a systemic problem" from "someone happens to go looking" into
-  something glanceable. Read-only, no new schema.
-- **Delivery health**. A rollup of recent failures from the push
-  (`send-push`) and email (`email-data-export`, Supabase Auth SMTP)
-  pipelines — sourced from Supabase's own function/auth logs
-  (`get_logs`), not a new table. Lower priority than it sounds: Expo
-  push already self-heals by deleting `DeviceNotRegistered` tokens, and
-  failures are rare enough that `get_logs` on demand has been
-  sufficient so far. Worth building once there's been a real delivery
-  incident, not before.
+- **AI lookup error log review — done**, combined with Delivery health
+  and Basic usage metrics into one pass: a real home dashboard for the
+  backoffice, per explicit user direction ("i'd like this to be the
+  main home dashboard... along with the product insights metrics —
+  this should show first"). `src/app/page.tsx` now shows Product
+  insights first, then Observability & health below it, replacing the
+  old bare "Signed in as X" placeholder. `ai_lookup_error_logs`
+  (migration `0021`) already had real data flowing into it but was
+  only readable via direct SQL — a new `src/lib/errors.ts`
+  (`getAiLookupErrorSummary()`/`getAiLookupErrors(filters)`) and
+  `/errors/ai-lookup` page make it filterable by stage
+  (`fetch_photo`/`gemini_call`/`empty_output`/`parse_json`) and date
+  range, plus a counts-by-stage + recent-rows summary block on the
+  home page itself. Read-only, no new schema for this half.
+- **Delivery health — done, broadened beyond the original scope.** The
+  original plan was a rollup sourced from Supabase's own function/auth
+  logs (`get_logs`) — but those retain only ~24h, and pulling further
+  back needs the Management API's `logs.all` endpoint, which requires
+  a new, **account-wide-scoped** Personal Access Token (a materially
+  bigger secret than anything the backoffice holds today) and is
+  capped to a rolling 24h window regardless of caller-supplied
+  timestamps anyway (confirmed via `search_docs` during planning,
+  presented to the user via `AskUserQuestion`). Chose instead to
+  extend the exact durable-logging pattern that already justified
+  `ai_lookup_error_logs` in the first place, to the other three
+  Edge Functions that previously failed silently: new
+  `app_error_logs` table (`supabase/migrations/0027_app_error_logs.sql`,
+  main repo — `source` check-constrained to `push`/`email_export`/
+  `account_deletion`, no client RLS policies at all, same shape as
+  `ai_lookup_error_logs`). Each function gained a best-effort
+  `logError()` mirroring `lookup-plant`'s existing `logFailure()` —
+  never affects the caller's actual response, even if the log write
+  itself fails: **`send-push`** now logs any Expo ticket status that's
+  neither `"ok"` nor `DeviceNotRegistered` (previously silently
+  dropped — counted as neither `sent` nor `removed`, a genuinely
+  invisible failure before this) plus its own outer catch;
+  **`email-data-export`** gained its own service-role client purely
+  for this (it previously held none by design, since its only prior
+  server-side need was the caller's own `user.email`) — logs on its
+  outer catch and a non-2xx Resend response; **`delete-account`** logs
+  on its outer catch and specifically a `deleteUser()` failure. New
+  `getAppErrorSummary()`/`getAppErrors(filters)` in `src/lib/errors.ts`
+  + `/errors/app` (filterable by `source` and date) + a matching
+  home-dashboard summary block round out the read side.
+  **Verification, and an honest gap**: the read/render pipeline (write
+  → home-dashboard rollup → filterable list, plus the source-filter
+  links) was verified live end-to-end by seeding one row per source
+  directly into `app_error_logs` via SQL, confirming all three
+  rendered correctly in both places, then deleting them and confirming
+  the dashboard returned to "No other errors." **The write side itself
+  wasn't exercised through a real failure for any of the three
+  functions**, for reasons specific to each: `send-push` was tried
+  live (a garbage `push_tokens` row + a real notification insert,
+  twice, with different malformed token shapes) but Expo's push API
+  classified both as `DeviceNotRegistered` rather than a genuine ticket
+  error, so the "other ticket status" branch never actually fired;
+  `email-data-export` and `delete-account` both require a real
+  end-user JWT to invoke directly (they're `verify_jwt: true`), which
+  wasn't practical to mint from this environment without either a
+  browser sign-in flow or the Vault-held webhook secret (decrypting it
+  was blocked by this environment's own command classifier). All three
+  `logError()` call sites were verified by direct code read against the
+  same, already-proven `ai_lookup_error_logs`/`logFailure()` pattern —
+  correct table, correct best-effort try/catch shape, called from the
+  right branches — but a genuine live failure firing each one end-to-end
+  is still open if this ever feels worth revisiting (e.g. a contrived
+  bad `SUPABASE_SERVICE_ROLE_KEY` swap for one function, or a real
+  device with a stale token that Expo genuinely errors on rather than
+  deregisters).
 
 ### Product insight
 
-- **Basic usage metrics**. Signups, plants created, progress reports
-  logged, rough active-user counts — all just aggregate queries against
-  existing `created_at` columns, no new schema. Useful for its own
-  sake, and specifically ties into the "would take six-figure MAU
-  before Gemini cost is a real budget line" note from the monetization
-  scoping pass — something should actually be watching that number
-  rather than assuming it stays small.
+- **Basic usage metrics — done**, part of the same dashboard pass as
+  Observability & health above. New `src/lib/metrics.ts`'s
+  `getProductInsights()` — total accounts, signups (7d/30d), plants
+  created (7d/30d), progress reports logged (7d/30d), and a rough
+  active-user count (`last_sign_in_at` within 7d/30d, via the existing
+  `listUsersWithRetry()`) — all direct aggregate queries against
+  existing `created_at` columns, no new schema, matching the original
+  framing exactly. Rendered as a row of metric cards at the very top of
+  `src/app/page.tsx`, ahead of Observability & health, per the user's
+  explicit ordering. Verified live: every number cross-checked
+  independently via direct SQL against the same live data and matched
+  exactly (Accounts 5, Signups 1/5, Plants 4/5, Progress reports 1/1).
 
 ### Configuration
 
@@ -393,13 +452,13 @@ Cloudflare Access gate.
    **manual GDPR requests** — the export half is done; erasure is
    deferred for the same reason as account-deletion-on-behalf-of
    above.
-3. **AI lookup error log review** + **`app_config` viewer** — low
-   effort, read-only, no new schema.
+3. **AI lookup error log review** — done, combined with delivery health
+   and basic usage metrics into one home-dashboard pass (see
+   Observability & health / Product insight above). **`app_config`
+   viewer** remains open — low effort, read-only, no new schema.
 4. **Supporter badge tier assignment** — once the supporter badge
    feature itself ships.
-5. **Basic usage metrics** + **delivery health** — valuable but nothing
-   is currently on fire without them; revisit once the earlier phases
-   are live and real usage exists to look at.
+5. **Basic usage metrics** + **delivery health** — done, see above.
 
 ## Open questions (resolve during planning, before implementation)
 

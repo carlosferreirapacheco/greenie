@@ -21,6 +21,26 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// Best-effort durable logging into app_error_logs (migration 0027) --
+// same reasoning as lookup-plant's ai_lookup_error_logs: Supabase's
+// own function logs only retain ~24h. Never throws; a logging
+// failure must not affect the caller's response.
+async function logError(
+  admin: ReturnType<typeof createClient>,
+  params: { userId: string | null; detail: string | null; errorMessage: string },
+) {
+  try {
+    await admin.from("app_error_logs").insert({
+      source: "push",
+      user_id: params.userId,
+      detail: params.detail,
+      error_message: params.errorMessage.slice(0, 2000),
+    });
+  } catch (loggingError) {
+    console.error("Failed to write app_error_logs row:", loggingError);
+  }
+}
+
 type NotificationRow = {
   id: string;
   recipient_id: string;
@@ -175,14 +195,24 @@ Deno.serve(async (req) => {
       // Tickets come back aligned with the messages sent; a
       // DeviceNotRegistered ticket means the token is dead (app
       // uninstalled, token rotated) and its row should go away.
-      const tickets: { status: string; details?: { error?: string } }[] = result?.data ?? [];
-      tickets.forEach((ticket, index) => {
+      const tickets: { status: string; message?: string; details?: { error?: string } }[] = result?.data ?? [];
+      for (const [index, ticket] of tickets.entries()) {
         if (ticket.status === "ok") {
           sent += 1;
         } else if (ticket.details?.error === "DeviceNotRegistered") {
           staleTokens.push(chunk[index].to);
+        } else {
+          // Any other non-ok ticket (rate-limited, MessageTooBig,
+          // InvalidCredentials, etc.) was previously silently dropped --
+          // counted as neither sent nor removed. Log it so a systemic
+          // delivery problem is visible instead of invisible.
+          await logError(admin, {
+            userId: notification.recipient_id,
+            detail: `ticket: ${ticket.details?.error ?? ticket.status}`,
+            errorMessage: ticket.message ?? JSON.stringify(ticket),
+          });
         }
-      });
+      }
     }
 
     if (staleTokens.length > 0) {
@@ -192,6 +222,20 @@ Deno.serve(async (req) => {
     return jsonResponse({ sent, removed: staleTokens.length });
   } catch (error) {
     console.error(error);
+    try {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      await logError(admin, {
+        userId: null,
+        detail: "outer catch",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    } catch (loggingError) {
+      console.error("Failed to write app_error_logs row:", loggingError);
+    }
     return jsonResponse({ error: "Push delivery failed" }, 500);
   }
 });

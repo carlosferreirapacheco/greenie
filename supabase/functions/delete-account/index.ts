@@ -12,10 +12,32 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// Best-effort durable logging into app_error_logs (migration 0027) --
+// same reasoning as lookup-plant's ai_lookup_error_logs: Supabase's
+// own function logs only retain ~24h. Never throws.
+async function logError(params: { userId: string | null; errorMessage: string }) {
+  try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    await admin.from("app_error_logs").insert({
+      source: "account_deletion",
+      user_id: params.userId,
+      error_message: params.errorMessage.slice(0, 2000),
+    });
+  } catch (loggingError) {
+    console.error("Failed to write app_error_logs row:", loggingError);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  let userId: string | null = null;
 
   try {
     // Identify the caller from their own JWT -- the function can only
@@ -42,6 +64,7 @@ Deno.serve(async (req) => {
     if (userError || !user) {
       return jsonResponse({ error: "Not signed in" }, 401);
     }
+    userId = user.id;
 
     // The service-role key never leaves this function. Every user-owned
     // table cascades from auth.users (see migrations 0001/0002), so this
@@ -60,6 +83,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ success: true });
   } catch (error) {
     console.error(error);
+    await logError({ userId, errorMessage: error instanceof Error ? error.message : String(error) });
     return jsonResponse({ error: "Account deletion failed" }, 500);
   }
 });
