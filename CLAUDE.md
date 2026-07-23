@@ -2312,15 +2312,11 @@ unrelated history.
   dashboard below once that exists (the owner checks BMC's own
   dashboard and sets the tier), not a live payment pipeline. Real IAP/
   payment processing for anything beyond this remains unscoped.
-- Admin dashboard — should include:
-  - **Report review**: a screen to list/triage the `reports` table
-    (migration `0023_reports.sql`, see the in-app reporting feature
-    above) and act on them, rather than the owner-does-it-via-
-    Supabase-Studio-SQL process that feature shipped with.
-  - **Supporter badge tier assignment**: manually setting a user's
-    supporter tier based on Buy Me a Coffee donations the owner sees
-    on BMC's own dashboard (see the Payments / monetization item above
-    for why this is admin-managed rather than automated).
+- Admin dashboard — unscoped beyond report review and supporter-badge
+  tier assignment (see the Payments/monetization item above). Full
+  feature backlog, access-control design, platform choice, and
+  suggested phasing tracked separately in
+  `docs/admin-dashboard-backlog.md` rather than growing inline here.
 - Care streaks — a real, free, non-gated feature (e.g. consecutive
   on-time care tasks, or days without a missed one) — explicit user
   decision, made specifically to keep this out of the cosmetic-paid-
