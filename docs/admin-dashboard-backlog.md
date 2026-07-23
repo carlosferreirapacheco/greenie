@@ -162,22 +162,28 @@ Cloudflare Access gate.
   all three resolutions render correctly under the Resolved/All
   filters. All seeded data removed and the test account unbanned
   afterward.
-- **Direct content search & removal**. Independent of a report existing
-  at all — search progress reports/comments/plants by owner or
-  free-text, for the case where something needs to come down before
-  anyone's gotten around to reporting it (or Play Store's own review
-  flags something). Thin wrapper over the same delete calls Report
-  review already needed — its own future slice, not bundled into that
-  pass.
+- **Direct content search & removal — shelved.** Originally scoped as
+  free-text search across any account's content, for the case where
+  something needs to come down before anyone's reported it. On
+  reflection this is a real privacy problem, not just a technical
+  triviality: Report review only ever surfaces content a user already
+  saw and flagged — there's always a trigger and a specific target —
+  while a general search tool turns "technically reachable via SQL"
+  into "one search box away" for *any* account's content, including
+  private ones. That's in real tension with the privacy policy's own
+  claim that "private content is enforced by the database itself, not
+  just hidden by the app" (`app/privacy-policy.tsx`), even though
+  nothing about it is technically new (the service-role backend, and
+  direct SQL before it, could always reach everything). Shelved rather
+  than deleted: if revisited, scope it much narrower than the original
+  sketch — public content only, no private-account reach at all;
+  lookup by a specific known ID/URL rather than open free-text
+  browsing; a logged trail of every lookup. For now, moderation stays
+  report-driven only — the rare unreported-content case is handled the
+  way it always has been, via direct SQL.
 - **Unban** — the report-review ban action is deliberately one-way;
   reversing it belongs on the future "User lookup & account actions"
   screen below, where an admin can see a user's full status first.
-- **Direct content search & removal**. Independent of a report existing
-  at all — search progress reports/comments/plants by owner or
-  free-text, for the case where something needs to come down before
-  anyone's gotten around to reporting it (or Play Store's own review
-  flags something). Thin wrapper over the same delete calls Report
-  review already needs.
 
 ### Users & support
 
@@ -250,9 +256,10 @@ Cloudflare Access gate.
 ## Suggested phasing
 
 1. **Access control foundation** (blocks everything else) — done.
-   **Report review** — done. **Direct content search & removal** —
-   still open, the other half of the pair Google Play's UGC policy
-   actually cares about.
+   **Report review** — done. Moderation stays report-driven only for
+   now; **direct content search & removal** is shelved over privacy
+   concerns (see the Features section above) rather than built as
+   originally scoped.
 2. **User lookup & account actions** + **manual GDPR requests** —
    support/compliance safety nets, cheap once #1 exists since they
    mostly wrap already-built functions.
