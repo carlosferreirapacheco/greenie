@@ -252,6 +252,35 @@ export async function getLinkedGoogleEmail(): Promise<string | null> {
   return (googleIdentity?.identity_data?.email as string | undefined) ?? null;
 }
 
+// Unlinks the Google identity from the current session. Re-fetches
+// identities rather than taking one as a param (mirrors
+// getLinkedGoogleEmail()'s own lookup) so callers don't need to stash
+// the identity object in state and a stale/already-unlinked identity
+// can't be passed in. Supabase itself enforces 2+ identities present
+// before allowing an unlink -- callers should still gate the UI on
+// accountHasPassword() so a passwordless account never sees this as an
+// option in the first place, rather than relying on that server-side
+// rejection.
+export async function unlinkGoogleIdentity(): Promise<void> {
+  const { data, error: identitiesError } = await supabase.auth.getUserIdentities();
+
+  if (identitiesError) {
+    throw identitiesError;
+  }
+
+  const googleIdentity = (data?.identities ?? []).find((identity) => identity.provider === "google");
+
+  if (!googleIdentity) {
+    throw new Error("No linked Google account to unlink.");
+  }
+
+  const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
+
+  if (error) {
+    throw error;
+  }
+}
+
 // Changes the account's email. Supabase's own confirmation link to the
 // *new* address still applies on top of this -- untouched, since that's
 // the separate, desired proof that the new address is real and owned.

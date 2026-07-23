@@ -529,6 +529,47 @@ sharing them socially with other users.
       accounts" row now reads "Google account linked (<email>)" so any
       divergence from the primary email above it is visible at a
       glance instead of silent.
+    - Unlink Google account — done. Grew out of planning the admin
+      backoffice's "force-unlink a Google identity gone wrong" action
+      (see `docs/admin-dashboard-backlog.md`): Supabase's Admin API
+      has no method to unlink another user's identity, and
+      `auth.identities` isn't reachable through the service-role
+      client at all (PostgREST doesn't expose the `auth` schema, and
+      there's no `/auth/v1/admin/.../identities` REST endpoint —
+      confirmed via `search_docs`, not assumed). Rather than give the
+      backoffice a raw Postgres connection just for this, the missing
+      piece got built instead: a real *self-service* unlink, using the
+      one primitive Supabase actually supports
+      (`supabase.auth.unlinkIdentity()`, session-scoped, requires 2+
+      identities present). New `unlinkGoogleIdentity()` in
+      `lib/supabase/auth.ts` re-resolves the google identity via
+      `getUserIdentities()` (mirrors `getLinkedGoogleEmail()`'s own
+      lookup) rather than taking one as a param. Settings' existing
+      "Google account linked (<email>)" line gained an "Unlink" text
+      action underneath it — shown only when `accountHasPassword()` is
+      true, since a Google-only (passwordless) account has exactly one
+      identity and unlinking it would either be rejected server-side or
+      strand the account with no way to sign in (same reasoning as the
+      existing "no set-a-password option for OAuth users" carve-out).
+      Behind a `ConfirmModal` (reversible via the Link flow right
+      above, so a confirm step rather than a password/OTP re-auth is
+      enough — matching how Unblock stays single-tap because it's
+      reversible while Block is two-tap). Cross-platform, unlike
+      `linkGoogleAccount()`'s web-only redirect flow — unlinking is one
+      direct API call against the current session, no redirect needed.
+      Verified live end-to-end against a dev-fixture account with a
+      synthetic `auth.identities` row inserted via SQL to simulate a
+      linked Google account (no real Google OAuth consent flow is
+      drivable in this environment): the Unlink action only appears
+      with a password identity present, opens the confirm modal with
+      the correct interpolated email, Cancel leaves the linked state
+      untouched, confirming calls the real `unlinkIdentity()` API
+      (confirmed via SQL that the `google` row was actually deleted
+      from `auth.identities`, not just cleared client-side) and the UI
+      updates to the not-linked state immediately with no reload, and
+      both dark mode and English render correctly. The admin-side
+      force-unlink backoffice action stays deferred — see the backlog
+      doc's own note on why.
 - Usernames — done. Every profile has a mandatory, unique `username`
   (migration `0009_usernames.sql`): lowercase letters/digits/dot/
   underscore, starts with a letter, ends with a letter or digit, 3–20

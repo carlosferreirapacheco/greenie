@@ -235,6 +235,22 @@ Cloudflare Access gate.
   can't complete the normal two-factor flow themselves — needs its own
   careful auth story, since bypassing the password+OTP check is
   exactly what that flow exists to prevent).
+  **Force-unlink specifically re-scoped, not just deferred**:
+  investigated and found there's no supported way to build it as an
+  admin action at all — `supabase.auth.admin` has no identity-unlink
+  method, and `auth.identities` isn't reachable through the
+  service-role client (PostgREST doesn't expose the `auth` schema, and
+  there's no admin REST endpoint for it either, confirmed via
+  `search_docs`). Building it for real would mean giving the
+  backoffice app a raw Postgres connection — a materially bigger
+  capability than the service-role key it holds today — just for this
+  one action. Rather than do that, the mobile app itself gained a
+  *self-service* unlink instead (CLAUDE.md's "Change account email /
+  link Google account" entry, "Unlink Google account" sub-item) using
+  the one primitive Supabase actually supports. That covers the common
+  support case (walk the user through Settings) without the admin
+  action; force-unlink-on-someone's-behalf stays open only for the
+  Postgres-connection approach, if ever revisited.
 - **Manual GDPR data subject requests**. A lookup-by-email path that
   reuses `collectMyData()` (`lib/supabase/gdpr.ts`) to produce the same
   export the in-app "Download my data" button does, for the case where

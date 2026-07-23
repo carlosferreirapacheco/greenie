@@ -285,6 +285,11 @@ export const ptPT: typeof en = {
         googleLinked: "Conta Google associada ({email}).",
         webOnlyHint: "Por agora, associar uma conta Google só está disponível na versão web.",
         confirmLinkButton: "Confirmar e associar conta Google",
+        unlinkButton: "Desassociar",
+        confirmUnlink: {
+          message: "Desassociar a sua conta Google ({email})? Pode voltar a associá-la quando quiser.",
+          confirmButton: "Desassociar",
+        },
       },
     },
     privacy: {
