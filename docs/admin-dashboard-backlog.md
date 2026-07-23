@@ -514,7 +514,7 @@ Cloudflare Access gate.
 3. **AI lookup error log review** — done, combined with delivery health
    and basic usage metrics into one home-dashboard pass (see
    Observability & health / Product insight above). **`app_config`
-   viewer** remains open — low effort, read-only, no new schema.
+   viewer** — done, see Configuration above.
 4. **Supporter badge tier assignment** — once the supporter badge
    feature itself ships.
 5. **Basic usage metrics** + **delivery health** — done, see above.
