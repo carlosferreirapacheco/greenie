@@ -334,12 +334,72 @@ Cloudflare Access gate.
 
 ### Monetization
 
-- **Supporter badge tier assignment** (already scoped in CLAUDE.md's
-  Payments/monetization backlog item). Manually setting a user's
-  supporter tier based on Buy Me a Coffee donations the owner sees on
-  BMC's own dashboard — deliberately not BMC-API-integrated (see that
-  backlog item for why). Blocked on the supporter badge feature itself
-  shipping first; this is just the admin half of it.
+- **Supporter donation tracking — the backend + admin half is done;
+  badge display is a separate, deferred plan.** Originally scoped as
+  "admin-managed, not automated" (manually copying a tier from BMC's
+  own dashboard) because matching a BMC payment to a Greenie account
+  seemed to need an integration that didn't exist. Revisited: BMC's
+  current webhook API (`donation.created` etc.) is real, current, and
+  confirmed live against `help.buymeacoffee.com`'s own docs —
+  HMAC-SHA256-signed (`x-signature-sha256`), delivering
+  `supporter_email`/`total_amount`/a donation message. Per explicit
+  user decision (`AskUserQuestion`), built the full auto-matching
+  webhook pipeline rather than the manual-only fallback. **Honest
+  limit, not oversold**: BMC has no concept of a Greenie account —
+  matching only ever works via the supporter's BMC email (may differ
+  from their Greenie signup email) or an `@username` they choose to
+  type into BMC's free-text name/message fields. Best-effort, not a
+  guarantee; anything that doesn't match lands in a reconciliation
+  queue for the admin.
+  New main-repo migration `0028_supporter_donations.sql`:
+  `profiles.total_donated numeric` (the single running total — no
+  separate tier column, so there's never a second source of truth;
+  tier *derivation* is the deferred display plan's job, not this
+  one's); new `bmc_donations` table (durable log of every webhook
+  event, mirrors `ai_lookup_error_logs`/`app_error_logs`'s existing
+  shape — no client RLS policies, service-role/backoffice only); new
+  `find_user_id_by_email()` `security definer` SQL function,
+  `EXECUTE` revoked from `anon`/`authenticated`, granted only to
+  `service_role` — the durable fix the observability pass's own
+  write-up flagged for the Auth Admin API's documented intermittent
+  `bad_jwt` flakiness, worth building for real here since a webhook
+  silently misfiling a real donation during a bad-luck retry window is
+  a worse failure mode than a dashboard read needing a manual refresh.
+  New Edge Function `supabase/functions/bmc-webhook` (`verify_jwt:
+  false`, own HMAC verification instead): idempotent on BMC's
+  `event_id` (a unique-constraint conflict means "already processed,"
+  since BMC retries on non-2xx); matches in order by email then by an
+  `@username` mention in either the message or name field; credits
+  `profiles.total_donated` on match; refunds and other non-payment
+  event types are logged for visibility only, not auto-subtracted (the
+  real refund payload shape wasn't confirmed against BMC's OpenAPI
+  spec, not reachable from this environment — noted as a real caveat
+  in the function's own comments, worth re-checking against a live
+  delivery). New backoffice `/supporters` reconciliation queue
+  (`src/lib/supporters.ts`, `src/app/supporters/`) lists unmatched
+  donations with a search-and-assign dialog
+  (`src/components/match-donation-dialog.tsx`, reusing the existing
+  `/users` search); `users/[id]` gained a "Supporter" section (current
+  total, matched donation history, a manual `adjustSupporterTotal()`
+  correction action for refunds). Verified live end-to-end against the
+  real deployed function: constructed real HMAC-signed test payloads
+  (no BMC sandbox reachable from here) covering the email-match path
+  (confirmed `total_donated` incremented correctly), the
+  username-mention fallback path, an unmatched donation landing in the
+  queue, re-sending the same `event_id` twice (confirmed no
+  double-counting), and an invalid signature (confirmed 401 rejection)
+  — all via direct SQL cross-checks, since this session's browser
+  automation had no authenticated backoffice session to click through
+  the UI with (the `/supporters` route was confirmed to at least
+  correctly gate through `requireAdmin()` rather than erroring). All
+  seeded test data removed afterward. **Badge display in the mobile
+  app** (tier derivation, the `SupporterBadge` component, wiring into
+  profile/feed/progress screens, and a donation-flow hint modal in
+  Settings explaining tiers and asking supporters to include their
+  `@username`) is deferred to its own separate future plan, per
+  explicit user decision — this pass ends with `total_donated`
+  populated and reconcilable, nothing user-visible in the mobile app
+  yet.
 
 ### Observability & health
 
@@ -515,8 +575,9 @@ Cloudflare Access gate.
    and basic usage metrics into one home-dashboard pass (see
    Observability & health / Product insight above). **`app_config`
    viewer** — done, see Configuration above.
-4. **Supporter badge tier assignment** — once the supporter badge
-   feature itself ships.
+4. **Supporter donation tracking** — the backend + admin reconciliation
+   half is done (webhook pipeline + `/supporters` queue); badge
+   *display* in the mobile app is deferred to its own separate plan.
 5. **Basic usage metrics** + **delivery health** — done, see above.
 
 ## Open questions (resolve during planning, before implementation)
