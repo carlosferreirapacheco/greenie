@@ -10,12 +10,15 @@ import { createClient } from "npm:@supabase/supabase-js@^2";
 // matching failure never blocks acknowledging the webhook, since BMC
 // retries on non-2xx and the raw donation is captured either way.
 //
-// Field-name caveat: BMC's current donation.created payload shape
-// wasn't fully confirmed against their OpenAPI spec (not reachable
-// from this environment) -- the extraction below checks a few
-// plausible field-name variants defensively. Worth re-checking against
-// a real delivery's logged bmc_donations row after the first live
-// donation.
+// Field names below are confirmed against BMC's own OpenAPI spec
+// (https://cdn.buymeacoffee.com/assets/integrations/bmc-webhooks-openapi.json),
+// not guessed -- donation.created and donation.refunded share one
+// DonationData schema. `data.id` (BMC's own payment id) is the field
+// that stays constant across both deliveries for the same payment;
+// the envelope's own `event_id` identifies the delivery, not the
+// payment, so it can't be used to correlate a refund back to its
+// original donation. Fallback field-name variants are kept below only
+// as defensive belt-and-suspenders, not as the primary source.
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -69,6 +72,18 @@ const CREDIT_EVENT_TYPES = new Set([
   "wishlist_payment.created",
 ]);
 
+// The refund counterparts of 4 of the 6 credit types above -- BMC's
+// event-type enum has no "recurring_donation.refunded"/
+// "membership.refunded" (those have *.cancelled instead, a
+// subscription-lifecycle event, not necessarily a refund), so those
+// two intentionally have no reversal path here.
+const REFUND_EVENT_TYPES = new Set([
+  "donation.refunded",
+  "extra_purchase.refunded",
+  "commission_order.refunded",
+  "wishlist_payment.refunded",
+]);
+
 Deno.serve(async (req) => {
   try {
     const secret = Deno.env.get("BMC_WEBHOOK_SECRET");
@@ -95,9 +110,15 @@ Deno.serve(async (req) => {
 
     const supporterEmail: string | null = data.supporter_email ?? data.email ?? null;
     const supporterName: string | null = data.supporter_name ?? data.name ?? null;
-    const message: string | null = data.message ?? data.support_note ?? data.note ?? null;
-    const amount = Number(data.total_amount ?? data.amount ?? 0);
+    // support_note (the supporter's own free-text note) is where an
+    // @username self-identification would actually appear -- message
+    // is BMC's own auto-generated summary (e.g. "John bought you a
+    // coffee!") and is present on essentially every delivery, so
+    // checking it first would shadow a real support_note underneath.
+    const message: string | null = data.support_note ?? data.message ?? data.note ?? null;
+    const amount = Number(data.amount ?? data.total_amount ?? 0);
     const currency: string = data.currency ?? "EUR";
+    const bmcPaymentId: number | null = data.id != null ? Number(data.id) : null;
 
     // Idempotent insert first -- a unique-constraint conflict on
     // bmc_event_id means this delivery was already processed (BMC
@@ -107,6 +128,7 @@ Deno.serve(async (req) => {
       .insert({
         bmc_event_id: eventId,
         event_type: eventType,
+        bmc_payment_id: bmcPaymentId,
         supporter_email: supporterEmail,
         supporter_name: supporterName,
         message,
@@ -121,6 +143,40 @@ Deno.serve(async (req) => {
         return jsonResponse({ status: "already processed" });
       }
       throw insertError;
+    }
+
+    if (REFUND_EVENT_TYPES.has(eventType)) {
+      if (bmcPaymentId == null) {
+        return jsonResponse({ status: "refund logged, no payment id to correlate" });
+      }
+
+      // The original donation.created (etc.) row for the same
+      // payment -- only reverse a row that was actually matched and
+      // hasn't already been reversed (guards against a redelivered
+      // refund double-subtracting).
+      const { data: original } = await admin
+        .from("bmc_donations")
+        .select("id, amount, matched_user_id")
+        .eq("bmc_payment_id", bmcPaymentId)
+        .in("event_type", [...CREDIT_EVENT_TYPES])
+        .not("matched_user_id", "is", null)
+        .is("reversed_at", null)
+        .maybeSingle();
+
+      if (!original?.matched_user_id) {
+        return jsonResponse({ status: "refund logged, no matching credited donation found" });
+      }
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("total_donated")
+        .eq("id", original.matched_user_id)
+        .single();
+      const newTotal = Math.max(0, Number(profile?.total_donated ?? 0) - Number(original.amount));
+      await admin.from("profiles").update({ total_donated: newTotal }).eq("id", original.matched_user_id);
+      await admin.from("bmc_donations").update({ reversed_at: new Date().toISOString() }).eq("id", original.id);
+
+      return jsonResponse({ status: "refund processed", reversed_user_id: original.matched_user_id });
     }
 
     if (!CREDIT_EVENT_TYPES.has(eventType) || amount <= 0) {

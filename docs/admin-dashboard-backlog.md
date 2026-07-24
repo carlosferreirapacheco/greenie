@@ -370,12 +370,49 @@ Cloudflare Access gate.
   `event_id` (a unique-constraint conflict means "already processed,"
   since BMC retries on non-2xx); matches in order by email then by an
   `@username` mention in either the message or name field; credits
-  `profiles.total_donated` on match; refunds and other non-payment
-  event types are logged for visibility only, not auto-subtracted (the
-  real refund payload shape wasn't confirmed against BMC's OpenAPI
-  spec, not reachable from this environment — noted as a real caveat
-  in the function's own comments, worth re-checking against a live
-  delivery). New backoffice `/supporters` reconciliation queue
+  `profiles.total_donated` on match. **Refund handling — done**
+  (migration `0030_bmc_refunds.sql`), once the real webhook +
+  secret were confirmed live: fetched BMC's actual OpenAPI spec
+  (`cdn.buymeacoffee.com/assets/integrations/bmc-webhooks-openapi.json`)
+  directly rather than continuing to guess. Key finding that shaped the
+  design: the envelope's `event_id` identifies the *delivery*, not the
+  payment — a `donation.created` and its later `donation.refunded` for
+  the same payment carry different `event_id`s, so the existing
+  idempotency key can't correlate a refund back to its original
+  donation. The field that does stay constant is `data.id` (BMC's own
+  payment id), newly captured as `bmc_donations.bmc_payment_id`. On a
+  `donation.refunded`/`extra_purchase.refunded`/
+  `commission_order.refunded`/`wishlist_payment.refunded` event, the
+  function looks up the original credited row by `bmc_payment_id`
+  (matched, not yet reversed), subtracts its amount from the matched
+  user's `total_donated` (clamped at 0), and stamps a new
+  `reversed_at` on that original row so a redelivered refund can't
+  double-subtract — an orphan refund (no matching original) is simply
+  logged, same best-effort philosophy as the rest of the function.
+  Two more field-mapping corrections landed alongside this, now that
+  real field names are confirmed rather than guessed: the amount
+  fallback reordered to prefer the real `data.amount` field, and the
+  username-mention extraction reordered to check `data.support_note`
+  (the supporter's own free-text note) before `data.message` (BMC's
+  auto-generated summary, which was previously shadowing real notes
+  since it's present on nearly every delivery). Backoffice
+  `getUnmatchedDonations()` (`src/lib/supporters.ts`) now excludes
+  `*.refunded` event types — those rows always have `matched_user_id:
+  null` by design (only the original row is touched), so without the
+  filter every refund looked like a new donation needing manual
+  matching. Verified: migration + `get_advisors` clean; redeployed the
+  function and confirmed it still rejects an invalid signature (401);
+  since the real BMC secret is now in place (unknown to this
+  environment), the refund correlation/reversal logic itself was
+  verified by directly simulating the function's exact SQL sequence —
+  a credited row + a refund row sharing one `bmc_payment_id`, confirmed
+  the matched account's `total_donated` went up then back down to
+  baseline, `reversed_at` got stamped, a repeat of the correlation
+  query found nothing (proving a redelivered refund can't
+  double-subtract), and an orphan refund (unknown `bmc_payment_id`)
+  correctly matched nothing; also confirmed via SQL that a seeded
+  refund row is excluded from the backoffice query. All seeded rows
+  removed afterward. New backoffice `/supporters` reconciliation queue
   (`src/lib/supporters.ts`, `src/app/supporters/`) lists unmatched
   donations with a search-and-assign dialog
   (`src/components/match-donation-dialog.tsx`, reusing the existing
