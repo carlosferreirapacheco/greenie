@@ -44,6 +44,7 @@ import { getPushEnabled, setPushEnabled } from "../lib/pushNotificationManager";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { SupportHintModal } from "../components/SupportHintModal";
 import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
@@ -191,6 +192,7 @@ export default function SettingsScreen() {
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
   const [googleSyncBanner, setGoogleSyncBanner] = useState<string | null>(null);
   const [showUnlinkGoogleConfirm, setShowUnlinkGoogleConfirm] = useState(false);
+  const [showSupportHint, setShowSupportHint] = useState(false);
   const [unlinkGoogleStatus, setUnlinkGoogleStatus] = useState<"idle" | "unlinking" | "error">("idle");
   const [unlinkGoogleError, setUnlinkGoogleError] = useState<string | null>(null);
   const isSendingGoogleLinkCode = useRef(false);
@@ -1049,7 +1051,7 @@ export default function SettingsScreen() {
           {t("settings.support.sectionIntro")}
         </Text>
 
-        <Pressable style={[styles.saveButton, { backgroundColor: colors.moss }]} onPress={handleOpenSupportLink}>
+        <Pressable style={[styles.saveButton, { backgroundColor: colors.moss }]} onPress={() => setShowSupportHint(true)}>
           <Text style={[styles.saveButtonText, { fontFamily: fonts.bodySemiBold, color: colors.paper }]}>
             {t("settings.support.button")}
           </Text>
@@ -1168,6 +1170,17 @@ export default function SettingsScreen() {
 
         <AccountDeletionFlow fonts={fonts} />
       </ScrollView>
+
+      {showSupportHint ? (
+        <SupportHintModal
+          fonts={fonts}
+          onCancel={() => setShowSupportHint(false)}
+          onContinue={() => {
+            setShowSupportHint(false);
+            handleOpenSupportLink();
+          }}
+        />
+      ) : null}
 
       {showUnlinkGoogleConfirm ? (
         <ConfirmModal

@@ -1,4 +1,4 @@
-import { badgeKey, badgeLabelKey, computeSupporterTier, getVisibleBadges } from "./badges";
+import { ALL_TIERS, TIER_THRESHOLDS, badgeKey, badgeLabelKey, computeSupporterTier, getVisibleBadges } from "./badges";
 
 describe("computeSupporterTier", () => {
   it("returns null below the bronze threshold", () => {
@@ -70,6 +70,20 @@ describe("badgeKey", () => {
 
   it("is just the kind for a beta tester badge", () => {
     expect(badgeKey({ kind: "beta_tester" })).toBe("beta_tester");
+  });
+});
+
+describe("ALL_TIERS / TIER_THRESHOLDS", () => {
+  it("lists every tier in ascending threshold order", () => {
+    expect(ALL_TIERS).toEqual(["bronze", "silver", "gold", "platinum"]);
+    const thresholds = ALL_TIERS.map((tier) => TIER_THRESHOLDS[tier]);
+    expect(thresholds).toEqual([...thresholds].sort((a, b) => a - b));
+  });
+
+  it("matches computeSupporterTier's own boundaries", () => {
+    for (const tier of ALL_TIERS) {
+      expect(computeSupporterTier(TIER_THRESHOLDS[tier])).toBe(tier);
+    }
   });
 });
 

@@ -352,6 +352,14 @@ export const ptPT: typeof en = {
       sectionIntro:
         "Se o Greenie lhe é útil, pode oferecer-me um café — totalmente opcional, é só uma forma de agradecer.",
       button: "Oferecer um café",
+      hintModal: {
+        title: "Torne-se apoiante",
+        intro: "Uma doação desbloqueia um distintivo junto ao seu nome, com base no total doado ao longo do tempo:",
+        tierThreshold: "€{amount}+",
+        usernameNote:
+          "Para lhe ser atribuído, adicione o seu @nomedeutilizador ao campo de nome ou mensagem no checkout — é assim que associamos a sua doação à sua conta Greenie.",
+        continueButton: "Continuar para o Buy Me a Coffee",
+      },
     },
     badges: {
       sectionTitle: "Distintivos",
