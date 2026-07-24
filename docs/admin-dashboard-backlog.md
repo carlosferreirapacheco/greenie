@@ -624,8 +624,26 @@ Cloudflare Access gate.
   probably yes for at least deletions — but scope that explicitly
   rather than assuming.
 - Framework/repo decided and scaffolded (Next.js, standalone repo — see
-  the Prerequisite section above). Still open: actual hosting
-  (Cloudflare Pages is the working assumption, not yet set up).
-- One-time Cloudflare Access setup for `backoffice.greenie-app.com`
-  (owner action, mirrors `docs/demo-hosting.md`'s runbook) — not done
-  yet, needed before the backoffice app is reachable at all.
+  the Prerequisite section above). **Hosting: code + CI done.** Not
+  classic Cloudflare Pages after all — this app has Server Actions and
+  a service-role Supabase client that must run at request time, so it
+  deploys to **Cloudflare Workers** via the OpenNext adapter
+  (`@opennextjs/cloudflare`) instead; see `greenie-backoffice`'s own
+  `docs/backoffice-hosting.md` for the full writeup, including a
+  tracked stopgap (`src/middleware.ts` instead of Next 16's renamed
+  `proxy.ts`, since the adapter doesn't yet support Proxy's Node.js
+  runtime — [opennextjs-cloudflare#962](https://github.com/opennextjs/opennextjs-cloudflare/issues/962)).
+  Verified locally end-to-end via the real Workers runtime (`npm run
+  preview`, no Cloudflare account needed): sign-in, the
+  `requireAdmin()`-gated home dashboard, user search, and a real
+  Server Action (`setBetaTester()`, round-tripped and confirmed via
+  SQL) all work correctly; confirmed the service-role key doesn't
+  reach client-served assets.
+- Still open (owner-only, dashboard/CLI-login work, tracked step-by-step
+  in `docs/backoffice-hosting.md`): the GitHub Actions repo
+  secrets/variables, a Workers-scoped Cloudflare API token, `wrangler
+  secret put` for `SUPABASE_SECRET_KEY`/`RESEND_API_KEY`, the
+  `backoffice.greenie-app.com` Custom Domain, and the Cloudflare Access
+  policy itself (mirrors `docs/demo-hosting.md`'s pattern, but with a
+  much tighter allowlist — this app performs real moderation/account
+  actions with a service-role key behind it, not a signup demo).
