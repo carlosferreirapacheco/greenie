@@ -11,11 +11,23 @@ export type BadgeEligibility = {
 
 const MAX_VISIBLE_BADGES = 3;
 
+// Single source of truth for the tier thresholds -- computeSupporterTier()
+// reads from this rather than repeating the numbers, and the support-flow
+// hint modal displays these same values to explain what donating unlocks.
+export const TIER_THRESHOLDS: Record<SupporterTier, number> = {
+  bronze: 3,
+  silver: 10,
+  gold: 25,
+  platinum: 100,
+};
+
+export const ALL_TIERS: SupporterTier[] = ["bronze", "silver", "gold", "platinum"];
+
 export function computeSupporterTier(totalDonated: number): SupporterTier | null {
-  if (totalDonated >= 100) return "platinum";
-  if (totalDonated >= 25) return "gold";
-  if (totalDonated >= 10) return "silver";
-  if (totalDonated >= 3) return "bronze";
+  if (totalDonated >= TIER_THRESHOLDS.platinum) return "platinum";
+  if (totalDonated >= TIER_THRESHOLDS.gold) return "gold";
+  if (totalDonated >= TIER_THRESHOLDS.silver) return "silver";
+  if (totalDonated >= TIER_THRESHOLDS.bronze) return "bronze";
   return null;
 }
 

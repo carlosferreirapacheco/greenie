@@ -2428,15 +2428,40 @@ unrelated history.
   itself — the dev database has exactly one progress report, and it has
   comments disabled, so there was no real comment thread to view it on;
   not fabricated with throwaway data for this pass.
+- Support-flow hint modal — done. The one piece of the original
+  Payments/monetization scope left after the supporter/beta badges
+  shipped: tapping Settings' "Buy me a coffee" button previously jumped
+  straight to the external BMC link with zero context. It now opens
+  `components/SupportHintModal.tsx` first — the tier ladder (icon,
+  color, and label matching the already-shipped badges exactly, since
+  it reuses `BadgeIcon`/`getSupporterTierColors`) with each threshold,
+  plus the one non-obvious step: typing `@username` into BMC's own
+  name/message field at checkout, which is what
+  `supabase/functions/bmc-webhook`'s `extractUsernameMention()` actually
+  matches on. A "Continue to Buy Me a Coffee" button then calls the
+  same `handleOpenSupportLink()` as before; Cancel just closes it. The
+  3/10/25/100 thresholds were promoted from magic numbers buried in
+  `computeSupporterTier()` to shared exports (`lib/badges.ts`'s
+  `TIER_THRESHOLDS`/`ALL_TIERS`) so the modal displays the exact same
+  values the logic enforces, not a second copy that could drift.
+  Verified: `tsc`/`npm test` clean; live on web (Português, dark mode)
+  — all four tier rows rendered with icon colors matching the exact
+  hex tokens already verified for the badges feature, thresholds
+  correct (€3+/€10+/€25+/€100+), Cancel dismissed cleanly with no
+  navigation. The actual external hand-off on "Continue" wasn't
+  confirmed live — this environment's browser automation blocks
+  `window.open`/`Linking.openURL` on web, the same gap noted when the
+  Support button itself first shipped.
 
 ### Later
-- Payments / monetization — a donation link and the supporter/beta
-  badges (see above) are done; full payment processing / feature-gating
-  monetization remains open and unscoped. Tiers (per user decision):
-  Bronze €3+, Silver €10+, Gold €25+, Platinum €100+, total lifetime
-  Buy Me a Coffee donations — cosmetic only, no functional effect, in
-  keeping with the explicit decision to keep paid content optional/
-  cosmetic rather than feature-gating.
+- Payments / monetization — a donation link, the supporter/beta
+  badges, and the support-flow hint modal (all see above) are done;
+  full payment processing / feature-gating monetization remains open
+  and unscoped. Tiers (per user decision): Bronze €3+, Silver €10+,
+  Gold €25+, Platinum €100+, total lifetime Buy Me a Coffee donations —
+  cosmetic only, no functional effect, in keeping with the explicit
+  decision to keep paid content optional/cosmetic rather than
+  feature-gating.
   BMC's webhook API (`donation.created` etc., HMAC-signed) auto-matches
   a donation to a Greenie account by email or a self-reported
   `@username`, not guaranteed (BMC has no concept of a Greenie
@@ -2444,11 +2469,9 @@ unrelated history.
   "Supporter donation tracking" entry for the backend write-up
   (migration `0028_supporter_donations.sql`, the `bmc-webhook` Edge
   Function, and the backoffice's `/supporters` reconciliation queue).
-  A donation-flow hint modal explaining tiers and asking supporters to
-  include their `@username` (scoped, then deferred, during the backend
-  pass) remains unbuilt — worth revisiting now that badges are actually
-  visible to explain. Real IAP/payment processing for anything beyond
-  this remains unscoped.
+  Refund handling (`donation.refunded` etc. auto-reversing
+  `total_donated`) is also done — see that same entry. Real IAP/payment
+  processing for anything beyond this remains unscoped.
 - Admin dashboard — unscoped beyond report review and supporter-badge
   tier assignment (see the Payments/monetization item above). Full
   feature backlog, access-control design, platform choice, and

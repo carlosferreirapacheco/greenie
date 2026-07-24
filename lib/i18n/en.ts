@@ -350,6 +350,14 @@ export const en = {
       sectionIntro:
         "If Greenie's useful to you, you can buy me a coffee — totally optional, just a way to say thanks.",
       button: "Buy me a coffee",
+      hintModal: {
+        title: "Become a supporter",
+        intro: "A donation unlocks a badge next to your name, based on your total lifetime support:",
+        tierThreshold: "€{amount}+",
+        usernameNote:
+          "To get credit for it, add your @username to the name or message field at checkout — that's how we match your donation to your Greenie account.",
+        continueButton: "Continue to Buy Me a Coffee",
+      },
     },
     badges: {
       sectionTitle: "Badges",
