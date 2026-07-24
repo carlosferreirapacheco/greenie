@@ -2400,9 +2400,10 @@ unrelated history.
   from the reviewed design artifact into `react-native-svg` (`Svg`,
   `Path`, `Ellipse`, `Circle`, `G` — the library's plain SVG `transform`
   strings ported over unchanged). New Settings "Badges" section (right
-  after Support) reuses the existing ChipGroup-based on/off pattern
-  (this app has no native `Switch` anywhere) rather than inventing a
-  new toggle control. `lib/supabase/profiles.ts`/`plant_progress.ts`/
+  after Support) originally reused the existing ChipGroup-based on/off
+  pattern (this app has no native `Switch` anywhere) rather than
+  inventing a new toggle control — **since replaced** (see the
+  tap-to-toggle follow-up below this entry). `lib/supabase/profiles.ts`/`plant_progress.ts`/
   `comments.ts` all extended to select the 4 new columns and compute
   `author_badges`/the profile's own badges via `getVisibleBadges()`.
   **Deliberately not wired this pass**: the feed's latest-comment
@@ -2452,6 +2453,27 @@ unrelated history.
   confirmed live — this environment's browser automation blocks
   `window.open`/`Linking.openURL` on web, the same gap noted when the
   Support button itself first shipped.
+- Settings badges: tap-to-toggle — done. The Badges section's per-badge
+  ChipGroup On/Off rows (see the original entry above) replaced with a
+  single interactive row, new `components/badges/BadgeToggleRow.tsx`:
+  each eligible badge renders as its real chip (icon + translated
+  label, same visual as the read-only `BadgeChipRow`) and is itself the
+  press target for its own visibility toggle — full tier/moss color
+  when shown, greyed out (`colors.line`/`paperRaised`/`inkSoft`) when
+  hidden. `app/settings.tsx`'s `BADGE_TOGGLE_ROWS` array (label/desc
+  text keys) was removed entirely, replaced by building `ResolvedBadge`s
+  directly from the already-fetched `supporterTier`/`isBetaTester`
+  state; the now-redundant `settings.badges.supporterToggle`/
+  `betaTesterToggle` i18n keys were dropped from `en.ts`/`pt-PT.ts`
+  since the badge itself already carries its label via
+  `badgeLabelKey()`. Everything below the row (Save button, saved/error
+  status) is unchanged — tapping only flips local state, persistence
+  still needs Save, matching every other account-wide settings group
+  on this screen. Verified: `tsc`/`npm test` clean; live web against
+  the real dev account (`carlos`) — the beta-tester chip rendered
+  enabled (moss), tapping greyed it out, Save persisted (confirmed via
+  SQL that `show_beta_tester_badge` flipped to `false`, then restored
+  to `true`), both dark/light mode and English/Português checked.
 
 ### Later
 - Payments / monetization — a donation link, the supporter/beta
