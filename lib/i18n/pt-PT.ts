@@ -363,15 +363,7 @@ export const ptPT: typeof en = {
     },
     badges: {
       sectionTitle: "Distintivos",
-      sectionIntro: "Escolha que distintivos aparecem junto ao seu nome em todo o Greenie.",
-      supporterToggle: {
-        label: "Mostrar distintivo de apoiante",
-        desc: "Mostra o seu nível de apoiante junto ao seu nome em toda a aplicação.",
-      },
-      betaTesterToggle: {
-        label: "Mostrar distintivo de testador beta",
-        desc: "Mostra o seu distintivo de testador beta junto ao seu nome em toda a aplicação.",
-      },
+      sectionIntro: "Toque num distintivo para o mostrar ou ocultar junto ao seu nome.",
       saveButton: "Guardar definições de distintivos",
       savedText: "Definições de distintivos guardadas",
     },

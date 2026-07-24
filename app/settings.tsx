@@ -39,10 +39,11 @@ import {
   type ProfileVisibility,
   type ProgressVisibility,
 } from "../lib/supabase/profiles";
-import { computeSupporterTier, type SupporterTier } from "../lib/badges";
+import { badgeKey, computeSupporterTier, type ResolvedBadge, type SupporterTier } from "../lib/badges";
 import { getPushEnabled, setPushEnabled } from "../lib/pushNotificationManager";
 import { getErrorMessage } from "../lib/errors";
 import { ChipGroup } from "../components/ChipGroup";
+import { BadgeToggleRow } from "../components/badges/BadgeToggleRow";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { SupportHintModal } from "../components/SupportHintModal";
 import { AccountDeletionFlow } from "../components/AccountDeletionFlow";
@@ -65,28 +66,6 @@ const NOTIFICATION_PREF_ROWS: { key: keyof NotificationSettings; labelKey: strin
   { key: "notify_sitting_responses", labelKey: "settings.notifications.prefRows.sittingResponses" },
 ];
 
-// A row only appears once the account actually qualifies for that
-// badge kind -- a future 3rd badge kind is one more entry here, not a
-// rework of the section below.
-const BADGE_TOGGLE_ROWS: {
-  key: keyof BadgeSettings;
-  labelKey: string;
-  descKey: string;
-  isEligible: (ctx: { supporterTier: SupporterTier | null; isBetaTester: boolean }) => boolean;
-}[] = [
-  {
-    key: "show_supporter_badge",
-    labelKey: "settings.badges.supporterToggle.label",
-    descKey: "settings.badges.supporterToggle.desc",
-    isEligible: (ctx) => ctx.supporterTier !== null,
-  },
-  {
-    key: "show_beta_tester_badge",
-    labelKey: "settings.badges.betaTesterToggle.label",
-    descKey: "settings.badges.betaTesterToggle.desc",
-    isEligible: (ctx) => ctx.isBetaTester,
-  },
-];
 
 export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
@@ -1058,10 +1037,21 @@ export default function SettingsScreen() {
         </Pressable>
 
         {(() => {
-          const eligibleBadgeRows = BADGE_TOGGLE_ROWS.filter((row) => row.isEligible({ supporterTier, isBetaTester }));
-          if (eligibleBadgeRows.length === 0 || !badgeSettings) {
+          if (!badgeSettings) {
             return null;
           }
+          const eligibleBadges: { key: keyof BadgeSettings; badge: ResolvedBadge }[] = [];
+          if (supporterTier) {
+            eligibleBadges.push({ key: "show_supporter_badge", badge: { kind: "supporter_tier", tier: supporterTier } });
+          }
+          if (isBetaTester) {
+            eligibleBadges.push({ key: "show_beta_tester_badge", badge: { kind: "beta_tester" } });
+          }
+          if (eligibleBadges.length === 0) {
+            return null;
+          }
+          const keyForBadge = new Map(eligibleBadges.map(({ key, badge }) => [badgeKey(badge), key]));
+
           return (
             <>
               <Text
@@ -1073,23 +1063,19 @@ export default function SettingsScreen() {
                 {t("settings.badges.sectionIntro")}
               </Text>
 
-              {eligibleBadgeRows.map(({ key, labelKey, descKey }) => (
-                <View key={key} style={styles.field}>
-                  <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>{t(labelKey)}</Text>
-                  <ChipGroup
-                    fonts={fonts}
-                    value={badgeSettings[key] ? "on" : "off"}
-                    onChange={(value) =>
-                      setBadgeSettings((settings) => (settings ? { ...settings, [key]: value === "on" } : settings))
-                    }
-                    options={[
-                      { value: "on", label: t("settings.notifications.prefOptions.on") },
-                      { value: "off", label: t("settings.notifications.prefOptions.off") },
-                    ]}
-                  />
-                  <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>{t(descKey)}</Text>
-                </View>
-              ))}
+              <BadgeToggleRow
+                badges={eligibleBadges.map((entry) => entry.badge)}
+                fonts={fonts}
+                isEnabled={(badge) => {
+                  const key = keyForBadge.get(badgeKey(badge));
+                  return key ? badgeSettings[key] : false;
+                }}
+                onToggle={(badge) => {
+                  const key = keyForBadge.get(badgeKey(badge));
+                  if (!key) return;
+                  setBadgeSettings((settings) => (settings ? { ...settings, [key]: !settings[key] } : settings));
+                }}
+              />
 
               {badgeSaveStatus === "error" ? (
                 <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{badgeSaveError}</Text>
