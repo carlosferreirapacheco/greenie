@@ -361,15 +361,7 @@ export const en = {
     },
     badges: {
       sectionTitle: "Badges",
-      sectionIntro: "Choose which badges show next to your name across Greenie.",
-      supporterToggle: {
-        label: "Show supporter badge",
-        desc: "Display your supporter tier next to your name across the app.",
-      },
-      betaTesterToggle: {
-        label: "Show beta tester badge",
-        desc: "Display your beta tester badge next to your name across the app.",
-      },
+      sectionIntro: "Tap a badge to show or hide it next to your name.",
       saveButton: "Save badge settings",
       savedText: "Badge settings saved",
     },
