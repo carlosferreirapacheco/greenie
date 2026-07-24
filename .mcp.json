@@ -3,6 +3,10 @@
     "supabase": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=bcmlhuljvuvrpylfdrkk"
+    },
+    "buymeacoffee": {
+      "type": "http",
+      "url": "https://mcp.buymeacoffee.com/connect"
     }
   }
 }
