@@ -4,13 +4,34 @@ import { router, Tabs, useNavigation } from "expo-router";
 import { useFonts } from "expo-font";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { getMyProfile } from "../../lib/supabase/profiles";
-import { getUnreadNotificationCount } from "../../lib/supabase/notifications";
+import {
+  getUnreadNotificationCount,
+  getUnreadNotificationsByType,
+  markNotificationRead,
+  type NotificationWithActor,
+} from "../../lib/supabase/notifications";
 import { getPendingFollowRequests } from "../../lib/supabase/follows";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
+
+// One message variant per care task type, matching the notification
+// inbox's own careDue*/sittingGraceDay sentence-per-type pattern.
+function graceModalMessage(notification: NotificationWithActor, t: (key: string, params?: Record<string, string>) => string): string {
+  const plant = notification.plant_name ?? t("notificationsScreen.plantFallback");
+  switch (notification.care_task_type) {
+    case "fertilize":
+      return t("careStreakGraceModal.messageFertilize", { plant });
+    case "repot":
+      return t("careStreakGraceModal.messageRepot", { plant });
+    case "water":
+    default:
+      return t("careStreakGraceModal.messageWater", { plant });
+  }
+}
 
 // The persistent bottom tab bar over the five main destinations
 // (People, Feed, Plants, Sitting, Alerts). Every other screen stays in
@@ -28,6 +49,14 @@ export default function TabsLayout() {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
 
+  // Cron-detected + cron-enforced grace days (see 0032's
+  // care-sitting-grace-scan job): the tabs layout's existing
+  // navigation-state refetch is also where unread sitting_grace_day
+  // notifications are picked up and surfaced as a popup, one at a time
+  // if a sitter has several.
+  const [graceNotifications, setGraceNotifications] = useState<NotificationWithActor[]>([]);
+  const [graceDismissBusy, setGraceDismissBusy] = useState(false);
+
   const refetchHeaderState = useCallback(() => {
     getMyProfile()
       .then((profile) => setMyAvatarUrl(profile.avatar_url))
@@ -44,7 +73,29 @@ export default function TabsLayout() {
       .catch(() => {
         // Non-critical -- the badge just won't show if this fails.
       });
+    getUnreadNotificationsByType("sitting_grace_day")
+      .then(setGraceNotifications)
+      .catch(() => {
+        // Non-critical -- the popup just won't show if this fails.
+      });
   }, []);
+
+  async function handleDismissGraceModal() {
+    const [current, ...rest] = graceNotifications;
+    if (!current || graceDismissBusy) {
+      return;
+    }
+    setGraceDismissBusy(true);
+    try {
+      await markNotificationRead(current.id);
+      setGraceNotifications(rest);
+    } catch {
+      // Leaves the modal open on the same notification -- a retry tap
+      // just tries the same mark-read call again.
+    } finally {
+      setGraceDismissBusy(false);
+    }
+  }
 
   // Refetch on every navigation-state change. From this layout,
   // useNavigation() is the ROOT stack's navigation, whose state tree
@@ -60,7 +111,10 @@ export default function TabsLayout() {
     return unsubscribe;
   }, [navigation, refetchHeaderState]);
 
+  const currentGraceNotification = graceNotifications[0] ?? null;
+
   return (
+    <>
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.paper },
@@ -164,5 +218,15 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
+      {currentGraceNotification ? (
+        <ConfirmModal
+          message={graceModalMessage(currentGraceNotification, t)}
+          actions={[{ label: t("careStreakGraceModal.dismiss"), onPress: handleDismissGraceModal }]}
+          onCancel={handleDismissGraceModal}
+          busy={graceDismissBusy}
+          fonts={fonts}
+        />
+      ) : null}
+    </>
   );
 }

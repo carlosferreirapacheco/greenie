@@ -691,6 +691,8 @@ export const en = {
     sitterFallback: "this follower",
     intro:
       "Ask {sitterName} to look after all of your plants while you're away. They'll be able to view your care tasks, mark them done, and log new progress reports on your behalf.",
+    streakHint:
+      "Care tasks your sitter completes count toward their own care streak, not yours. Your streak pauses while they're covering for you, and if they miss something on your plants, they get a day's grace to catch up before it affects theirs.",
     startDate: {
       label: "Start date (optional)",
     },
@@ -722,8 +724,16 @@ export const en = {
       careDueWater: "Time to water {plant}",
       careDueFertilize: "Time to fertilize {plant}",
       careDueRepot: "Time to repot {plant}",
+      sittingGraceDay: "Plant sitters grace day: {plant} needs care by tomorrow",
+      sittingGraceExpired: "Grace day ended for {plant} — your streak reset",
     },
     plantFallback: "your plant",
+  },
+  careStreakGraceModal: {
+    messageWater: "{plant} needs watering by tomorrow — miss it and your streak resets.",
+    messageFertilize: "{plant} needs fertilizing by tomorrow — miss it and your streak resets.",
+    messageRepot: "{plant} needs its soil changed by tomorrow — miss it and your streak resets.",
+    dismiss: "Got it",
   },
   profile: {
     screenTitle: "Profile",

@@ -693,6 +693,8 @@ export const ptPT: typeof en = {
     sitterFallback: "este seguidor",
     intro:
       "Peça a {sitterName} para cuidar de todas as suas plantas enquanto está fora. Vai poder ver as suas tarefas de cuidado, marcá-las como feitas, e registar novos relatórios de progresso em seu nome.",
+    streakHint:
+      "As tarefas de cuidado que o seu cuidador completar contam para a sequência dele, não para a sua. A sua sequência pausa enquanto ele cuida das suas plantas, e se falhar alguma tarefa, tem um dia de tolerância para a concluir antes de afetar a sequência dele.",
     startDate: {
       label: "Data de início (opcional)",
     },
@@ -724,8 +726,16 @@ export const ptPT: typeof en = {
       careDueWater: "Hora de regar {plant}",
       careDueFertilize: "Hora de adubar {plant}",
       careDueRepot: "Hora de trocar a terra de {plant}",
+      sittingGraceDay: "Dia de tolerância para cuidadores: {plant} precisa de cuidados até amanhã",
+      sittingGraceExpired: "O dia de tolerância para {plant} terminou — a sua sequência foi reiniciada",
     },
     plantFallback: "a sua planta",
+  },
+  careStreakGraceModal: {
+    messageWater: "{plant} precisa de rega até amanhã — se não regar, a sua sequência é reiniciada.",
+    messageFertilize: "{plant} precisa de adubação até amanhã — se não adubar, a sua sequência é reiniciada.",
+    messageRepot: "{plant} precisa de trocar a terra até amanhã — se não trocar, a sua sequência é reiniciada.",
+    dismiss: "Entendi",
   },
   profile: {
     screenTitle: "Perfil",

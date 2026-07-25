@@ -2528,14 +2528,73 @@ unrelated history.
   transaction rolled back (zero data leaked); live web (dark mode,
   English + Português) on both profile screens' zero and non-zero
   states via a temporary, reverted SQL streak value. **PR2 (sitting
-  grace day) — not started.** Per the user's decided mechanic: a late
-  task on a plant the caller only *sits* for won't reset their streak
-  immediately — instead an hourly cron-detected "Plant sitters grace
-  day" gives them until the next day to complete it (notification +
-  popup modal), with the reset (and its own notification) only firing
-  if the grace window expires unresolved. Also still pending: the
-  `request-sitting.tsx` explanatory copy ("their streak, not yours;
-  yours pauses while they cover you").
+  grace day) — done.** Migration `0032_care_streak_sitting_grace.sql`:
+  new `care_tasks.grace_deadline`/`grace_sitter_id` columns, two new
+  notification kinds (`sitting_grace_day`, `sitting_grace_expired`,
+  same `notifications_type_check` extension pattern `0020` used for
+  `care_due`), a new account-wide `profiles.notify_sitting_grace_day`
+  toggle default-on, and a new hourly `care-sitting-grace-scan` cron
+  job — deliberately **separate** from the existing `care-due-scan` so
+  that already-verified job stays untouched. The job has two halves in
+  one body: a task on an actively-sat plant going overdue in the last
+  hour opens a 1-day grace window (`grace_deadline = next_due +
+  1 day`) and notifies the sitter; a grace window already past its
+  deadline notifies (`sitting_grace_expired`) and resets the sitter's
+  `care_streak_current` to 0, then clears the grace fields last so both
+  halves can still see them mid-run. `record_care_completion()`
+  (`create or replace`, same signature) now also clears any pending
+  grace on completion (even a late one — the thing the grace was
+  waiting on is now done) and excludes an actively-graced task from the
+  "still outstanding" check that blocks that day's +1 credit. **A real
+  bug found and fixed during SQL transaction testing**: the sitter's
+  same-day-lateness block (`v_any_late_today`) was originally scoped to
+  every currently-responsible plant, own AND sat — so a sat-plant task
+  completed late (even if resolved well within its grace window, no
+  penalty) still silently blocked that day's unrelated +1 credit
+  elsewhere, contradicting the user's explicit "promote sitting, don't
+  penalize it" framing. Fixed by scoping that check to the caller's
+  *own* plants only (`v_own_plant_ids`), since a late own-plant
+  completion never actually reaches that check anyway (the earlier
+  branch already resets the streak and returns immediately) — it only
+  matters for a later same-day on-time completion after an earlier
+  same-day own-plant catchup, where blocking credit is still correct
+  since the streak already broke that day. Caught by a rolled-back SQL
+  transaction test before this ever shipped, not in production.
+  UI: `app/(tabs)/notifications.tsx` gained the two new sentence
+  templates; `app/(tabs)/_layout.tsx`'s existing navigation-state
+  header refetch now also fetches unread `sitting_grace_day`
+  notifications (new `getUnreadNotificationsByType()` in
+  `lib/supabase/notifications.ts`, sharing a new `hydrateNotifications()`
+  helper factored out of `getNotifications()`) and shows one via a
+  `ConfirmModal` popup at a time — per-type-message ("{plant} needs
+  watering by tomorrow — miss it and your streak resets."), a single
+  "Got it" action calling a new `markNotificationRead(id)` (distinct
+  from the existing mark-*all*-read used by the inbox itself) so
+  dismissing one doesn't also silently clear the inbox's other unread
+  highlights. `lib/pushNotifications.ts`'s `notificationTargetPath()`
+  routes both new kinds to `/plant/{plantId}`, same as `care_due`.
+  `app/request-sitting.tsx` gained the explanatory hint line ("their
+  streak, not yours; yours pauses while they cover you; a day's grace
+  if they miss something"). Verified: `get_advisors` (no new issues);
+  `tsc`/`npm test` clean (400 passing, incl. new
+  `notificationTargetPath` grace-kind cases); a rolled-back SQL
+  transaction against the same two dev-fixture accounts, manually
+  running the actual cron job body (not a paraphrase) end-to-end —
+  confirmed a newly-overdue sat-plant task opens a grace window +
+  notification, a second overdue task resolved before its own deadline
+  clears its grace fields without any penalty, an unrelated on-time
+  completion still credits +1 while a grace is pending elsewhere (this
+  is what caught the `v_any_late_today` bug above), and fast-forwarding
+  a grace deadline into the past + re-running the enforce half
+  correctly notifies and resets the streak, then clears the grace
+  fields — plus a full regression pass of PR1's own-plant transaction
+  tests to confirm the fix didn't break anything there. Live web (dark
+  mode, English + Português): the `request-sitting.tsx` hint renders;
+  a real seeded unread `sitting_grace_day` notification triggers the
+  popup on tab navigation with the correct plant-specific message,
+  dismissing it marks it read and it does not reappear on the next tab
+  switch (confirmed via SQL), and both new sentence kinds render
+  correctly in the inbox in both languages.
 
 ### Later
 - Payments / monetization — a donation link, the supporter/beta

@@ -38,6 +38,16 @@ function notificationSentence(notification: NotificationWithActor, t: (key: stri
     }
   }
 
+  if (notification.type === "sitting_grace_day") {
+    const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    return t("notificationsScreen.sentence.sittingGraceDay", { plant: plantName });
+  }
+
+  if (notification.type === "sitting_grace_expired") {
+    const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    return t("notificationsScreen.sentence.sittingGraceExpired", { plant: plantName });
+  }
+
   const name = actorName(notification, t);
   switch (notification.type) {
     case "comment":
