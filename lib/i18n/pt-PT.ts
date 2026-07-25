@@ -649,6 +649,7 @@ export const ptPT: typeof en = {
     plantsSection: {
       privateNotice: "Esta conta é privada",
     },
+    careStreak: "Sequência de {count} dias",
   },
   plantSitting: {
     state: {
@@ -731,6 +732,12 @@ export const ptPT: typeof en = {
     error: "Erro: {error}",
     username: {
       cooldownHint: "Pode voltar a alterar o nome de utilizador a {date}",
+    },
+    careStreak: {
+      sectionTitle: "Sequência de cuidados",
+      current: "Sequência de {count} dias",
+      currentZero: "Marque uma tarefa de cuidado como concluída a tempo para começar uma sequência",
+      longest: "Melhor: {count} dias",
     },
     bio: {
       label: "Biografia",

@@ -647,6 +647,7 @@ export const en = {
     plantsSection: {
       privateNotice: "This account is private",
     },
+    careStreak: "{count}-day streak",
   },
   plantSitting: {
     state: {
@@ -729,6 +730,12 @@ export const en = {
     error: "Error: {error}",
     username: {
       cooldownHint: "You can change your username again on {date}",
+    },
+    careStreak: {
+      sectionTitle: "Care streak",
+      current: "{count}-day streak",
+      currentZero: "Mark a care task done on time to start a streak",
+      longest: "Best: {count} days",
     },
     bio: {
       label: "Bio",

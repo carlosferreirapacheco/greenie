@@ -77,21 +77,28 @@ export async function deleteCareTask(id: string): Promise<void> {
 // anchor, keeping the schedule on its original cadence rather than
 // restarting it from today.
 export async function markCareTaskDone(task: CareTask, nextDueAnchor: Date = new Date()): Promise<CareTask> {
-  const now = new Date();
-  const nextDue = new Date(nextDueAnchor.getTime() + task.frequency_days * 24 * 60 * 60 * 1000);
+  // Delegates to record_care_completion() -- it does the same
+  // last_done/next_due update this used to do directly, plus the care
+  // streak bookkeeping (lib/badges.ts-style pure logic doesn't apply
+  // here since the mechanic depends on cross-plant/cross-user state
+  // only the database can see consistently). "Today" is the device's
+  // own local day, not the server's -- see the migration's own
+  // comment on why this needs the timezone name, not just an offset.
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const { data, error } = await supabase
-    .from("care_tasks")
-    .update({ last_done: now.toISOString(), next_due: nextDue.toISOString() })
-    .eq("id", task.id)
-    .select()
+    .rpc("record_care_completion", {
+      p_task_id: task.id,
+      p_next_due_anchor: nextDueAnchor.toISOString(),
+      p_client_timezone: timeZone,
+    })
     .single();
 
   if (error) {
     throw error;
   }
 
-  return data;
+  return data as CareTask;
 }
 
 export type PlantCareStatus = "healthy" | "due_soon" | "overdue";

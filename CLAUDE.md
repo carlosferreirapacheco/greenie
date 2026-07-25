@@ -2481,6 +2481,61 @@ unrelated history.
   enabled (moss), tapping greyed it out, Save persisted (confirmed via
   SQL that `show_beta_tester_badge` flipped to `false`, then restored
   to `true`), both dark/light mode and English/Português checked.
+- Care streaks — split into two PRs given the size (schema + RPC +
+  cron + UI). **PR1 (core mechanic) — done.** A single, account-wide
+  "consecutive on-time care-task day" counter, capped at +1 per local
+  calendar day and only once every task due that day (across every
+  plant the caller is currently responsible for) is completed on
+  time — the anti-abuse design decided with the user: no matter how
+  many fake plants/tasks exist, a day can only ever contribute +1.
+  Migration `0031_care_streaks.sql`: `care_tasks.last_completed_on_time`
+  (new, since `care_tasks` had no completion history before this) and
+  three new `profiles` columns (`care_streak_current`,
+  `care_streak_longest`, `care_streak_last_credited_date`), guarded
+  against direct client writes by `guard_care_streak_columns()`
+  (mirrors `guard_is_admin`'s `current_user in ('anon',
+  'authenticated')` pattern exactly — these are shown on public
+  profiles, so tampering has to be blocked, not just discouraged).
+  New `record_care_completion(p_task_id, p_next_due_anchor,
+  p_client_timezone)` RPC (`SECURITY DEFINER`, explicit
+  owner-or-active-sitter authorization check per this project's
+  SECURITY DEFINER checklist) replaces `markCareTaskDone()`'s old
+  plain `UPDATE`: it still advances `last_done`/`next_due` exactly as
+  before, but also computes on-time-ness, resets the streak to 0
+  immediately on a late completion of an **owned** plant (a late/missed
+  task on a plant the caller only sits for has no effect yet — see
+  PR2), and credits +1 once every responsible plant's tasks are clear
+  for the day. **Local day boundaries use the device's own IANA
+  timezone** (`Intl.DateTimeFormat().resolvedOptions().timeZone`,
+  threaded through from `lib/supabase/care_tasks.ts`), not the
+  database's, via Postgres `AT TIME ZONE` on every date comparison —
+  explicit user requirement ("very awkward to have a cutoff not at the
+  owner's midnight"), with a defensive UTC fallback if a malformed
+  zone string ever arrives. `profiles.ts`'s `Profile` type gained the
+  two display fields. Shown publicly, right under the name/badges:
+  `app/profile.tsx` (own profile, always visible, with an encouraging
+  zero-state hint instead of "0-day streak") and `app/user/[id].tsx`
+  (public profile, shown only when `care_streak_current > 0` — no
+  reason to broadcast a zero streak on someone else's page). Verified:
+  `get_advisors` (only pre-existing-pattern warnings, nothing new);
+  `tsc`/`npm test` clean (extended `care_tasks.test.ts` for the new
+  RPC call shape); a rolled-back SQL transaction against two real
+  dev-fixture accounts covering the day-cap, the owned-plant reset, a
+  sat-plant late completion *not* resetting the sitter's streak (PR1
+  scope), the guard trigger reverting a direct client update, correct
+  `AT TIME ZONE` local-day math, the malformed-timezone fallback, and
+  an unauthorized caller being rejected — all passed cleanly with the
+  transaction rolled back (zero data leaked); live web (dark mode,
+  English + Português) on both profile screens' zero and non-zero
+  states via a temporary, reverted SQL streak value. **PR2 (sitting
+  grace day) — not started.** Per the user's decided mechanic: a late
+  task on a plant the caller only *sits* for won't reset their streak
+  immediately — instead an hourly cron-detected "Plant sitters grace
+  day" gives them until the next day to complete it (notification +
+  popup modal), with the reset (and its own notification) only firing
+  if the grace window expires unresolved. Also still pending: the
+  `request-sitting.tsx` explanatory copy ("their streak, not yours;
+  yours pauses while they cover you").
 
 ### Later
 - Payments / monetization — a donation link, the supporter/beta
@@ -2506,13 +2561,6 @@ unrelated history.
   feature backlog, access-control design, platform choice, and
   suggested phasing tracked separately in
   `docs/admin-dashboard-backlog.md` rather than growing inline here.
-- Care streaks — a real, free, non-gated feature (e.g. consecutive
-  on-time care tasks, or days without a missed one) — explicit user
-  decision, made specifically to keep this out of the cosmetic-paid-
-  content idea above (a milestone-icon cosmetic treatment was floated
-  during that brainstorm and declined in favor of streaks being a real
-  feature everyone gets, not a paid cosmetic). Unscoped beyond that
-  for now — no schema/design decisions made yet.
 - Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
   and the initial-size field on Add Plant). Explicitly out of scope

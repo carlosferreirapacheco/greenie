@@ -30,6 +30,8 @@ export type Profile = {
   notify_sitting_requests: boolean;
   notify_sitting_responses: boolean;
   notify_care_tasks: boolean;
+  care_streak_current: number;
+  care_streak_longest: number;
 };
 
 // One flag per notification kind (migrations 0019 + 0020). The DB
