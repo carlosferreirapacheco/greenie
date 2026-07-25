@@ -732,6 +732,7 @@ export const ptPT: typeof en = {
     plantFallback: "a sua planta",
   },
   careStreakGraceModal: {
+    title: "Dia de Tolerância do Cuidador",
     messageWater: "{plant} precisa de rega até amanhã — se não regar, a sua sequência é reiniciada.",
     messageFertilize: "{plant} precisa de adubação até amanhã — se não adubar, a sua sequência é reiniciada.",
     messageRepot: "{plant} precisa de trocar a terra até amanhã — se não trocar, a sua sequência é reiniciada.",

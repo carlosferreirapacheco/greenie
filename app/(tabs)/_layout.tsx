@@ -220,6 +220,7 @@ export default function TabsLayout() {
     </Tabs>
       {currentGraceNotification ? (
         <ConfirmModal
+          title={t("careStreakGraceModal.title")}
           message={graceModalMessage(currentGraceNotification, t)}
           actions={[{ label: t("careStreakGraceModal.dismiss"), onPress: handleDismissGraceModal }]}
           onCancel={handleDismissGraceModal}

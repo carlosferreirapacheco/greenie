@@ -24,6 +24,7 @@ export type ConfirmModalAction = {
 // pass errorText, so the prompt stays open for a retry or cancel instead
 // of silently vanishing.
 export function ConfirmModal({
+  title,
   message,
   actions,
   onCancel,
@@ -32,6 +33,7 @@ export function ConfirmModal({
   errorText,
   fonts,
 }: {
+  title?: string;
   message: string;
   actions: ConfirmModalAction[];
   onCancel: () => void;
@@ -48,6 +50,9 @@ export function ConfirmModal({
       <Pressable style={styles.backdrop} onPress={onCancel}>
         {/* Empty onPress swallows the touch so it doesn't bubble to the backdrop's close handler. */}
         <Pressable style={[styles.card, { backgroundColor: colors.paperRaised }]} onPress={() => {}}>
+          {title ? (
+            <Text style={[styles.promptTitle, { fontFamily: fonts.bodySemiBold, color: colors.ink }]}>{title}</Text>
+          ) : null}
           <Text style={[styles.promptText, { fontFamily: fonts.body, color: colors.ink }]}>{message}</Text>
 
           {actions.map((action) => (
@@ -105,6 +110,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  promptTitle: {
+    fontSize: 17,
   },
   promptText: {
     fontSize: 15,

@@ -730,6 +730,7 @@ export const en = {
     plantFallback: "your plant",
   },
   careStreakGraceModal: {
+    title: "Plant sitter Grace Day",
     messageWater: "{plant} needs watering by tomorrow — miss it and your streak resets.",
     messageFertilize: "{plant} needs fertilizing by tomorrow — miss it and your streak resets.",
     messageRepot: "{plant} needs its soil changed by tomorrow — miss it and your streak resets.",
