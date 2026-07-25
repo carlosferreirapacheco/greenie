@@ -24,18 +24,43 @@ function actorName(notification: NotificationWithActor, t: (key: string) => stri
   return notification.actor_username ? `@${notification.actor_username}` : t("likes.fallbackName");
 }
 
+// care_due/sitting_grace_day/sitting_grace_expired all follow the same
+// shape: one sentence per care_task_type, keyed as `{baseKey}Water`/
+// `Fertilize`/`Repot` -- naming the specific task (not just the plant)
+// matters here, since a plant can have more than one overdue/graced
+// task at once and identical-looking rows would otherwise be
+// indistinguishable in the inbox.
+function careTaskSentence(
+  baseKey: string,
+  careTaskType: string | null,
+  plantName: string,
+  t: (key: string, params?: Record<string, string>) => string
+): string {
+  switch (careTaskType) {
+    case "fertilize":
+      return t(`${baseKey}Fertilize`, { plant: plantName });
+    case "repot":
+      return t(`${baseKey}Repot`, { plant: plantName });
+    case "water":
+    default:
+      return t(`${baseKey}Water`, { plant: plantName });
+  }
+}
+
 function notificationSentence(notification: NotificationWithActor, t: (key: string, params?: Record<string, string>) => string): string {
   if (notification.type === "care_due") {
     const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
-    switch (notification.care_task_type) {
-      case "fertilize":
-        return t("notificationsScreen.sentence.careDueFertilize", { plant: plantName });
-      case "repot":
-        return t("notificationsScreen.sentence.careDueRepot", { plant: plantName });
-      case "water":
-      default:
-        return t("notificationsScreen.sentence.careDueWater", { plant: plantName });
-    }
+    return careTaskSentence("notificationsScreen.sentence.careDue", notification.care_task_type, plantName, t);
+  }
+
+  if (notification.type === "sitting_grace_day") {
+    const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    return careTaskSentence("notificationsScreen.sentence.sittingGraceDay", notification.care_task_type, plantName, t);
+  }
+
+  if (notification.type === "sitting_grace_expired") {
+    const plantName = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    return careTaskSentence("notificationsScreen.sentence.sittingGraceExpired", notification.care_task_type, plantName, t);
   }
 
   const name = actorName(notification, t);

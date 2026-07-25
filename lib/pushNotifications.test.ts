@@ -36,6 +36,11 @@ describe("notificationTargetPath", () => {
     expect(notificationTargetPath("care_due", { plantId: "pl1" })).toBe("/plant/pl1");
   });
 
+  it("routes both sitting grace kinds to the plant", () => {
+    expect(notificationTargetPath("sitting_grace_day", { plantId: "pl1" })).toBe("/plant/pl1");
+    expect(notificationTargetPath("sitting_grace_expired", { plantId: "pl1" })).toBe("/plant/pl1");
+  });
+
   it("returns null when the id a kind needs is missing", () => {
     expect(notificationTargetPath("comment", {})).toBeNull();
     expect(notificationTargetPath("new_follower", {})).toBeNull();

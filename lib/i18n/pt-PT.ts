@@ -693,6 +693,8 @@ export const ptPT: typeof en = {
     sitterFallback: "este seguidor",
     intro:
       "Peça a {sitterName} para cuidar de todas as suas plantas enquanto está fora. Vai poder ver as suas tarefas de cuidado, marcá-las como feitas, e registar novos relatórios de progresso em seu nome.",
+    streakHint:
+      "As tarefas de cuidado que o seu cuidador completar contam para a sequência dele, não para a sua. A sua sequência pausa enquanto ele cuida das suas plantas, e se falhar alguma tarefa, tem um dia de tolerância para a concluir antes de afetar a sequência dele.",
     startDate: {
       label: "Data de início (opcional)",
     },
@@ -724,8 +726,22 @@ export const ptPT: typeof en = {
       careDueWater: "Hora de regar {plant}",
       careDueFertilize: "Hora de adubar {plant}",
       careDueRepot: "Hora de trocar a terra de {plant}",
+      sittingGraceDayWater: "Dia de tolerância concedido: a rega de {plant} foi estendida por 1 dia — conclua-a até amanhã",
+      sittingGraceDayFertilize: "Dia de tolerância concedido: a adubação de {plant} foi estendida por 1 dia — conclua-a até amanhã",
+      sittingGraceDayRepot: "Dia de tolerância concedido: a troca de terra de {plant} foi estendida por 1 dia — conclua-a até amanhã",
+      sittingGraceExpiredWater: "O dia de tolerância para a rega de {plant} terminou — a sua sequência foi reiniciada",
+      sittingGraceExpiredFertilize: "O dia de tolerância para a adubação de {plant} terminou — a sua sequência foi reiniciada",
+      sittingGraceExpiredRepot: "O dia de tolerância para a troca de terra de {plant} terminou — a sua sequência foi reiniciada",
     },
     plantFallback: "a sua planta",
+  },
+  careStreakGraceModal: {
+    title: "Dia de tolerância",
+    messageWater: "Foi-lhe concedido um dia de tolerância: a tarefa de rega de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    messageFertilize: "Foi-lhe concedido um dia de tolerância: a tarefa de adubação de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    messageRepot: "Foi-lhe concedido um dia de tolerância: a tarefa de troca de terra de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    messageMultiple: "Foi-lhe concedido um dia de tolerância: {count} tarefas de cuidado em atraso foram estendidas por 1 dia. Conclua-as até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    dismiss: "Entendi",
   },
   profile: {
     screenTitle: "Perfil",

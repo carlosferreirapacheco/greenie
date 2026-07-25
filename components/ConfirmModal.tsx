@@ -24,18 +24,25 @@ export type ConfirmModalAction = {
 // pass errorText, so the prompt stays open for a retry or cancel instead
 // of silently vanishing.
 export function ConfirmModal({
+  title,
   message,
   actions,
   onCancel,
   cancelLabel,
+  hideCancel,
   busy,
   errorText,
   fonts,
 }: {
+  title?: string;
   message: string;
   actions: ConfirmModalAction[];
   onCancel: () => void;
   cancelLabel?: string;
+  // For prompts where every action (including backdrop/back-button
+  // dismissal, still wired to onCancel) ends up doing the same thing --
+  // a separate "Cancel" text button would just be a redundant control.
+  hideCancel?: boolean;
   busy?: boolean;
   errorText?: string | null;
   fonts: ReturnType<typeof getFonts>;
@@ -48,6 +55,9 @@ export function ConfirmModal({
       <Pressable style={styles.backdrop} onPress={onCancel}>
         {/* Empty onPress swallows the touch so it doesn't bubble to the backdrop's close handler. */}
         <Pressable style={[styles.card, { backgroundColor: colors.paperRaised }]} onPress={() => {}}>
+          {title ? (
+            <Text style={[styles.promptTitle, { fontFamily: fonts.bodySemiBold, color: colors.ink }]}>{title}</Text>
+          ) : null}
           <Text style={[styles.promptText, { fontFamily: fonts.body, color: colors.ink }]}>{message}</Text>
 
           {actions.map((action) => (
@@ -80,11 +90,13 @@ export function ConfirmModal({
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{errorText}</Text>
           ) : null}
 
-          <Pressable style={styles.promptSecondaryButton} onPress={onCancel} disabled={busy}>
-            <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-              {cancelLabel ?? t("common.cancel")}
-            </Text>
-          </Pressable>
+          {hideCancel ? null : (
+            <Pressable style={styles.promptSecondaryButton} onPress={onCancel} disabled={busy}>
+              <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                {cancelLabel ?? t("common.cancel")}
+              </Text>
+            </Pressable>
+          )}
         </Pressable>
       </Pressable>
     </Modal>
@@ -105,6 +117,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  promptTitle: {
+    fontSize: 17,
   },
   promptText: {
     fontSize: 15,

@@ -42,6 +42,8 @@ export function notificationTargetPath(
     case "sitting_declined":
       return "/plant-sitting";
     case "care_due":
+    case "sitting_grace_day":
+    case "sitting_grace_expired":
       return params.plantId ? `/plant/${params.plantId}` : null;
     default:
       return null;

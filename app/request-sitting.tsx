@@ -93,6 +93,10 @@ export default function RequestSittingScreen() {
           {t("requestSitting.intro", { sitterName })}
         </Text>
 
+        <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {t("requestSitting.streakHint")}
+        </Text>
+
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             {t("requestSitting.startDate.label")}

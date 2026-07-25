@@ -691,6 +691,8 @@ export const en = {
     sitterFallback: "this follower",
     intro:
       "Ask {sitterName} to look after all of your plants while you're away. They'll be able to view your care tasks, mark them done, and log new progress reports on your behalf.",
+    streakHint:
+      "Care tasks your sitter completes count toward their own care streak, not yours. Your streak pauses while they're covering for you, and if they miss something on your plants, they get a day's grace to catch up before it affects theirs.",
     startDate: {
       label: "Start date (optional)",
     },
@@ -722,8 +724,22 @@ export const en = {
       careDueWater: "Time to water {plant}",
       careDueFertilize: "Time to fertilize {plant}",
       careDueRepot: "Time to repot {plant}",
+      sittingGraceDayWater: "Grace day granted: {plant}'s watering is extended by 1 day — complete it by tomorrow",
+      sittingGraceDayFertilize: "Grace day granted: {plant}'s fertilizing is extended by 1 day — complete it by tomorrow",
+      sittingGraceDayRepot: "Grace day granted: {plant}'s soil change is extended by 1 day — complete it by tomorrow",
+      sittingGraceExpiredWater: "Grace day ended for {plant}'s watering — your streak reset",
+      sittingGraceExpiredFertilize: "Grace day ended for {plant}'s fertilizing — your streak reset",
+      sittingGraceExpiredRepot: "Grace day ended for {plant}'s soil change — your streak reset",
     },
     plantFallback: "your plant",
+  },
+  careStreakGraceModal: {
+    title: "Grace day",
+    messageWater: "You've been granted a grace day: {plant}'s watering task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
+    messageFertilize: "You've been granted a grace day: {plant}'s fertilizing task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
+    messageRepot: "You've been granted a grace day: {plant}'s soil-change task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
+    messageMultiple: "You've been granted a grace day: {count} overdue care tasks are extended by 1 day. Complete them by tomorrow, or your care streak will reset.",
+    dismiss: "Got it",
   },
   profile: {
     screenTitle: "Profile",
