@@ -108,9 +108,10 @@ service-role key does not appear in the client bundle (a first grep for
 the literal string `sb_secret_` did match a client chunk, but turned out
 to be only the Supabase SDK's own generic key-prefix-detection code, not
 the real key; confirmed by searching for the actual key value instead).
-Deferred to when the app has a first real feature to deploy: Cloudflare
-Pages hosting, the `backoffice.greenie-app.com` domain, and the
-Cloudflare Access gate.
+**Hosting is now done too** — see the Open questions section below for
+the full writeup (Cloudflare Workers via the OpenNext adapter, the
+`backoffice.greenie-app.com` Custom Domain, and the Cloudflare Access
+gate, all live).
 
 ## Features
 
@@ -639,11 +640,30 @@ Cloudflare Access gate.
   Server Action (`setBetaTester()`, round-tripped and confirmed via
   SQL) all work correctly; confirmed the service-role key doesn't
   reach client-served assets.
-- Still open (owner-only, dashboard/CLI-login work, tracked step-by-step
-  in `docs/backoffice-hosting.md`): the GitHub Actions repo
-  secrets/variables, a Workers-scoped Cloudflare API token, `wrangler
-  secret put` for `SUPABASE_SECRET_KEY`/`RESEND_API_KEY`, the
-  `backoffice.greenie-app.com` Custom Domain, and the Cloudflare Access
-  policy itself (mirrors `docs/demo-hosting.md`'s pattern, but with a
-  much tighter allowlist — this app performs real moderation/account
-  actions with a service-role key behind it, not a signup demo).
+- **Owner-side setup — done.** The GitHub Actions repo secrets/variables,
+  a Workers-scoped Cloudflare API token, the Worker's
+  `SUPABASE_SECRET_KEY`/`RESEND_API_KEY` secrets (set via the Cloudflare
+  dashboard rather than `wrangler secret put`, since a terminal wasn't
+  available at the time — same effect, takes effect immediately), the
+  `backoffice.greenie-app.com` Custom Domain, and a dedicated Cloudflare
+  Access application scoped to that domain (Allow, owner's email only —
+  much tighter than the tester-facing main-app demo's allowlist) are all
+  live. Verified end-to-end: the deploy workflow runs green, and
+  `backoffice.greenie-app.com` returns a Cloudflare Access login
+  challenge rather than serving the app directly.
+  Also closed the one gap the Custom Domain alone doesn't cover: the
+  Worker's default `*.workers.dev` URL stays reachable unless told
+  otherwise, and Access only gates the custom domain's hostname — so
+  `"workers_dev": false` was added to `wrangler.jsonc` (a dashboard-only
+  disable doesn't survive the next `wrangler deploy`, confirmed via
+  Cloudflare's own docs) to remove that fallback route for good.
+  A related fix landed on the **main** `greenie` app's demo at the same
+  time, since it shares the same underlying gap: `greenie-app.com` (the
+  apex domain, previously unwired — see `docs/demo-hosting.md`'s own
+  "Custom domain — later" note) now has its own Custom Domain + Access
+  application on the `greenie` Pages project, and the old
+  `greenie-cwb.pages.dev` fallback's Access application was locked to a
+  Block-everyone policy (confirmed live: entering even the owner's own
+  allowlisted email there no longer sends a one-time PIN — Cloudflare's
+  documented, intentional behavior when an email doesn't match an Allow
+  policy on that specific application, not a delivery bug).

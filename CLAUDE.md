@@ -1130,11 +1130,18 @@ sharing them socially with other users.
   their email to the Access policy. A future mobile release does NOT
   depend on this hosting (native builds talk straight to Supabase) —
   it's a demo vehicle that can later graduate to a production web app.
-  - Custom domain — later, free on Cloudflare Pages. A domain is now
-    owned (`greenie-app.com`, registered for the SMTP setup below —
-    see "Confirm email + real SMTP delivery" under Public launch /
-    production readiness) and could point here later, but wiring it up
-    is still unstarted.
+  - Custom domain — done. `greenie-app.com` (the apex domain, already
+    owned — registered for the SMTP setup below, see "Confirm email +
+    real SMTP delivery" under Public launch / production readiness) is
+    now the demo's Custom Domain on the `greenie` Pages project, with
+    its own Cloudflare Access application (same allowlist as before).
+    The old default `greenie-cwb.pages.dev` URL's Access application
+    was locked to a Block-everyone policy (no Allow rule at all) rather
+    than deleted or left open, so it's fully inaccessible now — even
+    the owner's own allowlisted email gets no login PIN there, which is
+    Cloudflare's documented behavior for an email that doesn't match
+    an Allow policy on that specific application, confirmed live, not
+    a delivery bug. `greenie-app.com` is the only way in now.
   - Access seat count — the free Zero Trust plan covers 50 users;
     revisit if the invite list approaches that.
   - (Store-required public pages for a mobile release are tracked
