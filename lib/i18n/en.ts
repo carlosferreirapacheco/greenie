@@ -734,10 +734,11 @@ export const en = {
     plantFallback: "your plant",
   },
   careStreakGraceModal: {
-    title: "Plant sitter Grace Day",
+    title: "Grace day",
     messageWater: "You've been granted a grace day: {plant}'s watering task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
     messageFertilize: "You've been granted a grace day: {plant}'s fertilizing task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
     messageRepot: "You've been granted a grace day: {plant}'s soil-change task is extended by 1 day. Complete it by tomorrow, or your care streak will reset.",
+    messageMultiple: "You've been granted a grace day: {count} overdue care tasks are extended by 1 day. Complete them by tomorrow, or your care streak will reset.",
     dismiss: "Got it",
   },
   profile: {

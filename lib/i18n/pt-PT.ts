@@ -736,10 +736,11 @@ export const ptPT: typeof en = {
     plantFallback: "a sua planta",
   },
   careStreakGraceModal: {
-    title: "Dia de Tolerância do Cuidador",
+    title: "Dia de tolerância",
     messageWater: "Foi-lhe concedido um dia de tolerância: a tarefa de rega de {plant} foi prorrogada por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
     messageFertilize: "Foi-lhe concedido um dia de tolerância: a tarefa de adubação de {plant} foi prorrogada por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
     messageRepot: "Foi-lhe concedido um dia de tolerância: a tarefa de troca de terra de {plant} foi prorrogada por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    messageMultiple: "Foi-lhe concedido um dia de tolerância: {count} tarefas de cuidado em atraso foram prorrogadas por 1 dia. Conclua-as até amanhã, ou a sua sequência de cuidados será reiniciada.",
     dismiss: "Entendi",
   },
   profile: {

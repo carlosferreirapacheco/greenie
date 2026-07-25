@@ -5,7 +5,13 @@ jest.mock("./client", () => {
 
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
-import { getNotifications, getUnreadNotificationCount, markAllNotificationsRead } from "./notifications";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  getUnreadNotificationsByType,
+  markAllNotificationsRead,
+  markNotificationsRead,
+} from "./notifications";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -161,6 +167,49 @@ describe("getUnreadNotificationCount", () => {
   });
 });
 
+describe("getUnreadNotificationsByType", () => {
+  it("queries unread rows of the given type only, oldest first, hydrated with plant names", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+
+    const rows = [
+      {
+        id: "n1",
+        recipient_id: "me",
+        actor_id: null,
+        type: "sitting_grace_day",
+        progress_id: null,
+        plant_id: "pl1",
+        care_task_type: "water",
+        read_at: null,
+        created_at: "2026-07-25",
+      },
+    ];
+
+    const rowsChain = createChainableQueryMock({ data: rows, error: null });
+    const plantsChain = createChainableQueryMock({
+      data: [{ id: "pl1", name: "Pothos", nickname: "Paredes" }],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(rowsChain).mockReturnValueOnce(plantsChain);
+
+    const result = await getUnreadNotificationsByType("sitting_grace_day");
+
+    expect(rowsChain.eq).toHaveBeenCalledWith("recipient_id", "me");
+    expect(rowsChain.eq).toHaveBeenCalledWith("type", "sitting_grace_day");
+    expect(rowsChain.is).toHaveBeenCalledWith("read_at", null);
+    expect(rowsChain.order).toHaveBeenCalledWith("created_at", { ascending: true });
+    expect(result[0]).toEqual(expect.objectContaining({ id: "n1", plant_name: "Paredes" }));
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
+    const err = { message: "network" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(getUnreadNotificationsByType("sitting_grace_day")).rejects.toBe(err);
+  });
+});
+
 describe("markAllNotificationsRead", () => {
   it("stamps read_at on the signed-in recipient's unread rows only", async () => {
     mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
@@ -180,5 +229,30 @@ describe("markAllNotificationsRead", () => {
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
 
     await expect(markAllNotificationsRead()).rejects.toBe(err);
+  });
+});
+
+describe("markNotificationsRead", () => {
+  it("stamps read_at on exactly the given ids -- powers the grace-day modal's single-dismiss-for-all", async () => {
+    const chain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(chain);
+
+    await markNotificationsRead(["n1", "n2"]);
+
+    expect(chain.update).toHaveBeenCalledWith({ read_at: expect.any(String) });
+    expect(chain.in).toHaveBeenCalledWith("id", ["n1", "n2"]);
+  });
+
+  it("does not query at all when given an empty list", async () => {
+    await markNotificationsRead([]);
+
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "permission denied" };
+    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(markNotificationsRead(["n1"])).rejects.toBe(err);
   });
 });

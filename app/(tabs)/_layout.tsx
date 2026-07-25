@@ -7,7 +7,7 @@ import { getMyProfile } from "../../lib/supabase/profiles";
 import {
   getUnreadNotificationCount,
   getUnreadNotificationsByType,
-  markNotificationRead,
+  markNotificationsRead,
   type NotificationWithActor,
 } from "../../lib/supabase/notifications";
 import { getPendingFollowRequests } from "../../lib/supabase/follows";
@@ -18,19 +18,31 @@ import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
 
-// One message variant per care task type, matching the notification
-// inbox's own careDue*/sittingGraceDay sentence-per-type pattern.
-function graceModalMessage(notification: NotificationWithActor, t: (key: string, params?: Record<string, string>) => string): string {
-  const plant = notification.plant_name ?? t("notificationsScreen.plantFallback");
-  switch (notification.care_task_type) {
-    case "fertilize":
-      return t("careStreakGraceModal.messageFertilize", { plant });
-    case "repot":
-      return t("careStreakGraceModal.messageRepot", { plant });
-    case "water":
-    default:
-      return t("careStreakGraceModal.messageWater", { plant });
+// Always exactly ONE modal, no matter how many grace notifications are
+// pending -- a sitter with several overdue tasks (one plant or many)
+// would otherwise see a popup queue, one per task, which is exactly
+// the "too much" experience this was designed to avoid. A single
+// pending task keeps the specific plant/task wording; two or more
+// collapse into one summary message instead of naming each.
+function graceModalMessage(
+  notifications: NotificationWithActor[],
+  t: (key: string, params?: Record<string, string>) => string
+): string {
+  if (notifications.length === 1) {
+    const [notification] = notifications;
+    const plant = notification.plant_name ?? t("notificationsScreen.plantFallback");
+    switch (notification.care_task_type) {
+      case "fertilize":
+        return t("careStreakGraceModal.messageFertilize", { plant });
+      case "repot":
+        return t("careStreakGraceModal.messageRepot", { plant });
+      case "water":
+      default:
+        return t("careStreakGraceModal.messageWater", { plant });
+    }
   }
+
+  return t("careStreakGraceModal.messageMultiple", { count: String(notifications.length) });
 }
 
 // The persistent bottom tab bar over the five main destinations
@@ -52,8 +64,8 @@ export default function TabsLayout() {
   // Cron-detected + cron-enforced grace days (see 0032's
   // care-sitting-grace-scan job): the tabs layout's existing
   // navigation-state refetch is also where unread sitting_grace_day
-  // notifications are picked up and surfaced as a popup, one at a time
-  // if a sitter has several.
+  // notifications are picked up and surfaced as a single popup covering
+  // all of them at once (see graceModalMessage above).
   const [graceNotifications, setGraceNotifications] = useState<NotificationWithActor[]>([]);
   const [graceDismissBusy, setGraceDismissBusy] = useState(false);
 
@@ -81,17 +93,16 @@ export default function TabsLayout() {
   }, []);
 
   async function handleDismissGraceModal() {
-    const [current, ...rest] = graceNotifications;
-    if (!current || graceDismissBusy) {
+    if (graceNotifications.length === 0 || graceDismissBusy) {
       return;
     }
     setGraceDismissBusy(true);
     try {
-      await markNotificationRead(current.id);
-      setGraceNotifications(rest);
+      await markNotificationsRead(graceNotifications.map((notification) => notification.id));
+      setGraceNotifications([]);
     } catch {
-      // Leaves the modal open on the same notification -- a retry tap
-      // just tries the same mark-read call again.
+      // Leaves the modal open -- a retry tap just tries the same
+      // batch mark-read call again.
     } finally {
       setGraceDismissBusy(false);
     }
@@ -110,8 +121,6 @@ export default function TabsLayout() {
     const unsubscribe = navigation.addListener("state", refetchHeaderState);
     return unsubscribe;
   }, [navigation, refetchHeaderState]);
-
-  const currentGraceNotification = graceNotifications[0] ?? null;
 
   return (
     <>
@@ -218,12 +227,13 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
-      {currentGraceNotification ? (
+      {graceNotifications.length > 0 ? (
         <ConfirmModal
           title={t("careStreakGraceModal.title")}
-          message={graceModalMessage(currentGraceNotification, t)}
+          message={graceModalMessage(graceNotifications, t)}
           actions={[{ label: t("careStreakGraceModal.dismiss"), onPress: handleDismissGraceModal }]}
           onCancel={handleDismissGraceModal}
+          hideCancel
           busy={graceDismissBusy}
           fonts={fonts}
         />

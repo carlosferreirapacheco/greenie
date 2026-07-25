@@ -131,8 +131,9 @@ export async function getNotifications(): Promise<NotificationWithActor[]> {
 }
 
 // Drives the tabs layout's grace-day popup modal (app/(tabs)/_layout.tsx):
-// unread sitting_grace_day rows only, oldest first so a sitter with
-// several sees them one at a time in the order they actually opened.
+// every unread sitting_grace_day row, surfaced together in one modal
+// rather than one popup per row -- oldest first purely for a stable
+// display order.
 export async function getUnreadNotificationsByType(type: NotificationType): Promise<NotificationWithActor[]> {
   const {
     data: { user },
@@ -199,11 +200,16 @@ export async function markAllNotificationsRead(): Promise<void> {
   }
 }
 
-// Marks a single notification read, unlike markAllNotificationsRead() --
-// used by the grace-day popup modal so dismissing one doesn't also
-// silently clear the inbox's other unread highlights.
-export async function markNotificationRead(id: string): Promise<void> {
-  const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+// Marks specific notifications read, unlike markAllNotificationsRead() --
+// used by the grace-day popup modal (one modal, however many grace
+// notifications are pending) so dismissing it doesn't also silently
+// clear the inbox's other unread highlights.
+export async function markNotificationsRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) {
+    return;
+  }
+
+  const { error } = await supabase.from("notifications").update({ read_at: new Date().toISOString() }).in("id", ids);
 
   if (error) {
     throw error;

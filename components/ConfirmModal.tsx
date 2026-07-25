@@ -29,6 +29,7 @@ export function ConfirmModal({
   actions,
   onCancel,
   cancelLabel,
+  hideCancel,
   busy,
   errorText,
   fonts,
@@ -38,6 +39,10 @@ export function ConfirmModal({
   actions: ConfirmModalAction[];
   onCancel: () => void;
   cancelLabel?: string;
+  // For prompts where every action (including backdrop/back-button
+  // dismissal, still wired to onCancel) ends up doing the same thing --
+  // a separate "Cancel" text button would just be a redundant control.
+  hideCancel?: boolean;
   busy?: boolean;
   errorText?: string | null;
   fonts: ReturnType<typeof getFonts>;
@@ -85,11 +90,13 @@ export function ConfirmModal({
             <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{errorText}</Text>
           ) : null}
 
-          <Pressable style={styles.promptSecondaryButton} onPress={onCancel} disabled={busy}>
-            <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
-              {cancelLabel ?? t("common.cancel")}
-            </Text>
-          </Pressable>
+          {hideCancel ? null : (
+            <Pressable style={styles.promptSecondaryButton} onPress={onCancel} disabled={busy}>
+              <Text style={[styles.promptSecondaryText, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+                {cancelLabel ?? t("common.cancel")}
+              </Text>
+            </Pressable>
+          )}
         </Pressable>
       </Pressable>
     </Modal>
