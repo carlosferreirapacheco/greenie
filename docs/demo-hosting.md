@@ -15,9 +15,12 @@ bandwidth, and Access' free (Zero Trust) plan covers up to 50 users.
 push to master
    └─ GitHub Actions (.github/workflows/deploy.yml)
         ├─ npx expo export --platform web   → dist/ (SPA bundle)
-        └─ wrangler pages deploy dist       → https://greenie.pages.dev
+        └─ wrangler pages deploy dist       → https://greenie-app.com (Custom Domain)
                                                  └─ Cloudflare Access gate
                                                       └─ app sign-in (Supabase auth + RLS)
+
+   (the old greenie-cwb.pages.dev URL still exists but its Access
+   application is set to Block everyone -- effectively disabled)
 ```
 
 - The bundle contains only the Supabase URL and publishable key —
@@ -79,6 +82,29 @@ deploy creates the `greenie` Pages project and prints the URL
 ### 5. Inviting / removing someone later
 Zero Trust → Access → Applications → policy → add or remove their
 email. Takes effect immediately (sessions last 24h by default).
+
+### 6. Custom domain — done
+The demo now lives at `https://greenie-app.com` (the apex domain,
+already owned — registered for the SMTP setup in
+`docs/email-smtp-setup.md`), not just `*.greenie.pages.dev`:
+1. Cloudflare dashboard → Workers & Pages → **greenie** → Custom
+   domains → Add `greenie-app.com`. Auto-provisions DNS + cert on the
+   already-owned zone.
+2. New Access application scoped to `greenie-app.com` specifically,
+   same Allow-by-email policy as before.
+3. **Locked down the old `pages.dev` URL rather than leaving it open
+   too**: its own Access application's policy was changed to a single
+   rule — Action **Block**, Include **Everyone** — instead of deleting
+   the application (deleting it would have left the URL completely
+   ungated, the opposite of what was wanted; confirmed live that this
+   actually happened transiently while reconfiguring, and was a real,
+   if brief, exposure). A Block-everyone policy denies literally
+   anyone, including the account owner's own allowlisted email — visible
+   as the one-time-PIN email never arriving for a login attempt there,
+   which is Cloudflare's documented, intentional behavior for an email
+   that doesn't match an Allow policy on that specific application, not
+   a delivery bug.
+4. `greenie-app.com` is the only working URL for the demo now.
 
 ## Day-to-day
 - Every merge to `master` redeploys the demo automatically.
