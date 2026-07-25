@@ -258,6 +258,26 @@ export default function ProfileScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("profile.careStreak.sectionTitle")}
+          </Text>
+          {profile && profile.care_streak_current > 0 ? (
+            <>
+              <Text style={[styles.careStreakValue, { fontFamily: fonts.bodySemiBold, color: colors.moss }]}>
+                {t("profile.careStreak.current", { count: profile.care_streak_current })}
+              </Text>
+              <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+                {t("profile.careStreak.longest", { count: profile.care_streak_longest })}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+              {t("profile.careStreak.currentZero")}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             {t("signIn.email.label")}
           </Text>
           <Text style={[styles.readonlyValue, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}>
@@ -403,6 +423,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     opacity: 0.7,
+  },
+  careStreakValue: {
+    fontSize: 20,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

@@ -181,30 +181,50 @@ describe("deleteCareTask", () => {
 });
 
 describe("markCareTaskDone", () => {
-  it("defaults next_due to now + frequency_days when no anchor is given", async () => {
+  // Delegates to the record_care_completion() RPC (see the streaks
+  // migration) instead of a plain UPDATE -- these assert the call shape
+  // (params + device timezone), not the streak logic itself, which lives
+  // in the database and is verified there.
+  it("defaults the next_due anchor to now and passes the device's timezone", async () => {
     const chain = createChainableQueryMock({ data: task({}), error: null });
-    mockSupabase.from.mockReturnValue(chain);
+    mockSupabase.rpc.mockReturnValue(chain);
     const target = task({ id: "task-1", frequency_days: 7 });
+    const expectedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     await markCareTaskDone(target);
 
-    expect(chain.update).toHaveBeenCalledWith({
-      last_done: "2026-01-15T12:00:00.000Z",
-      next_due: "2026-01-22T12:00:00.000Z",
+    expect(mockSupabase.rpc).toHaveBeenCalledWith("record_care_completion", {
+      p_task_id: "task-1",
+      p_next_due_anchor: "2026-01-15T12:00:00.000Z",
+      p_client_timezone: expectedTimeZone,
     });
   });
 
-  it("counts next_due from an explicit anchor (the overdue-task original due date), but last_done is still now", async () => {
+  it("passes an explicit anchor (the overdue task's original due date) instead of now", async () => {
     const chain = createChainableQueryMock({ data: task({}), error: null });
-    mockSupabase.from.mockReturnValue(chain);
+    mockSupabase.rpc.mockReturnValue(chain);
     const target = task({ id: "task-1", frequency_days: 7 });
     const originalDueDate = new Date("2026-01-05T12:00:00.000Z");
 
     await markCareTaskDone(target, originalDueDate);
 
-    expect(chain.update).toHaveBeenCalledWith({
-      last_done: "2026-01-15T12:00:00.000Z",
-      next_due: "2026-01-12T12:00:00.000Z",
-    });
+    expect(mockSupabase.rpc).toHaveBeenCalledWith(
+      "record_care_completion",
+      expect.objectContaining({ p_task_id: "task-1", p_next_due_anchor: "2026-01-05T12:00:00.000Z" })
+    );
+  });
+
+  it("returns the updated task from the RPC result", async () => {
+    const updated = task({ id: "task-1", last_done: "2026-01-15T12:00:00.000Z" });
+    mockSupabase.rpc.mockReturnValue(createChainableQueryMock({ data: updated, error: null }));
+
+    await expect(markCareTaskDone(task({ id: "task-1" }))).resolves.toEqual(updated);
+  });
+
+  it("throws the Supabase error on failure", async () => {
+    const err = { message: "not authorized" };
+    mockSupabase.rpc.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+
+    await expect(markCareTaskDone(task({}))).rejects.toBe(err);
   });
 });

@@ -250,6 +250,12 @@ export default function UserProfileScreen() {
         <BadgeChipRow badges={badges} fonts={fonts} />
       </View>
 
+      {profile && profile.care_streak_current > 0 ? (
+        <Text style={[styles.careStreak, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+          {t("userProfile.careStreak", { count: profile.care_streak_current })}
+        </Text>
+      ) : null}
+
       <Text style={[styles.bio, { fontFamily: fonts.body, color: profile?.bio ? colors.ink : colors.inkSoft }]}>
         {profile?.bio ?? t("userProfile.noBio")}
       </Text>
@@ -418,6 +424,10 @@ const styles = StyleSheet.create({
   },
   badgesRow: {
     flexDirection: "row",
+    marginTop: spacing.xs,
+  },
+  careStreak: {
+    fontSize: 14,
     marginTop: spacing.xs,
   },
   bio: {
