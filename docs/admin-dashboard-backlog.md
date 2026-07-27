@@ -619,11 +619,64 @@ gate, all live).
 
 ## Open questions (resolve during planning, before implementation)
 
-- Does every destructive admin action (content deletion, forced account
-  deletion) need its own audit log, separate from `reports.resolved_by`?
-  Given this app already tracks moderation provenance nowhere else,
-  probably yes for at least deletions — but scope that explicitly
-  rather than assuming.
+- **Admin audit logging — done.** Five admin actions had no durable
+  record of who performed them and when, beyond `requireAdmin()`'s
+  in-memory check: `confirmUserDeletion` (permanent account deletion —
+  the case this item originally named), `unbanUser`,
+  `setBetaTester`, `adjustSupporterTotal`, and `matchDonationToUser`.
+  Report-driven moderation (delete content/ban/dismiss) already had its
+  own trail via `reports.resolved_at`/`resolved_by`/`resolution`
+  (migration `0026`) and deliberately does **not** also write here —
+  this table exists specifically to cover what that one doesn't. New
+  main-repo migration `0033_admin_audit_log.sql`: `admin_audit_log`
+  (`admin_id`/`admin_email`, `action` check-constrained to the five
+  action names, `target_user_id`/`target_email`, a `detail jsonb` for
+  the action-specific payload) — same no-client-RLS-policies pattern as
+  `ai_lookup_error_logs`/`app_error_logs`/`bmc_donations`, every
+  read/write goes through the backoffice's own service-role
+  `createAdminClient()`. `admin_email`/`target_email` are denormalized
+  snapshots taken at insert time, not left to the FK alone — critical
+  for `delete_account` specifically, since `target_user_id` goes null
+  (`on delete set null`) the instant the account is actually deleted,
+  and without the snapshot that row would go unreadable right after the
+  one event it exists to record; confirmed via a rolled-back SQL
+  transaction that `target_email` does survive that. New
+  `greenie-backoffice/src/lib/audit.ts`: `logAdminAction()` (mirrors
+  `resolveReport()`'s shape in `lib/reports.ts`) and `getAuditLog()`/
+  `getAdminAuditSummary()` (mirror `getAppErrors()`/
+  `getAppErrorSummary()` in `lib/errors.ts`). **Ordering decision**:
+  every instrumented action calls `logAdminAction()` *before* its
+  actual mutation, not after — if the audit write fails, the action
+  aborts and the mutation never happens, unlike this project's
+  best-effort error-logging pattern (`logFailure()` in `lookup-plant`),
+  which exists to record failures and must never block the caller; for
+  a privileged action that's *about* to succeed, "we always leave a
+  trail" is the safer default. `confirmUserDeletion` logs after OTP
+  verification succeeds (so a bogus/unverified request never produces a
+  row) but before the actual delete. A private `resolveUserEmail()`
+  helper already living in `users/actions.ts` was promoted to
+  `lib/users.ts` (alongside the `listUsersWithRetry()` it wraps) since
+  `matchDonationToUser` in `supporters/actions.ts` needed the same
+  target-email resolution and duplicating it wasn't worth it. New
+  `/audit-log` review page (filterable by action + date range,
+  mirroring `/errors/app`'s exact shape) plus a summary block on the
+  home dashboard — both follow the existing Errors pages' precedent of
+  living off the dashboard's own "View all" links rather than the top
+  nav bar, once that precedent was noticed while building this (Reports/
+  Users/Supporters/Config are the only top-nav items; Errors pages
+  aren't there either). Verified: `apply_migration` + `get_advisors`
+  clean; `tsc --noEmit` clean; a rolled-back SQL transaction exercising
+  all 5 actions' exact insert shapes, plus the `delete_account`
+  null-target/surviving-email case and the `action` check constraint
+  rejecting an invalid value; `next build` succeeded with `/audit-log`
+  appearing as a generated route, and a `next start` production-server
+  check confirmed both `/` and `/audit-log` correctly redirect an
+  unauthenticated request to `/login` through `requireAdmin()` rather
+  than erroring. **Not click-tested through an authenticated session**
+  in this pass — same as several other backoffice features in this doc,
+  this environment has no real backoffice login to drive interactively;
+  the SQL-level and build-level verification above is what stands in
+  for it here.
 - Framework/repo decided and scaffolded (Next.js, standalone repo — see
   the Prerequisite section above). **Hosting: code + CI done.** Not
   classic Cloudflare Pages after all — this app has Server Actions and
