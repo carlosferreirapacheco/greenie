@@ -2,6 +2,17 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "./client";
 import type { SupportedLocale } from "../i18n";
 
+// The one deliberate exception to the single-generic-error rule below --
+// the model being overloaded (Gemini 503/UNAVAILABLE) isn't an app bug,
+// so it gets its own error type callers can check for and show a
+// "try again later" message instead of the flat failure text.
+export class AiLookupOverloadedError extends Error {
+  constructor() {
+    super("AI lookup overloaded");
+    this.name = "AiLookupOverloadedError";
+  }
+}
+
 // supabase-js's FunctionsHttpError always carries the same generic
 // ".message" ("Edge Function returned a non-2xx status code") regardless
 // of what lookup-plant actually failed on -- the real reason is only in
@@ -9,14 +20,17 @@ import type { SupportedLocale } from "../i18n";
 // logs the real cause server-side (see migration 0021,
 // ai_lookup_error_logs), so callers here don't need that detail beyond
 // this console.error for local debugging -- everything thrown from
-// these two functions is a single generic "AI lookup failed" Error,
-// letting screens show one friendly, translated message regardless of
-// cause.
+// these two functions is a single generic "AI lookup failed" Error
+// (except AiLookupOverloadedError above), letting screens show one
+// friendly, translated message regardless of cause.
 async function normalizeLookupError(error: unknown): Promise<Error> {
   if (error instanceof FunctionsHttpError) {
     try {
       const body = await error.context.clone().json();
       console.error("lookup-plant failed:", body);
+      if (body?.code === "model_overloaded") {
+        return new AiLookupOverloadedError();
+      }
     } catch {
       console.error("lookup-plant failed:", error);
     }

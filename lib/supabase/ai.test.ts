@@ -5,7 +5,7 @@ jest.mock("./client", () => {
 
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "./client";
-import { lookupPlantByPhoto, lookupPlantInfo } from "./ai";
+import { AiLookupOverloadedError, lookupPlantByPhoto, lookupPlantInfo } from "./ai";
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -55,6 +55,19 @@ describe("lookupPlantInfo", () => {
 
     await expect(lookupPlantInfo("x", "en")).rejects.toThrow("AI lookup failed");
   });
+
+  it("throws AiLookupOverloadedError, not the generic message, when the model is overloaded", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const response = new Response(JSON.stringify({ error: "Lookup failed", code: "model_overloaded" }), {
+      status: 503,
+    });
+    const httpError = new FunctionsHttpError(response);
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: httpError });
+
+    await expect(lookupPlantInfo("x", "en")).rejects.toBeInstanceOf(AiLookupOverloadedError);
+
+    consoleError.mockRestore();
+  });
 });
 
 describe("lookupPlantByPhoto", () => {
@@ -102,5 +115,20 @@ describe("lookupPlantByPhoto", () => {
     await expect(lookupPlantByPhoto("https://example.com/photo.jpg", undefined, "en")).rejects.toThrow(
       "AI lookup failed"
     );
+  });
+
+  it("throws AiLookupOverloadedError, not the generic message, when the model is overloaded", async () => {
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+    const response = new Response(JSON.stringify({ error: "Lookup failed", code: "model_overloaded" }), {
+      status: 503,
+    });
+    const httpError = new FunctionsHttpError(response);
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: httpError });
+
+    await expect(lookupPlantByPhoto("https://example.com/photo.jpg", undefined, "en")).rejects.toBeInstanceOf(
+      AiLookupOverloadedError
+    );
+
+    consoleError.mockRestore();
   });
 });

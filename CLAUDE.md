@@ -1502,6 +1502,45 @@ sharing them socially with other users.
   same pre-existing gap as the original photo-lookup feature: this
   environment's browser automation can't drive the native OS
   file-picker the now-required photo field needs.
+  - Distinguish "model overloaded" from every other failure — done,
+    a follow-up. The generic bucket above included a real, recurring
+    case: Gemini returning `503`/`UNAVAILABLE` ("This model is
+    currently experiencing high demand") under load, which isn't an
+    app bug and just needs a retry — worth telling the user that
+    explicitly instead of the flat "couldn't look up this plant"
+    message. `supabase/functions/lookup-plant/index.ts` imports
+    `ApiError` from `@google/genai` (its `.status` is the real HTTP
+    status Gemini returned) and checks `error instanceof ApiError &&
+    error.status === 503` in both Gemini-call catch blocks, tagging
+    it with its own `LookupStageError` stage (`gemini_overloaded`,
+    distinct from the generic `gemini_call`) so it's also easy to
+    spot in `ai_lookup_error_logs`. The outer handler responds `503`
+    with `{ error: "Lookup failed", code: "model_overloaded" }`
+    instead of the usual flat `500`. `lib/supabase/ai.ts` gained a
+    new exported `AiLookupOverloadedError` — the one deliberate
+    exception to `normalizeLookupError()`'s single-generic-error
+    rule, returned when the parsed body's `code` matches. Both of
+    `app/add-plant.tsx`'s lookup catch blocks (`handleLookup`,
+    `handleTextLookup`) now switch on `err instanceof
+    AiLookupOverloadedError` to show a new translated
+    `addPlant.lookupErrorOverloaded` key ("The AI is in high demand
+    right now. Please try again in a few minutes.") instead of the
+    generic `addPlant.lookupError`; every other failure keeps the
+    flat, undifferentiated message. Verified: `tsc`/`npm test` clean
+    (`ai.test.ts` gained two cases simulating a `model_overloaded`
+    `FunctionsHttpError` and asserting `AiLookupOverloadedError` is
+    thrown, not the generic one); live against the deployed function
+    — a deliberately broken photo URL still returns the unchanged
+    generic `{"error":"Lookup failed"}` at `500`, and (unplanned but
+    a clean real-world proof) Gemini genuinely was overloaded during
+    verification: two live text-lookup calls in a row correctly came
+    back `503`/`{"code":"model_overloaded"}` with a matching
+    `gemini_overloaded` row in `ai_lookup_error_logs`, a third retry
+    a few seconds later succeeded normally with real plant data, and
+    an older `gemini_call`-stage row from before this fix (same
+    underlying `UNAVAILABLE` message) confirms this was a real,
+    previously-miscategorized failure mode, not a hypothetical one;
+    test rows deleted after.
 - Real device deployment (Android) — done. First-ever real-device pass,
   via an **EAS development build** (not Expo Go — Expo Go's Play Store
   build hadn't caught up to this project's SDK 57 yet when tried, a

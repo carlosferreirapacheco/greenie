@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "npm:@google/genai@^2.10.0";
+import { ApiError, GoogleGenAI } from "npm:@google/genai@^2.10.0";
 import { encode } from "npm:base64-arraybuffer@^1.0.2";
 import { createClient } from "npm:@supabase/supabase-js@^2";
 
@@ -194,6 +194,12 @@ async function lookupByQuery(query: string, locale: unknown): Promise<Response> 
       },
     });
   } catch (error) {
+    // Distinguished from a generic gemini_call failure so the client can
+    // show "try again later" instead of a flat error -- a 503/UNAVAILABLE
+    // here means the model is overloaded, not that anything is broken.
+    if (error instanceof ApiError && error.status === 503) {
+      throw new LookupStageError("gemini_overloaded", error.message);
+    }
     throw new LookupStageError("gemini_call", error instanceof Error ? error.message : String(error));
   }
 
@@ -359,6 +365,10 @@ async function lookupByPhoto(photoUrl: string, hint: string | undefined, locale:
       },
     });
   } catch (error) {
+    // Same distinction as lookupByQuery's catch above.
+    if (error instanceof ApiError && error.status === 503) {
+      throw new LookupStageError("gemini_overloaded", error.message);
+    }
     throw new LookupStageError("gemini_call", error instanceof Error ? error.message : String(error));
   }
 
@@ -442,6 +452,8 @@ Deno.serve(async (req) => {
 
     const stage = error instanceof LookupStageError ? error.stage : "unknown";
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const isOverloaded = stage === "gemini_overloaded";
+    const statusCode = isOverloaded ? 503 : 500;
 
     // Durable logging only applies once we know which lookup this was --
     // a failure before that point (e.g. unparseable request body) is a
@@ -450,16 +462,22 @@ Deno.serve(async (req) => {
       await logFailure(req, {
         lookupType,
         stage,
-        statusCode: 500,
+        statusCode,
         errorMessage,
         inputSummary,
         locale,
       });
     }
 
-    return new Response(JSON.stringify({ error: "Lookup failed" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // The overloaded case gets its own status + code so the client can
+    // show "try again later" instead of the generic failure message --
+    // every other failure keeps the flat, undifferentiated response.
+    return new Response(
+      JSON.stringify(isOverloaded ? { error: "Lookup failed", code: "model_overloaded" } : { error: "Lookup failed" }),
+      {
+        status: statusCode,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

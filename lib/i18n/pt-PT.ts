@@ -133,6 +133,7 @@ export const ptPT: typeof en = {
     },
     saveButton: "Guardar planta",
     lookupError: "Não foi possível identificar esta planta. Tente novamente.",
+    lookupErrorOverloaded: "A IA está com muita carga neste momento. Tente novamente dentro de alguns minutos.",
     lookupModal: {
       nameMismatch: {
         message: 'A IA identificou isto como "{aiName}", mas introduziu "{typedName}".',

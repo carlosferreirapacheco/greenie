@@ -134,6 +134,7 @@ export const en = {
     },
     saveButton: "Save plant",
     lookupError: "Couldn't look up this plant. Please try again.",
+    lookupErrorOverloaded: "The AI is in high demand right now. Please try again in a few minutes.",
     lookupModal: {
       nameMismatch: {
         message: 'AI identified this as "{aiName}", but you entered "{typedName}".',
