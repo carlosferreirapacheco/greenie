@@ -14,6 +14,7 @@ import {
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import {
+  AiLookupOverloadedError,
   lookupPlantByPhoto,
   lookupPlantInfo,
   type CareDifficulty,
@@ -155,11 +156,12 @@ export default function AddPlantScreen() {
         fillFromLookup(result);
       }
       setLookupStatus("idle");
-    } catch {
+    } catch (err) {
       // The specific cause is durably logged server-side (see
-      // ai_lookup_error_logs) -- the UI always shows one generic,
-      // translated message regardless of what actually failed.
-      setLookupError(t("addPlant.lookupError"));
+      // ai_lookup_error_logs) -- the UI shows one generic, translated
+      // message regardless of what actually failed, except the model
+      // being overloaded, which gets its own "try again later" text.
+      setLookupError(err instanceof AiLookupOverloadedError ? t("addPlant.lookupErrorOverloaded") : t("addPlant.lookupError"));
       setLookupStatus("error");
     } finally {
       isLookingUp.current = false;
@@ -180,9 +182,9 @@ export default function AddPlantScreen() {
       fillFromLookup(result);
       setLookupStatus("idle");
       setLookupPrompt(null);
-    } catch {
+    } catch (err) {
       // Same reasoning as handlePhotoLookup's catch above.
-      setLookupError(t("addPlant.lookupError"));
+      setLookupError(err instanceof AiLookupOverloadedError ? t("addPlant.lookupErrorOverloaded") : t("addPlant.lookupError"));
       setLookupStatus("error");
     } finally {
       isLookingUp.current = false;
