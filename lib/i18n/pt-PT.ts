@@ -849,6 +849,42 @@ export const ptPT: typeof en = {
           "dia — se falhar uma, reinicia. Se estiver a cuidar das plantas de alguém, uma tarefa em atraso na " +
           "planta dessa pessoa dá-lhe um dia de tolerância antes de afetar a sua própria sequência.",
       },
+      social: {
+        heading: "Social",
+        body:
+          "Siga outros donos de plantas em **Pessoas** para ver os seus relatórios de progresso públicos no seu " +
+          "**Feed**. Pode gostar e comentar qualquer relatório que consiga ver. Se a conta de alguém for " +
+          "privada, terá primeiro de enviar um pedido para seguir. Pode **bloquear** uma conta (esconde o " +
+          "conteúdo de ambos os lados) ou **denunciar** um relatório, comentário ou conta específicos que " +
+          "quebrem as regras.",
+      },
+      plantSitting: {
+        heading: "Cuidar de plantas",
+        body:
+          "Peça a um seguidor mútuo para cuidar das suas plantas enquanto está fora, a partir do separador " +
+          "**Cuidar** — depois de aceitar, ele passa a ver as suas tarefas de cuidado, pode marcá-las como " +
+          "feitas, e registar relatórios de progresso em seu nome enquanto durar o acordo. As tarefas que ele " +
+          "completar contam para a sequência de cuidados **dele**, não para a sua — a sua própria sequência " +
+          "simplesmente pausa enquanto ele cuida das suas plantas. Se ele falhar uma tarefa, tem um dia de " +
+          "tolerância antes de isso afetar a sequência dele.",
+      },
+      supporterBadges: {
+        heading: "Selos de apoiante",
+        body:
+          "Doar através do **Buy Me a Coffee** (ligado a partir das Definições) dá-lhe um selo de apoiante, com " +
+          "níveis mais altos desbloqueados a partir de determinados valores — escreva o seu " +
+          "**@nomedeutilizador** no checkout para ser associado automaticamente à sua conta. Existe também um " +
+          "selo separado para testadores beta. Pode escolher que selos mostrar no seu perfil a partir das " +
+          "**Definições**.",
+      },
+      privacyAndData: {
+        heading: "Privacidade e os seus dados",
+        body:
+          "Controle quem pode ver as suas plantas, relatórios de progresso e lista de seguidores em " +
+          "**Definições → Privacidade**. Em **Definições → Os seus dados**, transfira tudo o que o Greenie " +
+          "guarda sobre si, ou receba uma cópia por email. Eliminar a sua conta em **Definições → Zona de " +
+          "perigo** é imediato e permanente.",
+      },
     },
   },
 };
