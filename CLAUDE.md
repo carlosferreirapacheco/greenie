@@ -1528,6 +1528,45 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Care task status: fix same-day-overdue bug + add a "due today" state —
+  done. Bug report: a task due today (e.g. watering, `next_due` at some
+  specific time today) showed a red "overdue" badge and triggered the
+  mark-done "count from original date or today?" prompt, both as soon
+  as the clock passed that time-of-day, even though the calendar day
+  hadn't rolled over yet. Root cause: `getPlantCareStatus()`
+  (`lib/supabase/care_tasks.ts`) compared raw millisecond timestamps
+  (`new Date(nextDue).getTime() < Date.now()`), not local calendar
+  days — the same "device's own local day, not a raw timestamp diff"
+  class of bug this project has already fixed elsewhere (`markCareTaskDone()`'s
+  `p_client_timezone`, `lib/dateGrid.ts`'s `todayISO()`). Fixed by
+  rewriting it to diff local calendar days (`new Date().getFullYear()`/
+  `getMonth()`/`getDate()`, not `toISOString()`) and adding a new
+  `"due_today"` member to `PlantCareStatus` (now `healthy` / `due_soon`
+  / `due_today` / `overdue`) — a day-diff of exactly 0 is `due_today`,
+  matching the user's own suggested fix. `overdue` now only starts the
+  day *after* the due date, and `app/plant/[id].tsx`'s mark-done prompt
+  (`handleMarkDonePress`) was switched from its own duplicate raw-timestamp
+  check to calling `getPlantCareStatus() === "overdue"` — the same
+  source of truth, so the prompt naturally shifts to the day-after
+  threshold too. `due_today` got its own purpose-built blue color pair
+  (`lib/theme.ts`'s new `dueTodayTokensByScheme`, light/dark — not
+  reused from the earthy `Palette`, same reasoning as the supporter-badge
+  tier tones already using purpose-built colors) — `getStatusColors()`
+  gained a `scheme` parameter to select it, updated at all three call
+  sites (`app/(tabs)/index.tsx`, `app/user/[id].tsx`, `app/plant/[id].tsx`,
+  each of which has its own near-duplicate `statusText()`/`StatusPill`
+  copy of the Plants-screen status treatment — all three updated in
+  lockstep). New i18n key `index.status.dueToday` ("due today" /
+  "hoje"). Verified: `tsc`/`npm test` clean (extended
+  `care_tasks.test.ts` with day-boundary cases, including the literal
+  bug scenario — a task due earlier today, in the past relative to
+  `now()`, now correctly resolves `due_today` not `overdue`); live web
+  against a real seeded dev-fixture task (`next_due` set to earlier
+  today via a temporary, reverted SQL update) — the Plants list and
+  plant detail screen both showed "rega: hoje" instead of "em atraso",
+  and tapping "Marcar como feita" completed the task directly with no
+  anchor-date prompt, advancing `next_due` by the task's normal
+  frequency; fixture data restored after.
 - AI lookup non-2xx error investigation and durable logging — done.
   Investigated tester reports of `lookup-plant` "returning a status code
   not 2XX." The edge function itself was working correctly (confirmed

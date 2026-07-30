@@ -101,19 +101,33 @@ export async function markCareTaskDone(task: CareTask, nextDueAnchor: Date = new
   return data as CareTask;
 }
 
-export type PlantCareStatus = "healthy" | "due_soon" | "overdue";
+export type PlantCareStatus = "healthy" | "due_soon" | "due_today" | "overdue";
 
-const DUE_SOON_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+// Compared in local calendar days, not raw milliseconds -- a task whose
+// next_due timestamp falls later today shouldn't read as "overdue" just
+// because the clock has passed that time-of-day; it's still due today
+// until the local day actually rolls over. Same "device's own local day,
+// not a raw timestamp diff" reasoning already used by markCareTaskDone()
+// (see its p_client_timezone) and lib/dateGrid.ts's todayISO().
+const DUE_SOON_WINDOW_DAYS = 2;
+
+function localDayStart(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
 
 export function getPlantCareStatus(nextDue: string): PlantCareStatus {
-  const dueAt = new Date(nextDue).getTime();
-  const now = Date.now();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const dayDiff = Math.round((localDayStart(new Date(nextDue)) - localDayStart(new Date())) / msPerDay);
 
-  if (dueAt < now) {
+  if (dayDiff < 0) {
     return "overdue";
   }
 
-  if (dueAt - now <= DUE_SOON_WINDOW_MS) {
+  if (dayDiff === 0) {
+    return "due_today";
+  }
+
+  if (dayDiff <= DUE_SOON_WINDOW_DAYS) {
     return "due_soon";
   }
 

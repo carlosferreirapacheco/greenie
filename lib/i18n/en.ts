@@ -28,6 +28,7 @@ export const en = {
     status: {
       overdue: "overdue",
       dueSoon: "due soon",
+      dueToday: "due today",
       healthy: "healthy",
     },
     careType: {

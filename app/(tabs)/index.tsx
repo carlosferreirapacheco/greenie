@@ -27,15 +27,17 @@ function statusText(status: PlantCareStatus, t: (key: string) => string): string
       return t("index.status.overdue");
     case "due_soon":
       return t("index.status.dueSoon");
+    case "due_today":
+      return t("index.status.dueToday");
     case "healthy":
       return t("index.status.healthy");
   }
 }
 
 function StatusPill({ label, status, fonts }: { label: string; status: PlantCareStatus; fonts: ReturnType<typeof getFonts> }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const { t } = useLanguage();
-  const palette = getStatusColors(colors)[status];
+  const palette = getStatusColors(colors, scheme)[status];
   return (
     <View style={[styles.pill, { backgroundColor: palette.bg }]}>
       <View style={[styles.pillDot, { backgroundColor: palette.dot }]} />

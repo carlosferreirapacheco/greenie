@@ -27,6 +27,7 @@ export const ptPT: typeof en = {
     status: {
       overdue: "em atraso",
       dueSoon: "em breve",
+      dueToday: "hoje",
       healthy: "saudável",
     },
     careType: {
