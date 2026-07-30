@@ -796,4 +796,59 @@ export const ptPT: typeof en = {
     },
     deleteButton: "Eliminar permanentemente a minha conta",
   },
+  help: {
+    screenTitle: "Ajuda e Tutorial",
+    prompt: {
+      title: "Bem-vindo(a) ao Greenie!",
+      message: "Quer conhecer rapidamente o que pode fazer aqui?",
+      takeTour: "Ver o tutorial",
+      maybeLater: "Talvez mais tarde",
+    },
+    sections: {
+      gettingStarted: {
+        heading: "Como começar",
+        body:
+          "O Greenie tem cinco separadores na parte inferior: **Pessoas** para encontrar e seguir outros donos " +
+          "de plantas, **Feed** para relatórios de progresso de quem segue, **Plantas** para a sua coleção, " +
+          "**Cuidar** para organizar cuidados de plantas, e **Alertas** para as suas notificações. Toque no seu " +
+          "avatar no canto superior esquerdo de qualquer separador para abrir o seu perfil.",
+      },
+      plantsAndCareTasks: {
+        heading: "Plantas e tarefas de cuidado",
+        body:
+          "Adicione uma planta a partir do separador **Plantas** com o botão **+**. Cada planta pode ter " +
+          "tarefas de rega, adubação e troca de terra com o seu próprio calendário — marque uma tarefa como " +
+          "feita na página da planta e ela é reagendada automaticamente. Tarefas em atraso mostram um selo " +
+          "vermelho; as feitas a tempo ficam verdes. Arquive uma planta que já não está a acompanhar " +
+          "ativamente a partir da sua própria página — isto pausa os lembretes sem apagar nada, e pode " +
+          "restaurá-la mais tarde em **Plantas Arquivadas**.",
+      },
+      aiLookup: {
+        heading: "Identificação de plantas com IA",
+        body:
+          "Ao adicionar uma planta, tire ou escolha uma fotografia e toque em **\"Identificar com IA\"** — o " +
+          "Greenie vai tentar identificar a planta e sugerir o nome, a espécie e o calendário de cuidados. " +
+          "Pode escrever um nome primeiro como pista, ou fazer uma pesquisa só por texto se preferir não usar " +
+          "uma fotografia. Se a IA não tiver a certeza, mostra-lhe algumas hipóteses prováveis para escolher, " +
+          "em vez de adivinhar.",
+      },
+      progressAndPhotos: {
+        heading: "Relatórios de progresso e fotografias",
+        body:
+          "Registe um relatório de progresso na página de uma planta para acompanhar o seu crescimento — " +
+          "adicione uma altura, uma nota e uma fotografia, se quiser. Relatórios com altura constroem um " +
+          "gráfico de crescimento ao longo do tempo. Escolha se um relatório é **partilhado no Feed** (visível " +
+          "a quem o segue) ou fica **não listado** (só acessível a partir da página da própria planta).",
+      },
+      notificationsAndStreaks: {
+        heading: "Notificações e sequências de cuidados",
+        body:
+          "O separador **Alertas** reúne tudo: comentários, gostos, pedidos de seguidor e lembretes de tarefas " +
+          "de cuidado. Ative as notificações push nas **Definições** para as receber também no seu dispositivo. " +
+          "Sempre que concluir a tempo todas as tarefas de cuidado do dia, a sua sequência de cuidados sobe um " +
+          "dia — se falhar uma, reinicia. Se estiver a cuidar das plantas de alguém, uma tarefa em atraso na " +
+          "planta dessa pessoa dá-lhe um dia de tolerância antes de afetar a sua própria sequência.",
+      },
+    },
+  },
 };

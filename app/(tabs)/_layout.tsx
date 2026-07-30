@@ -11,6 +11,7 @@ import {
   type NotificationWithActor,
 } from "../../lib/supabase/notifications";
 import { getPendingFollowRequests } from "../../lib/supabase/follows";
+import { getHasSeenHelpPrompt, setHasSeenHelpPrompt } from "../../lib/tutorialPrompt";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
 import { ConfirmModal } from "../../components/ConfirmModal";
@@ -68,6 +69,31 @@ export default function TabsLayout() {
   // all of them at once (see graceModalMessage above).
   const [graceNotifications, setGraceNotifications] = useState<NotificationWithActor[]>([]);
   const [graceDismissBusy, setGraceDismissBusy] = useState(false);
+
+  // One-time "want a tour?" prompt, checked once on mount (not on every
+  // navigation-state refetch below, which would re-hit AsyncStorage on
+  // every tab switch for no reason). Device-local, see tutorialPrompt.ts.
+  const [showHelpPrompt, setShowHelpPrompt] = useState(false);
+  useEffect(() => {
+    getHasSeenHelpPrompt()
+      .then((seen) => {
+        if (!seen) setShowHelpPrompt(true);
+      })
+      .catch(() => {
+        // Non-critical -- worst case the prompt just doesn't show.
+      });
+  }, []);
+
+  function handleTakeTour() {
+    setShowHelpPrompt(false);
+    setHasSeenHelpPrompt();
+    router.push("/help");
+  }
+
+  function handleDismissHelpPrompt() {
+    setShowHelpPrompt(false);
+    setHasSeenHelpPrompt();
+  }
 
   const refetchHeaderState = useCallback(() => {
     getMyProfile()
@@ -235,6 +261,15 @@ export default function TabsLayout() {
           onCancel={handleDismissGraceModal}
           hideCancel
           busy={graceDismissBusy}
+          fonts={fonts}
+        />
+      ) : showHelpPrompt ? (
+        <ConfirmModal
+          title={t("help.prompt.title")}
+          message={t("help.prompt.message")}
+          actions={[{ label: t("help.prompt.takeTour"), onPress: handleTakeTour }]}
+          onCancel={handleDismissHelpPrompt}
+          cancelLabel={t("help.prompt.maybeLater")}
           fonts={fonts}
         />
       ) : null}

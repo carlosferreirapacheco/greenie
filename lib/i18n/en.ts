@@ -794,4 +794,57 @@ export const en = {
     },
     deleteButton: "Permanently delete my account",
   },
+  help: {
+    screenTitle: "Help & Tutorial",
+    prompt: {
+      title: "Welcome to Greenie!",
+      message: "Want a quick look at what you can do here?",
+      takeTour: "Take the tour",
+      maybeLater: "Maybe later",
+    },
+    sections: {
+      gettingStarted: {
+        heading: "Getting started",
+        body:
+          "Greenie has five tabs along the bottom: **People** to find and follow other plant owners, **Feed** " +
+          "for progress reports from people you follow, **Plants** for your own plant collection, **Sitting** to " +
+          "arrange plant-sitting, and **Alerts** for your notifications. Tap your avatar in the top-left corner " +
+          "of any tab to open your profile.",
+      },
+      plantsAndCareTasks: {
+        heading: "Plants & care tasks",
+        body:
+          "Add a plant from the **Plants** tab with the **+** button. Each plant can have watering, fertilizing, " +
+          "and repotting tasks with their own schedules — mark a task done from the plant's page and it's " +
+          "rescheduled automatically. Overdue tasks show a red pill; done-on-time ones turn green. Archive a " +
+          "plant you're no longer actively tracking from its own page — this pauses its reminders without " +
+          "deleting anything, and you can restore it later from **Archived Plants**.",
+      },
+      aiLookup: {
+        heading: "AI plant lookup",
+        body:
+          "When adding a plant, take or choose a photo and tap **\"Look up with AI\"** — Greenie will try to " +
+          "identify the plant and suggest its name, species, and care schedule. You can type a name first as a " +
+          "hint, or do a text-only lookup if you'd rather not use a photo. If the AI is unsure, it'll show you a " +
+          "few likely matches to choose from instead of guessing.",
+      },
+      progressAndPhotos: {
+        heading: "Progress reports & photos",
+        body:
+          "Log a progress report from a plant's page to track how it's growing — add a height, a note, and a " +
+          "photo if you like. Reports with a height build a growth chart over time. Choose whether a report is " +
+          "**shared to your Feed** (visible to your followers) or kept **unlisted** (only reachable from the " +
+          "plant's own page).",
+      },
+      notificationsAndStreaks: {
+        heading: "Notifications & care streaks",
+        body:
+          "The **Alerts** tab collects everything: comments, likes, follow requests, and care-task reminders. " +
+          "Enable push notifications in **Settings** to get them on your device too. Every day you complete all " +
+          "of that day's due care tasks on time, your care streak goes up by one — miss one and it resets. If " +
+          "you're plant-sitting for someone, a missed task on their plant gives you a one-day grace period " +
+          "before it affects your own streak.",
+      },
+    },
+  },
 };

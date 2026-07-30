@@ -1,4 +1,4 @@
-import { lookup, resolveLocale, t } from "./index";
+import { lookup, resolveLocale, splitBold, t } from "./index";
 
 describe("resolveLocale", () => {
   it("returns an explicit preference unchanged", () => {
@@ -38,6 +38,31 @@ describe("lookup", () => {
 
   it("falls back to the key itself for a missing path", () => {
     expect(lookup(dict, "nowhere.to.be.found")).toBe("nowhere.to.be.found");
+  });
+});
+
+describe("splitBold", () => {
+  it("splits a single bold marker into plain/bold/plain runs", () => {
+    expect(splitBold("Tap the **Plants** tab.")).toEqual(["Tap the ", { bold: "Plants" }, " tab."]);
+  });
+
+  it("handles multiple bold markers", () => {
+    expect(splitBold("Add a plant from **Plants** with the **+** button.")).toEqual([
+      "Add a plant from ",
+      { bold: "Plants" },
+      " with the ",
+      { bold: "+" },
+      " button.",
+    ]);
+  });
+
+  it("returns the whole string unchanged when there's no bold marker", () => {
+    expect(splitBold("No emphasis here.")).toEqual(["No emphasis here."]);
+  });
+
+  it("handles a bold marker at the very start or end", () => {
+    expect(splitBold("**Alerts** collects everything")).toEqual([{ bold: "Alerts" }, " collects everything"]);
+    expect(splitBold("open your **profile**")).toEqual(["open your ", { bold: "profile" }]);
   });
 });
 
