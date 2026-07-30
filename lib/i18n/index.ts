@@ -71,3 +71,15 @@ export function splitTemplate(template: string, tokens: string[]): (string | { t
       return match ? { token: match } : part;
     });
 }
+
+// Splits a translated body of text on **bold** markers so tab/screen/
+// button names referenced in help copy can render with real emphasis
+// instead of getting lost in a paragraph -- same "split, don't
+// regex-replace-in-place" approach as splitTemplate() above, since the
+// pieces need to become separate JSX Text runs, not a transformed string.
+export function splitBold(text: string): (string | { bold: string })[] {
+  return text
+    .split(/(\*\*[^*]+\*\*)/g)
+    .filter((part) => part !== "")
+    .map((part) => (part.startsWith("**") && part.endsWith("**") ? { bold: part.slice(2, -2) } : part));
+}

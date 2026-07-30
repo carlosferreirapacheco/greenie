@@ -214,7 +214,15 @@ export default function ProfileScreen() {
   }
 
   const settingsHeaderRight = () => (
-    <HeaderIconButton icon="cog-outline" label={t("settings.screenTitle")} onPress={() => router.push("/settings")} fonts={fonts} />
+    <View style={styles.headerRightRow}>
+      <HeaderIconButton
+        icon="help-circle-outline"
+        label={t("help.screenTitle")}
+        onPress={() => router.push("/help")}
+        fonts={fonts}
+      />
+      <HeaderIconButton icon="cog-outline" label={t("settings.screenTitle")} onPress={() => router.push("/settings")} fonts={fonts} />
+    </View>
   );
 
   if (status === "loading") {
@@ -403,6 +411,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
     alignItems: "center",
+  },
+  headerRightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   center: {
     flex: 1,

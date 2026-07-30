@@ -1456,6 +1456,59 @@ sharing them socially with other users.
   real device + a real already-delivered push); covered by
   `lib/pushNotifications.test.ts` unit tests, full confirmation needs a
   manual pass on the Android test device.
+- In-app tutorial / Help screen — split into two PRs, **PR1 done**.
+  Nothing in the app explained any of its own functionality beyond what
+  was discoverable by poking around (confirmed via a full grep of
+  `app/`/`components/` — no prior onboarding/tooltip/walkthrough content
+  anywhere). Ships as a comprehensive, always-accessible **Help screen**
+  (`app/help.tsx`) plus a lightweight **one-time prompt** shown once
+  after a user's first time landing in the main app, which deep-links
+  into it — deliberately not a coach-marks/spotlight-overlay system
+  (no precedent or installed library in this codebase, and would need
+  per-element instrumentation across ~20 screens) and not a separate
+  onboarding carousel (would duplicate the same content in two places).
+  `app/help.tsx` mirrors `app/privacy-policy.tsx`'s structure exactly
+  (`ScrollView` + a `sections.map()` of `{heading, body}` cards) with
+  one difference: privacy-policy.tsx is deliberately hardcoded English
+  (legal text), this screen follows the app's normal i18n convention —
+  every heading/body pulled via `t()` from a new `help` namespace.
+  Section bodies reference real tab/button/screen names inline using a
+  new `**bold**` marker convention, so they don't get lost in a
+  paragraph — a new pure `splitBold()` in `lib/i18n/index.ts` (same
+  split-not-replace approach as the existing `splitTemplate()`) splits
+  a translated string on the markers so each run becomes its own JSX
+  `Text` node, rendered semi-bold. Entry points: `app/profile.tsx`'s
+  existing single Settings header icon became two icon buttons in a row
+  (Help + Settings, same icon-row pattern the People tab already uses
+  for Requests/Followers/Add); and a new one-time `ConfirmModal` in
+  `app/(tabs)/_layout.tsx` ("Welcome to Greenie! Want a quick look at
+  what you can do here?"), sibling to the existing care-streak
+  grace-day popup there and guarded not to show alongside it. New
+  `lib/tutorialPrompt.ts` (`getHasSeenHelpPrompt()`/
+  `setHasSeenHelpPrompt()`) persists the "seen" flag device-locally via
+  `AsyncStorage`, not a `profiles` column — same per-device reasoning
+  already used for the theme preference; seeing the prompt again after
+  a reinstall or on a new device is an acceptable, low-stakes outcome.
+  **PR1** ships the mechanism plus five sections: Getting started,
+  Plants & care tasks, AI plant lookup, Progress reports & photos, and
+  Notifications & care streaks. **PR2** (remaining sections — Social,
+  Plant-sitting, Supporter badges, Privacy & your data — deferred, not
+  yet built) will be content-only additions to the already-proven
+  structure. Every section's exact `pt-PT` wording went through this
+  project's usual translation-review checkpoint before any `t()` call
+  was written, including a follow-up correction removing an
+  English-string parenthetical that had accidentally leaked Portuguese
+  ("Cuidar (Sitting)" → "Sitting"). Verified: `tsc --noEmit` + `npm test`
+  clean (`lib/i18n/index.test.ts` gained 4 new `splitBold()` cases); live
+  web end-to-end — signed in fresh, the prompt appeared automatically on
+  first landing in the tabs, "Take the tour" navigated to `/help` with
+  all 5 sections rendering correctly (confirmed a bold segment's
+  computed `fontFamily` was actually `WorkSans_600SemiBold`, distinct
+  from the surrounding body text), a reload confirmed the prompt does
+  not reappear, the Profile header's new Help icon opened the same
+  screen, and both English and dark mode were confirmed correct
+  (computed colors matched the dark palette's `ink`/`paper` tokens
+  exactly).
 
 ### Technical follow-ups
 - AI lookup non-2xx error investigation and durable logging — done.
