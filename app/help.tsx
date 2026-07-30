@@ -7,15 +7,17 @@ import { fontAssets, getFonts, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
 
-// One entry per help.sections.* key in lib/i18n/en.ts -- PR2 appends the
-// remaining feature-area sections here as content-only additions, no
-// structural change needed.
+// One entry per help.sections.* key in lib/i18n/en.ts.
 const SECTION_KEYS = [
   "gettingStarted",
   "plantsAndCareTasks",
   "aiLookup",
   "progressAndPhotos",
   "notificationsAndStreaks",
+  "social",
+  "plantSitting",
+  "supporterBadges",
+  "privacyAndData",
 ] as const;
 
 export default function HelpScreen() {

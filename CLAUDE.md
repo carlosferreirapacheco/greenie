@@ -1456,7 +1456,7 @@ sharing them socially with other users.
   real device + a real already-delivered push); covered by
   `lib/pushNotifications.test.ts` unit tests, full confirmation needs a
   manual pass on the Android test device.
-- In-app tutorial / Help screen — split into two PRs, **PR1 done**.
+- In-app tutorial / Help screen — split into two PRs, **both done**.
   Nothing in the app explained any of its own functionality beyond what
   was discoverable by poking around (confirmed via a full grep of
   `app/`/`components/` — no prior onboarding/tooltip/walkthrough content
@@ -1489,26 +1489,43 @@ sharing them socially with other users.
   `AsyncStorage`, not a `profiles` column — same per-device reasoning
   already used for the theme preference; seeing the prompt again after
   a reinstall or on a new device is an acceptable, low-stakes outcome.
-  **PR1** ships the mechanism plus five sections: Getting started,
+  **PR1** shipped the mechanism plus five sections: Getting started,
   Plants & care tasks, AI plant lookup, Progress reports & photos, and
-  Notifications & care streaks. **PR2** (remaining sections — Social,
-  Plant-sitting, Supporter badges, Privacy & your data — deferred, not
-  yet built) will be content-only additions to the already-proven
-  structure. Every section's exact `pt-PT` wording went through this
-  project's usual translation-review checkpoint before any `t()` call
-  was written, including a follow-up correction removing an
-  English-string parenthetical that had accidentally leaked Portuguese
-  ("Cuidar (Sitting)" → "Sitting"). Verified: `tsc --noEmit` + `npm test`
-  clean (`lib/i18n/index.test.ts` gained 4 new `splitBold()` cases); live
-  web end-to-end — signed in fresh, the prompt appeared automatically on
+  Notifications & care streaks. **PR2** added the remaining four
+  sections — Social, Plant-sitting, Supporter badges, Privacy & your
+  data — as content-only additions to that same structure (just
+  appending to `help.sections` in `en.ts`/`pt-PT.ts` and to
+  `app/help.tsx`'s `SECTION_KEYS` array, no other file changes needed).
+  Every section's exact `pt-PT` wording went through this project's
+  usual translation-review checkpoint before any `t()` call was
+  written. **Two real corrections came out of that review, both worth
+  remembering**: PR1's draft had briefly mixed Portuguese into the
+  English string ("Cuidar (Sitting)" → "Sitting"); and PR2's original
+  Plant-sitting draft got the streak mechanic backwards — it described
+  the *requester* (owner) as the one earning a grace-day allowance,
+  when the actual behavior (confirmed against `request-sitting.tsx`'s
+  own existing hint text) is that tasks the **sitter** completes count
+  toward the **sitter's** streak, the **owner's own streak simply
+  pauses** while someone else is covering their plants, and the grace
+  day protects the **sitter's** streak specifically if they miss a
+  task. A second, separate bug was caught live during PR2's own
+  verification pass, unrelated to translation: the Supporter badges
+  section used backtick markers (`` `@username` ``) for the checkout
+  hint, but `splitBold()` only understands `**bold**` — the backticks
+  were rendering as literal characters. Fixed by switching that
+  placeholder to `**bold**` markers like everywhere else, re-verified
+  live. Verified: `tsc --noEmit` + `npm test` clean throughout
+  (`lib/i18n/index.test.ts` has 4 `splitBold()` cases from PR1, no new
+  ones needed for PR2's content-only change); live web end-to-end for
+  both PRs — signed in fresh, the prompt appeared automatically on
   first landing in the tabs, "Take the tour" navigated to `/help` with
-  all 5 sections rendering correctly (confirmed a bold segment's
-  computed `fontFamily` was actually `WorkSans_600SemiBold`, distinct
-  from the surrounding body text), a reload confirmed the prompt does
-  not reappear, the Profile header's new Help icon opened the same
-  screen, and both English and dark mode were confirmed correct
-  (computed colors matched the dark palette's `ink`/`paper` tokens
-  exactly).
+  all sections rendering correctly (confirmed a bold segment's computed
+  `fontFamily` was actually `WorkSans_600SemiBold`, distinct from the
+  surrounding body text; confirmed the backtick regression was gone
+  after the fix), a reload confirmed the prompt does not reappear, the
+  Profile header's new Help icon opened the same screen, and both
+  English and dark mode were confirmed correct (computed colors matched
+  the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
 - AI lookup non-2xx error investigation and durable logging — done.

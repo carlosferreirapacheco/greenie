@@ -845,6 +845,38 @@ export const en = {
           "you're plant-sitting for someone, a missed task on their plant gives you a one-day grace period " +
           "before it affects your own streak.",
       },
+      social: {
+        heading: "Social",
+        body:
+          "Follow other plant owners from **People** to see their public progress reports in your **Feed**. " +
+          "Like and comment on any report you can see. If someone's account is private, you'll need to send a " +
+          "follow request first. You can **block** an account (hides each other's content both ways) or " +
+          "**report** a specific report, comment, or account that breaks the rules.",
+      },
+      plantSitting: {
+        heading: "Plant-sitting",
+        body:
+          "Ask a mutual follower to look after your plants while you're away from the **Sitting** tab — once " +
+          "they accept, they can see your care tasks, mark them done, and log progress reports on your behalf " +
+          "for as long as the arrangement lasts. Tasks they complete count toward **their** care streak, not " +
+          "yours — your own streak simply pauses while they're covering you. If they miss a task, they get a " +
+          "one-day grace period before it affects their streak.",
+      },
+      supporterBadges: {
+        heading: "Supporter badges",
+        body:
+          "Donating through **Buy Me a Coffee** (linked from Settings) earns you a supporter badge, with higher " +
+          "tiers unlocked at higher totals — type your **@username** at checkout so it's matched to your " +
+          "account automatically. There's also a separate beta-tester badge for early testers. Toggle which " +
+          "badges show on your profile from **Settings**.",
+      },
+      privacyAndData: {
+        heading: "Privacy & your data",
+        body:
+          "Control who can see your plants, progress reports, and follower list from **Settings → Privacy**. " +
+          "From **Settings → Your data**, download everything Greenie stores about you, or have a copy emailed " +
+          "to you. Deleting your account from **Settings → Danger zone** is immediate and permanent.",
+      },
     },
   },
 };
