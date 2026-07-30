@@ -23,8 +23,24 @@ afterEach(() => {
 });
 
 describe("getPlantCareStatus", () => {
-  it("is overdue when next_due is in the past", () => {
+  it("is overdue when next_due falls on a past calendar day", () => {
     expect(getPlantCareStatus("2026-01-14T12:00:00.000Z")).toBe("overdue");
+  });
+
+  it("is due_today when next_due is later today, even though the clock has already passed that time", () => {
+    // The bug this guards against: a task due today at 18:00 shouldn't
+    // read "overdue" at noon today just because 18:00 hasn't arrived yet
+    // -- nor should it read "overdue" once the clock passes 18:00, since
+    // it's still today's calendar day.
+    expect(getPlantCareStatus("2026-01-15T18:00:00.000Z")).toBe("due_today");
+  });
+
+  it("is due_today when next_due is earlier today, in the past relative to now", () => {
+    expect(getPlantCareStatus("2026-01-15T00:00:00.000Z")).toBe("due_today");
+  });
+
+  it("is due_today when next_due is exactly now", () => {
+    expect(getPlantCareStatus("2026-01-15T12:00:00.000Z")).toBe("due_today");
   });
 
   it("is due_soon when next_due is within the 2-day window", () => {

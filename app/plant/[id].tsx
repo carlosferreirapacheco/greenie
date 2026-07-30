@@ -39,6 +39,7 @@ import {
   updateCareTaskFrequency,
   type CareTask,
   type CareTaskType,
+  type PlantCareStatus,
 } from "../../lib/supabase/care_tasks";
 import { supabase } from "../../lib/supabase/client";
 import { dismissStaleCareDueNotifications } from "../../lib/pushNotificationManager";
@@ -86,8 +87,17 @@ function buildAiInfoLine(plant: Plant, t: (key: string) => string): string | nul
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
-function statusText(status: "healthy" | "due_soon" | "overdue", t: (key: string) => string): string {
-  return t(status === "due_soon" ? "index.status.dueSoon" : `index.status.${status}`);
+function statusText(status: PlantCareStatus, t: (key: string) => string): string {
+  switch (status) {
+    case "overdue":
+      return t("index.status.overdue");
+    case "due_soon":
+      return t("index.status.dueSoon");
+    case "due_today":
+      return t("index.status.dueToday");
+    case "healthy":
+      return t("index.status.healthy");
+  }
 }
 
 function formatTaskDate(iso: string | null, t: (key: string) => string): string {
@@ -98,8 +108,8 @@ export default function PlantProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
-  const { colors } = useTheme();
-  const statusColors = getStatusColors(colors);
+  const { colors, scheme } = useTheme();
+  const statusColors = getStatusColors(colors, scheme);
   const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -307,7 +317,7 @@ export default function PlantProfileScreen() {
   }
 
   function handleMarkDonePress(task: CareTask) {
-    const isOverdue = task.next_due !== null && new Date(task.next_due).getTime() < Date.now();
+    const isOverdue = task.next_due !== null && getPlantCareStatus(task.next_due) === "overdue";
     if (isOverdue) {
       setMarkDonePromptId(task.id);
       setEditingTaskId(null);

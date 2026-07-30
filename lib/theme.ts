@@ -130,10 +130,24 @@ export function getFonts(fontsLoaded: boolean): Fonts {
   };
 }
 
-export function getStatusColors(colors: Palette): Record<PlantCareStatus, { bg: string; fg: string; dot: string }> {
+// due_today gets its own purpose-built blue tone (not reused from
+// Palette, same "not every tone belongs on the earthy/plant palette"
+// reasoning as the supporter-badge tier tones below) so a task due today
+// reads as distinctly "here now" rather than a paler due_soon or a
+// mistaken overdue.
+const dueTodayTokensByScheme: Record<ThemeScheme, { bg: string; fg: string; dot: string }> = {
+  light: { bg: "#DCE6F0", fg: "#3E6FA6", dot: "#3E6FA6" },
+  dark: { bg: "#233246", fg: "#7FA8D8", dot: "#7FA8D8" },
+};
+
+export function getStatusColors(
+  colors: Palette,
+  scheme: ThemeScheme
+): Record<PlantCareStatus, { bg: string; fg: string; dot: string }> {
   return {
     healthy: { bg: colors.sage, fg: colors.mossStrong, dot: colors.moss },
     due_soon: { bg: colors.goldSoft, fg: colors.gold, dot: colors.gold },
+    due_today: dueTodayTokensByScheme[scheme],
     overdue: { bg: colors.coralSoft, fg: colors.coral, dot: colors.coral },
   };
 }
