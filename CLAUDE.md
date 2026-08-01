@@ -2271,6 +2271,36 @@ unrelated history.
   (whose `accepted_privacy_at` predates the new effective date) was
   correctly routed into `welcome.tsx`'s re-consent mode on next visit,
   then restored to normal state after accepting.
+- Privacy policy: language toggle + Portuguese translation — done, per
+  explicit user request reversing this screen's original "deliberately
+  English-only" scoping decision (legal text was excluded from the
+  multi-language effort specifically to avoid machine-translating it
+  without a matching legal review — that caveat still applies to
+  whichever language it's read in now). `app/privacy-policy.tsx` moved
+  onto the normal `t()`/i18n system (new `privacyPolicy` namespace in
+  `lib/i18n/en.ts`/`pt-PT.ts`, same `{heading, body}` section-array
+  shape `help`'s namespace already established), plus a small
+  "English / Português" toggle at the top of the screen. Deliberately
+  **not** just the app-wide language setting: this screen is public/
+  pre-auth (reachable with no session and no device-locale signal a
+  visitor necessarily wants followed), so the toggle is a local
+  `useState<SupportedLocale>` seeded from `useLanguage().locale` (the
+  app's current resolved language, so it starts consistent) and calls
+  `lib/i18n/index.ts`'s lower-level `t(locale, key)` directly instead
+  of the context-bound `t()` — switching it only changes what this one
+  screen displays and never writes back to the app-wide
+  `languagePreference`, verified live (toggled this screen to English,
+  then confirmed the Plants tab was still rendering in Português).
+  Portuguese translation reuses this app's own already-established
+  terminology for the UI paths it references (Definições, Os seus
+  dados, Zona de perigo, @nomedeutilizador) rather than translating
+  independently, so the policy stays consistent with what a PT-PT user
+  actually sees in the app. Translation draft was shared for review
+  before implementation, per this project's standard i18n process.
+  Verified: `tsc`/`npm test` clean; live web — both languages render
+  fully and correctly, the toggle switches content without affecting
+  the app-wide language, and it correctly defaults to whatever
+  language the app is currently set to.
 - Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
   currently marked "requires review before public launch") before any
   public launch — still open regardless of the content-accuracy passes
