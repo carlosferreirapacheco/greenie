@@ -77,15 +77,16 @@ export async function uploadPhoto(params: {
 }
 
 // Called right after a successful re-upload by every "replace photo"
-// flow, so repeated edits don't leak storage objects indefinitely; also
-// called by deletePlant() (plants.ts) and the delete-account Edge
-// Function's own storage-purge step for the same reason -- Postgres FK
-// cascades don't reach storage.objects, so nothing else would clean
-// these up. Residual accepted gap: a photo uploaded by an active plant
-// sitter (keyed under the sitter's own uploader prefix, not the plant
-// owner's) isn't reachable by either of those cleanups and stays
-// orphaned if the sitter's own account/plant access never triggers its
-// own cleanup path.
+// flow, so repeated edits don't leak storage objects indefinitely.
+// Deleting a plant or an account also needs Storage cleanup for the
+// same reason -- Postgres FK cascades don't reach storage.objects --
+// but those two paths don't call this directly: Storage's own DELETE
+// RLS only lets the uploader remove their own objects
+// (<uploaderId>/<context>/<filename>), which breaks for a plant/report
+// photo an active sitter uploaded. Instead, plant deletion calls the
+// delete-plant-photos Edge Function and account deletion purges inside
+// delete-account itself -- both use the service-role key to delete by
+// plant/account ownership rather than by uploader.
 export async function deletePhotoByUrl(url: string): Promise<void> {
   const marker = `/object/public/${BUCKET}/`;
   const markerIndex = url.indexOf(marker);

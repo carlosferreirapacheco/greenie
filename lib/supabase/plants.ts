@@ -1,6 +1,5 @@
 import { supabase } from "./client";
 import type { CareDifficulty, LightExposure, ToxicityAnswer } from "./ai";
-import { deletePhotoByUrl } from "./storage";
 
 export type Plant = {
   id: string;
@@ -191,26 +190,17 @@ export async function restorePlant(id: string): Promise<Plant> {
 // Permanent -- care_tasks/plant_progress/notifications for this plant
 // all cascade-delete at the DB level (on delete cascade FKs). Best-effort
 // cleans up this plant's own Storage photos first (its photo_urls plus
-// its progress reports' photo_url values) so they don't outlive the row
-// referencing them -- each deletion attempt is independently swallowed,
-// since Storage RLS only lets the caller delete objects they themselves
-// uploaded (a sitter's progress photo on this plant will fail here, which
-// is expected and not a reason to block the plant delete itself).
+// its progress reports' photo_url values) via the delete-plant-photos
+// Edge Function, which keys cleanup off which photos are attached to
+// the plant rather than who uploaded them -- a normal client call can
+// only delete Storage objects the caller themselves uploaded, so it
+// couldn't reach a photo an active sitter logged on this plant. A
+// cleanup failure is logged but never blocks the plant delete itself.
 export async function deletePlant(id: string): Promise<void> {
-  const { data: plant } = await supabase.from("plants").select("photo_urls").eq("id", id).single();
-  const { data: reports } = await supabase.from("plant_progress").select("photo_url").eq("plant_id", id);
-
-  const urls = [...(plant?.photo_urls ?? []), ...(reports ?? []).map((report) => report.photo_url)].filter(
-    (url): url is string => url !== null
-  );
-
-  await Promise.all(
-    urls.map((url) =>
-      deletePhotoByUrl(url).catch((err) => {
-        console.error("Failed to delete plant photo during plant deletion:", err);
-      })
-    )
-  );
+  const { error: cleanupError } = await supabase.functions.invoke("delete-plant-photos", { body: { plantId: id } });
+  if (cleanupError) {
+    console.error("Failed to clean up plant photos before deletion:", cleanupError);
+  }
 
   const { error } = await supabase.from("plants").delete().eq("id", id);
 
