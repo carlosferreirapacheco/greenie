@@ -33,8 +33,11 @@ jest.mock("./client", () => {
   return { supabase: createMockSupabaseClient() };
 });
 
+jest.mock("./storage", () => ({ deletePhotoByUrl: jest.fn() }));
+
 import { supabase } from "./client";
 import { createChainableQueryMock } from "./testUtils/mockClient";
+import { deletePhotoByUrl } from "./storage";
 import {
   archivePlant,
   deletePlant,
@@ -48,6 +51,8 @@ import {
   updatePlantPhoto,
   createPlant,
 } from "./plants";
+
+const mockDeletePhotoByUrl = deletePhotoByUrl as jest.Mock;
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -161,20 +166,70 @@ describe("restorePlant", () => {
 });
 
 describe("deletePlant", () => {
-  it("deletes the plant by id", async () => {
-    const chain = createChainableQueryMock({ data: null, error: null });
-    mockSupabase.from.mockReturnValue(chain);
+  it("deletes the plant by id when it has no photos", async () => {
+    const plantChain = createChainableQueryMock({ data: { photo_urls: null }, error: null });
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    const deleteChain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from
+      .mockReturnValueOnce(plantChain)
+      .mockReturnValueOnce(reportsChain)
+      .mockReturnValueOnce(deleteChain);
 
     await deletePlant("p1");
 
-    expect(mockSupabase.from).toHaveBeenCalledWith("plants");
-    expect(chain.delete).toHaveBeenCalled();
-    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+    expect(mockSupabase.from).toHaveBeenNthCalledWith(3, "plants");
+    expect(deleteChain.delete).toHaveBeenCalled();
+    expect(deleteChain.eq).toHaveBeenCalledWith("id", "p1");
+    expect(mockDeletePhotoByUrl).not.toHaveBeenCalled();
+  });
+
+  it("best-effort deletes the plant's own photo plus its progress reports' photos first", async () => {
+    const plantChain = createChainableQueryMock({ data: { photo_urls: ["plant.jpg"] }, error: null });
+    const reportsChain = createChainableQueryMock({
+      data: [{ photo_url: "report1.jpg" }, { photo_url: null }, { photo_url: "report2.jpg" }],
+      error: null,
+    });
+    const deleteChain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from
+      .mockReturnValueOnce(plantChain)
+      .mockReturnValueOnce(reportsChain)
+      .mockReturnValueOnce(deleteChain);
+    mockDeletePhotoByUrl.mockResolvedValue(undefined);
+
+    await deletePlant("p1");
+
+    expect(mockDeletePhotoByUrl).toHaveBeenCalledWith("plant.jpg");
+    expect(mockDeletePhotoByUrl).toHaveBeenCalledWith("report1.jpg");
+    expect(mockDeletePhotoByUrl).toHaveBeenCalledWith("report2.jpg");
+    expect(mockDeletePhotoByUrl).toHaveBeenCalledTimes(3);
+    expect(deleteChain.delete).toHaveBeenCalled();
+  });
+
+  it("still deletes the plant even when a photo cleanup call fails (e.g. a sitter-uploaded photo)", async () => {
+    const plantChain = createChainableQueryMock({ data: { photo_urls: ["plant.jpg"] }, error: null });
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    const deleteChain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from
+      .mockReturnValueOnce(plantChain)
+      .mockReturnValueOnce(reportsChain)
+      .mockReturnValueOnce(deleteChain);
+    mockDeletePhotoByUrl.mockRejectedValue(new Error("not authorized"));
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    await deletePlant("p1");
+
+    expect(deleteChain.delete).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("throws the Supabase error on failure", async () => {
+    const plantChain = createChainableQueryMock({ data: { photo_urls: null }, error: null });
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
     const err = { message: "db error" };
-    mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
+    mockSupabase.from
+      .mockReturnValueOnce(plantChain)
+      .mockReturnValueOnce(reportsChain)
+      .mockReturnValueOnce(createChainableQueryMock({ data: null, error: err }));
 
     await expect(deletePlant("p1")).rejects.toBe(err);
   });

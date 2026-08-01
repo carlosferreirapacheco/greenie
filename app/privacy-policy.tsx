@@ -12,9 +12,15 @@ const sections: { heading: string; body: string }[] = [
   {
     heading: "What Greenie stores",
     body:
-      "Your account: email address, username, display name, bio, and your privacy settings. " +
+      "Your account: email address, username, display name, bio, your privacy settings, notification " +
+      "preferences, and (if you use push notifications) your device's push token. " +
       "Your plants: names, nicknames, species, locations, acquisition dates, and care schedules. " +
-      "Your activity: progress reports, comments, likes, and who you follow or who follows you. " +
+      "Your activity: progress reports, comments, likes, who you follow or who follows you, accounts " +
+      "you've blocked, plant-sitting arrangements you're part of, your care-streak stats, notifications " +
+      "about activity on your account, and any content reports you've filed. " +
+      "Support & recognition: if you've supported Greenie's development, your lifetime donation total " +
+      "and supporter badge tier; if you're a beta tester, that status; and your visibility preference " +
+      "for each badge. " +
       "Photos: any photo you attach to your profile, a plant, or a progress report.",
   },
   {
@@ -37,7 +43,13 @@ const sections: { heading: string; body: string }[] = [
       "If you have push notifications enabled, your device's push token and the content of a " +
       "notification (for example, a care-task reminder) pass through Expo's push notification service " +
       "to reach your device. " +
-      "Nothing else is shared with third parties.",
+      "If you sign up or sign in with Google, Google shares your email address and name with Greenie " +
+      "to create or match your account — nothing else. " +
+      "If you support the project via Buy Me a Coffee and it can match your donation to your account " +
+      "(by email or by mentioning your @username), Buy Me a Coffee sends us your email, name, message, " +
+      "and donation amount so we can credit your account; if it can't be matched automatically, that " +
+      "information is reviewed manually. " +
+      "Beyond what's described in this section, nothing else is sent to or received from third parties.",
   },
   {
     heading: "What Greenie doesn't do",
@@ -49,8 +61,9 @@ const sections: { heading: string; body: string }[] = [
       "Rectification: edit your profile details on the Profile page at any time. " +
       "Portability: download everything Greenie stores about you as a JSON file from Settings → Your data, " +
       "or have a copy emailed to your account address instead. " +
-      "Erasure: permanently delete your account and all of its data from Settings → Danger zone. " +
-      "Deletion is immediate and irreversible — your plants, reports, comments, likes, and follows are all removed.",
+      "Erasure: permanently delete your account and all of its data — including your plants, reports, " +
+      "comments, likes, follows, and uploaded photos — from Settings → Danger zone. Deletion is " +
+      "immediate and irreversible.",
   },
   {
     heading: "Consent",
@@ -81,7 +94,7 @@ export default function PrivacyPolicyScreen() {
           hardcoded because this screen is public/pre-auth and app_config
           is only readable with a session. */}
       <Text style={[styles.lastUpdated, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-        Last updated: 9 July 2026
+        Last updated: 1 August 2026
       </Text>
 
       {sections.map((section) => (

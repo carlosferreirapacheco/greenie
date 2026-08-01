@@ -2200,9 +2200,61 @@ unrelated history.
   plant-sitting, the notifications inbox aren't mentioned in "What
   Greenie stores") were flagged but deliberately left out of this pass
   since they weren't asked for.
+- Privacy policy content, round 2 + Storage cleanup on erasure — done.
+  A follow-up review found the previous factual-accuracy pass had
+  itself gone stale: "What Greenie stores"/"What leaves the app" still
+  didn't mention blocks, plant-sitting, the notifications inbox,
+  content reports, supporter/donation status and badge visibility, or
+  two real *inbound* third-party flows (Google Sign-In sharing your
+  email/name with Greenie; Buy Me a Coffee forwarding donor
+  email/name/message/amount when a donation auto-matches an account).
+  All added. Also found a real overstatement: "Your rights" claimed
+  account deletion was "immediate and irreversible" and removed
+  everything, but uploaded photos in Supabase Storage were never
+  cleaned up on deletion (Postgres FK cascades don't reach
+  `storage.objects`) — the erasure claim was aspirational, not true.
+  Fixed rather than just reworded: `supabase/functions/delete-account/index.ts`
+  now best-effort purges the deleted user's own Storage prefix
+  (`<userId>/{avatars,plants,progress}/`, listing then batch-removing
+  each context) right after `auth.admin.deleteUser()` succeeds — wrapped
+  so a purge failure never surfaces as a failed account deletion, since
+  the account is already gone by that point; failures still get logged
+  to `app_error_logs` via the existing `logError()` helper. The parallel
+  gap in `deletePlant()` (`lib/supabase/plants.ts`, the one-off
+  archive-then-delete flow) got the same treatment: it now fetches the
+  plant's `photo_urls` and its progress reports' `photo_url`s before
+  deleting, best-effort calling the existing `deletePhotoByUrl()`
+  (`lib/supabase/storage.ts`) for each — each call independently
+  swallowed, since a sitter-uploaded photo on this plant will correctly
+  403 under Storage RLS (only the uploader can delete their own
+  objects) and that must not block the plant delete itself. **Residual
+  accepted gap, documented in both files' comments**: a photo uploaded
+  by an active plant sitter lives under the *sitter's* own uploader
+  prefix, not the plant owner's, so neither cleanup path reaches it —
+  matches this project's existing storage-path-ownership model, not a
+  new gap. Per explicit user decision, disclosing previously-undisclosed
+  data categories counts as a **material change**: migration
+  `0034_privacy_policy_update_202608.sql` bumps
+  `app_config.privacy_policy_updated_at` (mirroring migration 0013's
+  shape) and the hardcoded "Last updated" line moved to 1 August 2026,
+  which re-prompts every existing user via the existing
+  `app/welcome.tsx` re-consent gate. Verified: `tsc`/`npm test` clean
+  (three new `deletePlant()` cases in `plants.test.ts` covering
+  no-photos, multi-photo-plus-reports, and cleanup-failure-doesn't-block-delete);
+  migration applied + `get_advisors` clean; and a full live pass against
+  the real backend — a throwaway account with photos uploaded to all
+  three contexts, deleted via the redeployed `delete-account` function,
+  confirmed both the `auth.users` row and every Storage object gone
+  afterward; a second throwaway plant with a plant photo and a
+  progress-report photo confirmed the same for `deletePlant()`'s new
+  cleanup step; and live web confirmed the updated policy text renders
+  correctly and that the dev fixture account (whose `accepted_privacy_at`
+  predates the new effective date) was correctly routed into
+  `welcome.tsx`'s re-consent mode on next visit, then restored to normal
+  state after accepting.
 - Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
   currently marked "requires review before public launch") before any
-  public launch — still open regardless of the content-accuracy pass
+  public launch — still open regardless of the content-accuracy passes
   above; a factual-accuracy check is not a legal-adequacy review.
 - Store-required public pages — done, both halves. Privacy policy:
   `/privacy-policy`, carved out of the online demo's Cloudflare Access
