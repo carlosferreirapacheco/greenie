@@ -880,4 +880,76 @@ export const en = {
       },
     },
   },
+  privacyPolicy: {
+    screenTitle: "Privacy Policy",
+    // Keep in sync with app_config.privacy_policy_updated_at: a material
+    // policy change (here or in pt-PT.ts) updates this line AND ships a
+    // migration bumping that value, which re-prompts every user once
+    // (see migration 0013's own comment for the full mechanism).
+    lastUpdated: "Last updated: 1 August 2026",
+    sections: {
+      whatWeStore: {
+        heading: "What Greenie stores",
+        body:
+          "Your account: email address, username, display name, bio, your privacy settings, notification " +
+          "preferences, and (if you use push notifications) your device's push token. " +
+          "Your plants: names, nicknames, species, locations, acquisition dates, and care schedules. " +
+          "Your activity: progress reports, comments, likes, who you follow or who follows you, accounts " +
+          "you've blocked, plant-sitting arrangements you're part of, your care-streak stats, notifications " +
+          "about activity on your account, and any content reports you've filed. " +
+          "Support & recognition: if you've supported Greenie's development, your lifetime donation total " +
+          "and supporter badge tier; if you're a beta tester, that status; and your visibility preference " +
+          "for each badge. " +
+          "Photos: any photo you attach to your profile, a plant, or a progress report.",
+      },
+      whereItLives: {
+        heading: "Where it lives",
+        body:
+          "All data, including uploaded photos, is stored in a Supabase project (Postgres database, " +
+          "authentication, and file storage). Access is protected by row-level security: private content " +
+          "is enforced by the database itself, not just hidden by the app.",
+      },
+      whatLeavesTheApp: {
+        heading: "What leaves the app",
+        body:
+          "When you use the AI plant lookup while adding a plant, the plant name, description, or photo " +
+          "you provide is sent to Google Gemini to identify the species and suggest a watering schedule. " +
+          "No account data is attached to that request. " +
+          "Account emails — sign-up confirmation, password reset, and account-deletion codes — are sent " +
+          "through Resend, our email delivery provider. If you use Settings → Your data → Email me a copy, " +
+          "your full data export is also sent through Resend as an email attachment to your own account " +
+          "address. " +
+          "If you have push notifications enabled, your device's push token and the content of a " +
+          "notification (for example, a care-task reminder) pass through Expo's push notification service " +
+          "to reach your device. " +
+          "If you sign up or sign in with Google, Google shares your email address and name with Greenie " +
+          "to create or match your account — nothing else. " +
+          "If you support the project via Buy Me a Coffee and it can match your donation to your account " +
+          "(by email or by mentioning your @username), Buy Me a Coffee sends us your email, name, message, " +
+          "and donation amount so we can credit your account; if it can't be matched automatically, that " +
+          "information is reviewed manually. " +
+          "Beyond what's described in this section, nothing else is sent to or received from third parties.",
+      },
+      whatWeDontDo: {
+        heading: "What Greenie doesn't do",
+        body: "No advertising, no tracking, no analytics, no selling of data — none of that exists in this app.",
+      },
+      yourRights: {
+        heading: "Your rights",
+        body:
+          "Rectification: edit your profile details on the Profile page at any time. " +
+          "Portability: download everything Greenie stores about you as a JSON file from Settings → Your data, " +
+          "or have a copy emailed to your account address instead. " +
+          "Erasure: permanently delete your account and all of its data — including your plants, reports, " +
+          "comments, likes, follows, and uploaded photos — from Settings → Danger zone. Deletion is " +
+          "immediate and irreversible.",
+      },
+      consent: {
+        heading: "Consent",
+        body:
+          "Creating an account requires agreeing to this policy; the time of your agreement is stored with " +
+          "your profile. If this policy materially changes, you'll be asked to review it again.",
+      },
+    },
+  },
 };

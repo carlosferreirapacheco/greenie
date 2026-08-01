@@ -888,4 +888,73 @@ export const ptPT: typeof en = {
       },
     },
   },
+  privacyPolicy: {
+    screenTitle: "Política de Privacidade",
+    lastUpdated: "Última atualização: 1 de agosto de 2026",
+    sections: {
+      whatWeStore: {
+        heading: "O que o Greenie guarda",
+        body:
+          "A sua conta: endereço de email, nome de utilizador, nome a mostrar, biografia, as suas definições " +
+          "de privacidade, preferências de notificação e (se utilizar notificações push) o token push do seu " +
+          "dispositivo. As suas plantas: nomes, alcunhas, espécie, localização, datas de aquisição e " +
+          "calendários de cuidados. A sua atividade: relatórios de progresso, comentários, gostos, quem segue " +
+          "ou quem o segue, contas que bloqueou, acordos de cuidado de plantas de que faz parte, as suas " +
+          "estatísticas de sequência de cuidados, notificações sobre atividade na sua conta, e quaisquer " +
+          "denúncias de conteúdo que tenha feito. Apoio e reconhecimento: se apoiou o desenvolvimento do " +
+          "Greenie, o seu total de doações e nível de selo de apoiante; se é testador beta, esse estado; e a " +
+          "sua preferência de visibilidade para cada selo. Fotos: qualquer foto que anexe ao seu perfil, a " +
+          "uma planta, ou a um relatório de progresso.",
+      },
+      whereItLives: {
+        heading: "Onde os dados residem",
+        body:
+          "Todos os dados, incluindo as fotos carregadas, são guardados num projeto Supabase (base de dados " +
+          "Postgres, autenticação e armazenamento de ficheiros). O acesso é protegido por segurança ao nível " +
+          "da linha (row-level security): o conteúdo privado é imposto pela própria base de dados, não " +
+          "apenas ocultado pela aplicação.",
+      },
+      whatLeavesTheApp: {
+        heading: "O que sai da aplicação",
+        body:
+          "Quando utiliza a identificação de plantas por IA ao adicionar uma planta, o nome, descrição ou " +
+          "foto da planta que fornece é enviado à Google Gemini para identificar a espécie e sugerir um " +
+          "calendário de rega. Nenhum dado da conta é associado a esse pedido. Os emails da conta — " +
+          "confirmação de registo, redefinição de palavra-passe e códigos de eliminação de conta — são " +
+          "enviados através do Resend, o nosso fornecedor de entrega de email. Se utilizar Definições → Os " +
+          "seus dados → Enviar-me uma cópia por email, a sua exportação de dados completa também é enviada " +
+          "através do Resend como anexo de email para o endereço da sua própria conta. Se tiver as " +
+          "notificações push ativadas, o token push do seu dispositivo e o conteúdo de uma notificação (por " +
+          "exemplo, um lembrete de tarefa de cuidado) passam pelo serviço de notificações push da Expo para " +
+          "chegar ao seu dispositivo. Se criar conta ou iniciar sessão com o Google, o Google partilha o seu " +
+          "endereço de email e nome com o Greenie para criar ou associar a sua conta — mais nada. Se apoiar " +
+          "o projeto através do Buy Me a Coffee e a doação puder ser associada à sua conta (por email ou " +
+          "mencionando o seu @nomedeutilizador), o Buy Me a Coffee envia-nos o seu email, nome, mensagem e " +
+          "valor da doação para podermos creditar a sua conta; se não puder ser associada automaticamente, " +
+          "essa informação é revista manualmente. Para além do que é descrito nesta secção, mais nada é " +
+          "enviado a, ou recebido de, terceiros.",
+      },
+      whatWeDontDo: {
+        heading: "O que o Greenie não faz",
+        body: "Sem publicidade, sem rastreio, sem análises, sem venda de dados — nada disso existe nesta aplicação.",
+      },
+      yourRights: {
+        heading: "Os seus direitos",
+        body:
+          "Retificação: edite os detalhes do seu perfil na página de Perfil, a qualquer momento. " +
+          "Portabilidade: transfira tudo o que o Greenie guarda sobre si como um ficheiro JSON a partir de " +
+          "Definições → Os seus dados, ou receba uma cópia por email no endereço da sua conta. Apagamento: " +
+          "elimine permanentemente a sua conta e todos os seus dados — incluindo as suas plantas, " +
+          "relatórios, comentários, gostos, seguidores e fotos carregadas — a partir de Definições → Zona de " +
+          "perigo. A eliminação é imediata e irreversível.",
+      },
+      consent: {
+        heading: "Consentimento",
+        body:
+          "Criar uma conta requer que concorde com esta política; o momento em que concorda é guardado com " +
+          "o seu perfil. Se esta política sofrer alterações substanciais, ser-lhe-á pedido que a reveja " +
+          "novamente.",
+      },
+    },
+  },
 };
