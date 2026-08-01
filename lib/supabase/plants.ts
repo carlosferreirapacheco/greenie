@@ -188,10 +188,20 @@ export async function restorePlant(id: string): Promise<Plant> {
 }
 
 // Permanent -- care_tasks/plant_progress/notifications for this plant
-// all cascade-delete at the DB level (on delete cascade FKs). Storage
-// objects (photos) are not cleaned up, a known accepted gap elsewhere
-// in this project.
+// all cascade-delete at the DB level (on delete cascade FKs). Best-effort
+// cleans up this plant's own Storage photos first (its photo_urls plus
+// its progress reports' photo_url values) via the delete-plant-photos
+// Edge Function, which keys cleanup off which photos are attached to
+// the plant rather than who uploaded them -- a normal client call can
+// only delete Storage objects the caller themselves uploaded, so it
+// couldn't reach a photo an active sitter logged on this plant. A
+// cleanup failure is logged but never blocks the plant delete itself.
 export async function deletePlant(id: string): Promise<void> {
+  const { error: cleanupError } = await supabase.functions.invoke("delete-plant-photos", { body: { plantId: id } });
+  if (cleanupError) {
+    console.error("Failed to clean up plant photos before deletion:", cleanupError);
+  }
+
   const { error } = await supabase.from("plants").delete().eq("id", id);
 
   if (error) {

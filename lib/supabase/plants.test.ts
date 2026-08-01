@@ -161,18 +161,33 @@ describe("restorePlant", () => {
 });
 
 describe("deletePlant", () => {
-  it("deletes the plant by id", async () => {
-    const chain = createChainableQueryMock({ data: null, error: null });
-    mockSupabase.from.mockReturnValue(chain);
+  it("invokes delete-plant-photos before deleting the plant row", async () => {
+    mockSupabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
+    const deleteChain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(deleteChain);
 
     await deletePlant("p1");
 
+    expect(mockSupabase.functions.invoke).toHaveBeenCalledWith("delete-plant-photos", { body: { plantId: "p1" } });
     expect(mockSupabase.from).toHaveBeenCalledWith("plants");
-    expect(chain.delete).toHaveBeenCalled();
-    expect(chain.eq).toHaveBeenCalledWith("id", "p1");
+    expect(deleteChain.delete).toHaveBeenCalled();
+    expect(deleteChain.eq).toHaveBeenCalledWith("id", "p1");
+  });
+
+  it("still deletes the plant even when the photo cleanup call fails", async () => {
+    mockSupabase.functions.invoke.mockResolvedValue({ data: null, error: { message: "cleanup failed" } });
+    const deleteChain = createChainableQueryMock({ data: null, error: null });
+    mockSupabase.from.mockReturnValue(deleteChain);
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    await deletePlant("p1");
+
+    expect(deleteChain.delete).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("throws the Supabase error on failure", async () => {
+    mockSupabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
     const err = { message: "db error" };
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: err }));
 

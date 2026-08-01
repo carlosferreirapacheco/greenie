@@ -80,6 +80,44 @@ Deno.serve(async (req) => {
       throw deleteError;
     }
 
+    // Best-effort: purge the deleted user's own uploaded photos. Postgres
+    // FK cascades don't reach storage.objects, so without this every
+    // avatar/plant/progress photo they ever uploaded would be orphaned
+    // forever -- a real gap against the privacy policy's erasure claim.
+    // Storage paths are keyed by the uploader's own id
+    // (<uploaderId>/<context>/<filename>, see lib/supabase/storage.ts),
+    // so this only ever touches files this account itself uploaded --
+    // a sitter's photos on someone else's plant live under the sitter's
+    // own prefix and are correctly left alone. A failure here must never
+    // look like a failed account deletion, since the account is already
+    // gone at this point.
+    try {
+      for (const context of ["avatars", "plants", "progress"]) {
+        const { data: files, error: listError } = await adminClient.storage
+          .from("photos")
+          .list(`${user.id}/${context}`);
+
+        if (listError) {
+          throw listError;
+        }
+        if (!files || files.length === 0) {
+          continue;
+        }
+
+        const paths = files.map((file) => `${user.id}/${context}/${file.name}`);
+        const { error: removeError } = await adminClient.storage.from("photos").remove(paths);
+        if (removeError) {
+          throw removeError;
+        }
+      }
+    } catch (storageError) {
+      console.error("Failed to purge storage objects for deleted account:", storageError);
+      await logError({
+        userId,
+        errorMessage: `Storage cleanup failed: ${storageError instanceof Error ? storageError.message : String(storageError)}`,
+      });
+    }
+
     return jsonResponse({ success: true });
   } catch (error) {
     console.error(error);

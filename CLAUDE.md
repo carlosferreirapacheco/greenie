@@ -2200,9 +2200,80 @@ unrelated history.
   plant-sitting, the notifications inbox aren't mentioned in "What
   Greenie stores") were flagged but deliberately left out of this pass
   since they weren't asked for.
+- Privacy policy content, round 2 + Storage cleanup on erasure — done.
+  A follow-up review found the previous factual-accuracy pass had
+  itself gone stale: "What Greenie stores"/"What leaves the app" still
+  didn't mention blocks, plant-sitting, the notifications inbox,
+  content reports, supporter/donation status and badge visibility, or
+  two real *inbound* third-party flows (Google Sign-In sharing your
+  email/name with Greenie; Buy Me a Coffee forwarding donor
+  email/name/message/amount when a donation auto-matches an account).
+  All added. Also found a real overstatement: "Your rights" claimed
+  account deletion was "immediate and irreversible" and removed
+  everything, but uploaded photos in Supabase Storage were never
+  cleaned up on deletion (Postgres FK cascades don't reach
+  `storage.objects`) — the erasure claim was aspirational, not true.
+  Fixed rather than just reworded: `supabase/functions/delete-account/index.ts`
+  now best-effort purges the deleted user's own Storage prefix
+  (`<userId>/{avatars,plants,progress}/`, listing then batch-removing
+  each context) right after `auth.admin.deleteUser()` succeeds — wrapped
+  so a purge failure never surfaces as a failed account deletion, since
+  the account is already gone by that point; failures still get logged
+  to `app_error_logs` via the existing `logError()` helper. The parallel
+  gap in `deletePlant()` (`lib/supabase/plants.ts`, the one-off
+  archive-then-delete flow) initially got the same client-side
+  treatment (fetch the plant's `photo_urls` + its progress reports'
+  `photo_url`s, best-effort call `deletePhotoByUrl()` for each) — but
+  that approach could only ever delete photos the *calling* user
+  themselves uploaded, since Storage's own DELETE RLS is uploader-only
+  (`(storage.foldername(name))[1] = auth.uid()::text`); a photo an
+  active plant sitter uploaded on the owner's plant would silently
+  403 and stay orphaned. **Corrected per explicit user request**
+  ("have the photo cleanup be by the plant id instead of whoever
+  uploaded it"): `deletePlant()` now calls a new
+  `delete-plant-photos` Edge Function (mirrors `delete-account`'s
+  shape) before deleting the row. It reads the plant's `photo_urls`
+  and its progress reports' `photo_url`s through the caller's own
+  RLS-scoped client (`plants_select_visible`'s owner clause + the
+  explicit `plant.owner_id !== user.id` check reject anyone who isn't
+  the plant's owner), then removes every one of those Storage objects
+  with the service-role key — bypassing the uploader-only restriction
+  entirely, since authorization here is "do you own this plant," not
+  "did you upload this specific file." `deletePhotoByUrl()`
+  (`lib/supabase/storage.ts`) is no longer called from `deletePlant()`
+  at all; its own comment now explains why plant/account deletion
+  can't just call it directly. Per explicit user decision, disclosing previously-undisclosed
+  data categories counts as a **material change**: migration
+  `0034_privacy_policy_update_202608.sql` bumps
+  `app_config.privacy_policy_updated_at` (mirroring migration 0013's
+  shape) and the hardcoded "Last updated" line moved to 1 August 2026,
+  which re-prompts every existing user via the existing
+  `app/welcome.tsx` re-consent gate. Verified: `tsc`/`npm test` clean
+  (`plants.test.ts`'s `deletePlant()` cases now assert it invokes
+  `delete-plant-photos` before the row delete and still deletes the
+  row when that call fails); both Edge Functions deployed; migration
+  applied + `get_advisors` clean; and a full live pass against the
+  real backend — a throwaway account with photos uploaded to all
+  three contexts, deleted via the redeployed `delete-account`
+  function, confirmed both the `auth.users` row and every Storage
+  object gone afterward; a second live pass specifically proved the
+  by-ownership fix: two throwaway accounts (an "owner" and a
+  "sitter"), a plant owned by the first with its own photo plus a
+  progress-report photo uploaded under the *second* account's own
+  Storage prefix, `delete-plant-photos` called as the owner —
+  confirmed `deletedCount: 2` and both objects gone, including the one
+  the owner could not have deleted directly (a direct
+  `.storage.remove()` call as the owner against the sitter's own
+  object is silently a no-op under RLS, not an error, which is why the
+  old uploader-scoped approach could look like it worked while quietly
+  leaving sitter photos behind); and live web confirmed the updated
+  policy text renders correctly and that the dev fixture account
+  (whose `accepted_privacy_at` predates the new effective date) was
+  correctly routed into `welcome.tsx`'s re-consent mode on next visit,
+  then restored to normal state after accepting.
 - Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
   currently marked "requires review before public launch") before any
-  public launch — still open regardless of the content-accuracy pass
+  public launch — still open regardless of the content-accuracy passes
   above; a factual-accuracy check is not a legal-adequacy review.
 - Store-required public pages — done, both halves. Privacy policy:
   `/privacy-policy`, carved out of the online demo's Cloudflare Access
