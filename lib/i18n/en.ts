@@ -882,7 +882,6 @@ export const en = {
   },
   privacyPolicy: {
     screenTitle: "Privacy Policy",
-    draftBanner: "Draft — requires review before public launch",
     // Keep in sync with app_config.privacy_policy_updated_at: a material
     // policy change (here or in pt-PT.ts) updates this line AND ships a
     // migration bumping that value, which re-prompts every user once

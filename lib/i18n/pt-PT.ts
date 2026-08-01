@@ -890,7 +890,6 @@ export const ptPT: typeof en = {
   },
   privacyPolicy: {
     screenTitle: "Política de Privacidade",
-    draftBanner: "Rascunho — requer revisão antes do lançamento público",
     lastUpdated: "Última atualização: 1 de agosto de 2026",
     sections: {
       whatWeStore: {

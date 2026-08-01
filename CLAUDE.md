@@ -2301,10 +2301,14 @@ unrelated history.
   fully and correctly, the toggle switches content without affecting
   the app-wide language, and it correctly defaults to whatever
   language the app is currently set to.
-- Legal review of the privacy policy draft (`app/privacy-policy.tsx`,
-  currently marked "requires review before public launch") before any
-  public launch — still open regardless of the content-accuracy passes
-  above; a factual-accuracy check is not a legal-adequacy review.
+- Legal review of the privacy policy — done. Per explicit user
+  sign-off ("the policy is ok to go"), the "Draft — requires review
+  before public launch" banner is removed from `app/privacy-policy.tsx`
+  (and the corresponding `privacyPolicy.draftBanner` key dropped from
+  both `lib/i18n/en.ts` and `pt-PT.ts`, along with the file's own
+  "DRAFT: needs proper (legal) review" comment) — the policy is now
+  treated as final content in both languages, not a draft awaiting
+  review.
 - Store-required public pages — done, both halves. Privacy policy:
   `/privacy-policy`, carved out of the online demo's Cloudflare Access
   gate (see Online demo, Product features). **Account deletion**:

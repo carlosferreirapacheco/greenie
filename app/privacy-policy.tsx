@@ -3,13 +3,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { t as translate, type SupportedLocale } from "../lib/i18n";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
 
-// DRAFT: needs proper (legal) review before the app has real users --
-// tracked in the CLAUDE.md backlog. Content lives in lib/i18n/en.ts and
-// pt-PT.ts under the privacyPolicy namespace.
+// Content lives in lib/i18n/en.ts and pt-PT.ts under the privacyPolicy
+// namespace.
 
 const SECTION_KEYS = ["whatWeStore", "whereItLives", "whatLeavesTheApp", "whatWeDontDo", "yourRights", "consent"] as const;
 
@@ -60,12 +59,6 @@ export default function PrivacyPolicyScreen() {
         })}
       </View>
 
-      <View style={[styles.draftBanner, { backgroundColor: colors.sage }]}>
-        <Text style={[styles.draftText, { fontFamily: fonts.bodyMedium, color: colors.mossStrong }]}>
-          {t("privacyPolicy.draftBanner")}
-        </Text>
-      </View>
-
       <Text style={[styles.lastUpdated, { fontFamily: fonts.body, color: colors.inkSoft }]}>
         {t("privacyPolicy.lastUpdated")}
       </Text>
@@ -95,15 +88,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   languageToggleLabel: {
-    fontSize: 13,
-  },
-  draftBanner: {
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-  },
-  draftText: {
     fontSize: 13,
   },
   lastUpdated: {
