@@ -2143,6 +2143,43 @@ sharing them socially with other users.
   `/feedback` page rendered the submission's badge, identity, timestamp,
   description, and photo thumbnail correctly); backoffice `next build`
   and `eslint` both clean.
+  **Backoffice status workflow — done**, a follow-up. The read-only
+  review page above gained real triage: four statuses (`needs_review`
+  / `reviewed` / `working` / `closed`), and per explicit product
+  decision this is **not a linear flow** — an admin can set any status
+  from any other status at any time (e.g. `closed` → `working` is
+  valid, not just forward progress). Migration
+  `0036_app_feedback_status.sql` adds flat `status`/`status_message`/
+  `status_updated_by`/`status_updated_by_email`/`status_updated_at`
+  columns directly to `app_feedback` (mirrors migration
+  `0026_report_resolution.sql`'s precedent of resolution columns on
+  the row itself rather than a separate history table — there's
+  exactly one admin-facing status per row, not a change history to
+  review). `reviewed`/`closed` require a non-empty `status_message` —
+  enforced by a real DB check constraint
+  (`app_feedback_status_message_required`), not just client
+  validation. Re-setting any status, including re-confirming the
+  current one, overwrites the message/attribution — only the latest
+  is kept, a deliberate simplicity choice. New Server Action
+  `setFeedbackStatus()` (`src/app/(app)/feedback/actions.ts` in
+  `greenie-backoffice`) — no `logAdminAction()` call, since the row
+  itself is the trail, the same reasoning `resolveReport()` already
+  uses. New `components/feedback-status-dialog.tsx` (one dialog
+  component parameterized by `requireMessage`, covering all four
+  actions) and `components/ui/textarea.tsx` (this codebase's first
+  multi-line input). The review page now shows a status badge next to
+  the type badge, the current message + who/when underneath, and four
+  "Mark ..." actions per submission. Verified: a rolled-back SQL
+  transaction confirmed the message-required constraint (rejects
+  `reviewed`/`closed` with a null or blank message, accepts one) and
+  that transitions really are unconstrained (`needs_review` → `closed`
+  direct skip, `closed` → `working` backwards, both allowed); `next
+  build`/`eslint` clean; live web end-to-end (signed in as the same
+  temporarily admin-flagged dev fixture account, reverted after) —
+  skipped straight from needs-review to closed, went backwards from
+  closed to working (clearing the old message), confirmed the Confirm
+  button stays disabled until a required message is typed, and
+  re-closed with a different message to confirm the overwrite.
 
 ### Public launch / production readiness
 Everything below is a real, still-open gap between the current dev/demo

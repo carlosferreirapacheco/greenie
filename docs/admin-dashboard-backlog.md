@@ -163,23 +163,45 @@ gate, all live).
   all three resolutions render correctly under the Resolved/All
   filters. All seeded data removed and the test account unbanned
   afterward.
-- **Feedback review — done.** A read-only companion to Report review,
-  for the new in-app "Send feedback" screen (suggestions/bug
-  reports/general feedback about the app itself, distinct from
-  reporting another user's content). New `src/lib/feedback.ts`'s
-  `getFeedbackSubmissions()` (service-role, no hydration needed since
-  the `app_feedback` table — main repo's migration
-  `0035_app_feedback.sql` — already denormalizes the submitter's
-  username/email at submission time) backs a new `/feedback` page:
-  type badge, submitter identity, timestamp, description, and photo
-  thumbnails linking out to the full-size Storage URL, mirroring
-  Report review's own card-list layout. No actions (no dismiss/delete)
-  — the app-side feature only asked for submissions to be visible, not
-  a moderation workflow; a natural fast-follow if one's ever needed.
-  New "Feedback" nav link. Verified live end-to-end (signed in as a
-  temporarily admin-flagged dev fixture account, reverted after): a
-  real seeded submission with an attached photo rendered correctly,
-  including the photo thumbnail; `next build`/`eslint` both clean.
+- **Feedback review — done.** A companion to Report review for the
+  in-app "Send feedback" screen (suggestions/bug reports/general
+  feedback about the app itself, distinct from reporting another
+  user's content). New `src/lib/feedback.ts`'s `getFeedbackSubmissions()`
+  (service-role, no hydration needed since the `app_feedback` table —
+  main repo's migration `0035_app_feedback.sql` — already denormalizes
+  the submitter's username/email at submission time) backs a new
+  `/feedback` page: type badge, submitter identity, timestamp,
+  description, and photo thumbnails linking out to the full-size
+  Storage URL, mirroring Report review's own card-list layout. New
+  "Feedback" nav link.
+  **Triage actions — done, a follow-up.** Shipped read-only first,
+  then given real states: `needs_review`/`reviewed`/`working`/`closed`
+  (migration `0036_app_feedback_status.sql` in the main repo, flat
+  columns on `app_feedback` mirroring Report review's own
+  `resolved_*` columns rather than a separate history table). Per
+  explicit product decision this is **not a linear flow** — any status
+  can be set from any other at any time, e.g. `closed` → `working` is
+  valid. `reviewed`/`closed` require a message (a real DB check
+  constraint, not just client validation); re-setting any status
+  overwrites the previous message — only the latest is kept, no
+  history table, a deliberate simplicity choice matching Report
+  review's own single-resolution shape. New Server Action
+  `setFeedbackStatus()` (`src/app/(app)/feedback/actions.ts`) —
+  deliberately no `logAdminAction()` call, same reasoning as
+  `resolveReport()`: the row itself is the trail. New
+  `components/feedback-status-dialog.tsx` (one dialog, parameterized
+  by whether a message is required) and this repo's first
+  `components/ui/textarea.tsx`. Verified live end-to-end (signed in as
+  a temporarily admin-flagged dev fixture account, reverted after): a
+  real seeded submission with an attached photo rendered correctly
+  including the thumbnail; all four status actions exercised,
+  including skipping straight from needs-review to closed and going
+  backwards from closed to working, confirming there's no enforced
+  ordering; the Confirm button stayed disabled until a required
+  message was typed; re-closing with a different message correctly
+  overwrote the first. A rolled-back SQL transaction separately proved
+  the message-required constraint and the unconstrained transitions
+  at the DB layer. `next build`/`eslint` both clean throughout.
 - **Direct content search & removal — shelved.** Originally scoped as
   free-text search across any account's content, for the case where
   something needs to come down before anyone's reported it. On
