@@ -556,6 +556,18 @@ export default function SettingsScreen() {
         </Text>
 
         <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
+          {t("settings.feedback.sectionTitle")}
+        </Text>
+        <Text style={[styles.sectionIntro, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+          {t("settings.feedback.sectionIntro")}
+        </Text>
+        <Pressable onPress={() => router.push("/feedback")} hitSlop={4}>
+          <Text style={[styles.policyLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+            {t("settings.feedback.link")}
+          </Text>
+        </Pressable>
+
+        <Text style={[styles.sectionTitle, styles.privacySectionTitle, { fontFamily: fonts.display, color: colors.ink }]}>
           {t("settings.changePassword.sectionTitle")}
         </Text>
 

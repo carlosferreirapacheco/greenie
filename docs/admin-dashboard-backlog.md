@@ -163,6 +163,23 @@ gate, all live).
   all three resolutions render correctly under the Resolved/All
   filters. All seeded data removed and the test account unbanned
   afterward.
+- **Feedback review — done.** A read-only companion to Report review,
+  for the new in-app "Send feedback" screen (suggestions/bug
+  reports/general feedback about the app itself, distinct from
+  reporting another user's content). New `src/lib/feedback.ts`'s
+  `getFeedbackSubmissions()` (service-role, no hydration needed since
+  the `app_feedback` table — main repo's migration
+  `0035_app_feedback.sql` — already denormalizes the submitter's
+  username/email at submission time) backs a new `/feedback` page:
+  type badge, submitter identity, timestamp, description, and photo
+  thumbnails linking out to the full-size Storage URL, mirroring
+  Report review's own card-list layout. No actions (no dismiss/delete)
+  — the app-side feature only asked for submissions to be visible, not
+  a moderation workflow; a natural fast-follow if one's ever needed.
+  New "Feedback" nav link. Verified live end-to-end (signed in as a
+  temporarily admin-flagged dev fixture account, reverted after): a
+  real seeded submission with an attached photo rendered correctly,
+  including the photo thumbnail; `next build`/`eslint` both clean.
 - **Direct content search & removal — shelved.** Originally scoped as
   free-text search across any account's content, for the case where
   something needs to come down before anyone's reported it. On
