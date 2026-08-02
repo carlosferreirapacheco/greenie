@@ -4,7 +4,7 @@ import { supabase } from "./client";
 
 const BUCKET = "photos";
 
-export type PhotoContext = "plants" | "avatars" | "progress";
+export type PhotoContext = "plants" | "avatars" | "progress" | "feedback";
 
 // Every upload gets a fresh random filename (not just e.g. the plant
 // id) so a replaced photo gets a new URL instead of colliding with a

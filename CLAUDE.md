@@ -2076,6 +2076,110 @@ sharing them socially with other users.
       layout via `lib/consentEvents.ts` to avoid a refetch race.
       Email is never editable; avatar stays out of scope until real
       photo upload exists.
+- Suggestion / bug report / feedback — done. A dedicated way to send
+  suggestions, bug reports, or general feedback about the app itself —
+  distinct from the existing Report content and users feature, which
+  is scoped to reporting another user's content for moderation, not
+  product feedback. New `app_feedback` table (migration
+  `0035_app_feedback.sql`): `type` (suggestion/bug/feedback/other),
+  `description`, `photo_urls[]`, plus `username`/`email` snapshots
+  taken at submission time (same reasoning as `bmc_donations`'
+  denormalized supporter fields and `admin_audit_log`'s email
+  snapshots) so a submission survives a later username change or the
+  submitter deleting their account — per explicit decision, account
+  deletion sets `user_id` to null rather than cascading the row away,
+  since a still-useful bug report/suggestion shouldn't vanish just
+  because the reporter's account is later deleted. RLS is insert-only
+  (`auth.uid() = user_id`, no select policy at all — the app never
+  reads this back, only the admin backoffice does, via the
+  service-role client, the same shape as `bmc_donations`).
+  **Server-side rate limiting**: a `before insert` `security definer`
+  trigger (`enforce_feedback_rate_limit()`, mirrors
+  `cancel_sitting_on_unfollow`'s pattern — `security definer` is
+  needed here specifically because there's no select policy, so a
+  plain invoker-rights trigger couldn't see the caller's own prior
+  rows) rejects a second submission from the same `user_id` within 60
+  seconds, raising a Postgres `P0001` exception. New
+  `lib/supabase/feedback.ts`: `submitFeedback()` attaches the
+  signed-in user's id/username/email (via the existing
+  `getMyProfile()`) and maps a `P0001` failure to a typed
+  `FeedbackRateLimitedError`, the same normalize-to-a-typed-error
+  pattern `AiLookupOverloadedError` already established in
+  `lib/supabase/ai.ts` — a friendly "please wait a minute" message
+  instead of a raw Postgres error, matching what the trigger itself
+  enforces server-side rather than trusting the client. New
+  `app/feedback.tsx` screen, modeled on `app/report.tsx`'s structure:
+  a `ChipGroup` for the type (matching every other picker in the app —
+  there's no native-dropdown precedent anywhere in this codebase, a
+  deliberate choice made explicit before implementation), a required
+  multiline description field, and an inline multi-photo attachments
+  control (capped at 5) built directly in this screen rather than as a
+  new shared component, since `PhotoPicker`/`pickImage`/`uploadPhoto`
+  are single-photo-at-a-time primitives and this is the only place
+  needing several — reuses the existing `photos` Storage bucket with a
+  new `"feedback"` `PhotoContext`. A "Submit another" action on the
+  success screen resets the form; hitting the same rate limit there
+  surfaces the friendly message rather than the raw error. Settings
+  gained a small "Feedback" section (right after Language) linking to
+  the new screen. Full English + Português i18n coverage, translation
+  drafted and reviewed before implementation per this project's usual
+  process. New `getFeedbackSubmissions()` in the `greenie-backoffice`
+  repo's `src/lib/feedback.ts` (service-role, no hydration needed since
+  every field the review page needs is already denormalized on the
+  row) backs a new read-only `/feedback` review page there (type badge,
+  submitter identity, description, photo thumbnails linking to the
+  full-size Storage URL — mirrors `/reports`' card-list layout), with a
+  new "Feedback" nav link. Verified: `tsc`/`npm test` clean (new
+  `lib/supabase/feedback.test.ts`); a rolled-back SQL transaction
+  proved the rate limit is per-user (a second submission from the same
+  user within 60s is rejected, a different user's submission in the
+  same window is unaffected, and the same user succeeds again once 61s
+  have passed); live web end-to-end on the main app (a real submission
+  with an attached photo landed with the correct username/email
+  snapshot, an immediate second attempt showed the translated rate-limit
+  message and did not create a row, waiting out the window and retrying
+  worked) and on the backoffice (signed in as a temporarily
+  admin-flagged dev fixture account — reverted after — the new
+  `/feedback` page rendered the submission's badge, identity, timestamp,
+  description, and photo thumbnail correctly); backoffice `next build`
+  and `eslint` both clean.
+  **Backoffice status workflow — done**, a follow-up. The read-only
+  review page above gained real triage: four statuses (`needs_review`
+  / `reviewed` / `working` / `closed`), and per explicit product
+  decision this is **not a linear flow** — an admin can set any status
+  from any other status at any time (e.g. `closed` → `working` is
+  valid, not just forward progress). Migration
+  `0036_app_feedback_status.sql` adds flat `status`/`status_message`/
+  `status_updated_by`/`status_updated_by_email`/`status_updated_at`
+  columns directly to `app_feedback` (mirrors migration
+  `0026_report_resolution.sql`'s precedent of resolution columns on
+  the row itself rather than a separate history table — there's
+  exactly one admin-facing status per row, not a change history to
+  review). `reviewed`/`closed` require a non-empty `status_message` —
+  enforced by a real DB check constraint
+  (`app_feedback_status_message_required`), not just client
+  validation. Re-setting any status, including re-confirming the
+  current one, overwrites the message/attribution — only the latest
+  is kept, a deliberate simplicity choice. New Server Action
+  `setFeedbackStatus()` (`src/app/(app)/feedback/actions.ts` in
+  `greenie-backoffice`) — no `logAdminAction()` call, since the row
+  itself is the trail, the same reasoning `resolveReport()` already
+  uses. New `components/feedback-status-dialog.tsx` (one dialog
+  component parameterized by `requireMessage`, covering all four
+  actions) and `components/ui/textarea.tsx` (this codebase's first
+  multi-line input). The review page now shows a status badge next to
+  the type badge, the current message + who/when underneath, and four
+  "Mark ..." actions per submission. Verified: a rolled-back SQL
+  transaction confirmed the message-required constraint (rejects
+  `reviewed`/`closed` with a null or blank message, accepts one) and
+  that transitions really are unconstrained (`needs_review` → `closed`
+  direct skip, `closed` → `working` backwards, both allowed); `next
+  build`/`eslint` clean; live web end-to-end (signed in as the same
+  temporarily admin-flagged dev fixture account, reverted after) —
+  skipped straight from needs-review to closed, went backwards from
+  closed to working (clearing the old message), confirmed the Confirm
+  button stays disabled until a required message is typed, and
+  re-closed with a different message to confirm the overwrite.
 
 ### Public launch / production readiness
 Everything below is a real, still-open gap between the current dev/demo
