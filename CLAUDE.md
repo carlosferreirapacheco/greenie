@@ -2972,11 +2972,17 @@ unrelated history.
   Refund handling (`donation.refunded` etc. auto-reversing
   `total_donated`) is also done — see that same entry. Real IAP/payment
   processing for anything beyond this remains unscoped.
-- Admin dashboard — unscoped beyond report review and supporter-badge
-  tier assignment (see the Payments/monetization item above). Full
-  feature backlog, access-control design, platform choice, and
-  suggested phasing tracked separately in
-  `docs/admin-dashboard-backlog.md` rather than growing inline here.
+- Admin dashboard — done against its own documented scope (see
+  `docs/admin-dashboard-backlog.md`, a separate `greenie-backoffice`
+  repo/app). Access control, report review, user lookup + ban/unban,
+  manual GDPR export/erasure, observability & health, product-insight
+  metrics, the `app_config` viewer, supporter donation tracking
+  (webhook + refunds + reconciliation queue + beta-tester badge grant),
+  admin audit logging, and hosting (Cloudflare Workers) are all live.
+  Direct content search stays shelved (a real privacy concern, not
+  just unbuilt) and force-unlinking a Google identity on someone's
+  behalf stays re-scoped (no supported admin API exists; the mobile
+  app grew a self-service unlink instead) — both deliberate, not gaps.
 - Imperial measurement units (height in inches/feet instead of cm —
   `plant_progress.height_cm`, `log-progress.tsx`, `HeightChart.tsx`,
   and the initial-size field on Add Plant). Explicitly out of scope

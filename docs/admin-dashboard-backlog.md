@@ -473,9 +473,11 @@ gate, all live).
   app is done** — see CLAUDE.md's "Supporter tier badges + beta-tester
   badge" entry for the full write-up (tier derivation via
   `lib/badges.ts`, `components/badges/` chip/icon components, wiring
-  into profile/feed/progress screens). A donation-flow hint modal in
-  Settings explaining tiers and asking supporters to include their
-  `@username` remains unbuilt.
+  into profile/feed/progress screens). **The donation-flow hint modal
+  is also done** — see CLAUDE.md's "Support-flow hint modal" entry
+  (`components/SupportHintModal.tsx`, opens before the external Buy Me
+  a Coffee link, showing the tier ladder and the `@username`
+  checkout-mention step).
 
 ### Observability & health
 
