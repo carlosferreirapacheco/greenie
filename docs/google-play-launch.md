@@ -6,9 +6,10 @@ section there is a copy/adjust job instead of a research project.
 
 ## Pre-flight checklist
 
-- [ ] **Play Developer account registered** ($25 one-time). No account
-  exists yet as of this doc — see "Closed testing" below, since a new
-  personal account cannot publish straight to production.
+- [x] **Play Developer account registered** ($25 one-time). Done. Since
+  the account was created after Nov 13, 2023, it still can't publish
+  straight to production — see "Closed testing" below for the mandatory
+  12+ tester / 14-day track.
 - [x] **Privacy policy legally reviewed.** Done — the "Draft — requires
   review before public launch" banner was removed from
   `app/privacy-policy.tsx` per explicit user sign-off.
