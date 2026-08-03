@@ -27,6 +27,8 @@ export type MyDataExport = {
   blocks: unknown[];
   notifications: unknown[];
   push_tokens: unknown[];
+  reports: unknown[];
+  plant_sitting: unknown[];
 };
 
 export async function collectMyData(): Promise<MyDataExport> {
@@ -138,6 +140,30 @@ export async function collectMyData(): Promise<MyDataExport> {
     throw pushTokensError;
   }
 
+  // reports_select_own means this returns exactly the content/user
+  // reports this account has filed -- not reports filed against them.
+  const { data: contentReports, error: contentReportsError } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("reporter_id", user.id);
+
+  if (contentReportsError) {
+    throw contentReportsError;
+  }
+
+  // plant_sitting_select_own covers both roles in one query, same .or()
+  // shape as the follows query above -- assignments this user owns
+  // (plants they asked someone to sit for) and ones they're the sitter
+  // on, regardless of status (pending/accepted/declined/cancelled).
+  const { data: plantSitting, error: plantSittingError } = await supabase
+    .from("plant_sitting_assignments")
+    .select("*")
+    .or(`owner_id.eq.${user.id},sitter_id.eq.${user.id}`);
+
+  if (plantSittingError) {
+    throw plantSittingError;
+  }
+
   return {
     exported_at: new Date().toISOString(),
     account: {
@@ -165,6 +191,8 @@ export async function collectMyData(): Promise<MyDataExport> {
     blocks,
     notifications,
     push_tokens: pushTokens,
+    reports: contentReports,
+    plant_sitting: plantSitting,
   };
 }
 

@@ -194,7 +194,9 @@ export const en = {
       },
       consent: {
         prefix: "I have read and agree to the ",
-        link: "Privacy Policy",
+        privacyLink: "Privacy Policy",
+        middle: " and ",
+        termsLink: "Terms of Use",
       },
       submitButton: "Create account",
       divider: "or",
@@ -207,16 +209,16 @@ export const en = {
     errorScreenTitle: "Welcome",
     error: "Error: {error}",
     reconsent: {
-      screenTitle: "Privacy Policy",
-      heading: "Privacy Policy update",
-      intro: "The privacy policy has changed since you last accepted it — please review it to continue.",
+      screenTitle: "Privacy Policy & Terms",
+      heading: "Privacy Policy & Terms of Use update",
+      intro: "The privacy policy and/or terms of use have changed since you last accepted them — please review to continue.",
       submitButton: "Accept and continue",
       signOutLink: "Sign out",
     },
     firstTime: {
       screenTitle: "Welcome",
       heading: "Welcome to Greenie",
-      intro: "One quick step before you head in: check that these look right, and agree to the privacy policy.",
+      intro: "One quick step before you head in: check that these look right, and agree to the privacy policy and terms of use.",
       displayName: {
         label: "Display name",
         placeholder: "e.g. Carlos",
@@ -231,7 +233,9 @@ export const en = {
     },
     consent: {
       prefix: "I have read and agree to the ",
-      link: "Privacy Policy",
+      privacyLink: "Privacy Policy",
+      middle: " and ",
+      termsLink: "Terms of Use",
     },
   },
   settings: {
@@ -975,6 +979,99 @@ export const en = {
         body:
           "Creating an account requires agreeing to this policy; the time of your agreement is stored with " +
           "your profile. If this policy materially changes, you'll be asked to review it again.",
+      },
+    },
+  },
+  termsOfUse: {
+    screenTitle: "Terms of Use",
+    draftBanner: "Draft — requires review before public launch.",
+    // Keep in sync with app_config.privacy_policy_updated_at, the same
+    // trigger the Privacy Policy uses (see that namespace's own
+    // comment) -- this document is re-consented to together with the
+    // Privacy Policy, not on its own separate schedule.
+    lastUpdated: "Last updated: 3 August 2026",
+    sections: {
+      acceptance: {
+        heading: "Acceptance of these Terms",
+        body:
+          "By creating an account or using Greenie, you agree to these Terms of Use and to our Privacy " +
+          "Policy. If you don't agree, please don't use the app.",
+      },
+      account: {
+        heading: "Your account",
+        body:
+          "You must be at least 13 years old to use Greenie. You're responsible for the activity on your " +
+          "account and for keeping your password secure. Usernames and profile content must not impersonate " +
+          "another person or organization.",
+      },
+      userContent: {
+        heading: "Your content and conduct",
+        body:
+          "You keep ownership of the plants, photos, progress reports, comments, and other content you post " +
+          "(\"your content\"). By posting it, you give Greenie a limited license to store, display, and " +
+          "share it within the app as intended by your own privacy settings — nothing more. " +
+          "You agree not to post or share content that: is illegal, harassing, hateful, or threatening; is " +
+          "sexually explicit, or in any way involves the exploitation or endangerment of a minor; " +
+          "impersonates another person; infringes someone else's copyright, trademark, or other rights; is " +
+          "spam, a scam, or malicious code; or otherwise violates these Terms.",
+      },
+      moderation: {
+        heading: "Moderation and enforcement",
+        body:
+          "Greenie provides in-app tools to report content or accounts (Report) and to block other users " +
+          "(Block). We may review reported content, remove content that violates these Terms, and suspend " +
+          "or terminate accounts that repeatedly or seriously violate them, with or without notice.",
+      },
+      aiFeatures: {
+        heading: "AI-assisted plant identification",
+        body:
+          "Greenie's photo-based plant lookup uses Google Gemini to suggest a plant's name, species, and " +
+          "care schedule. These suggestions are informational and may be inaccurate or incomplete — they're " +
+          "not a substitute for professional advice, and you shouldn't rely on them as the sole source of " +
+          "information about a plant's safety, including toxicity to people or pets.",
+      },
+      thirdParty: {
+        heading: "Third-party services",
+        body:
+          "Greenie relies on third-party services to operate — including Supabase for data storage, Google " +
+          "Gemini for plant identification, Resend for email delivery, and Expo for push notifications. See " +
+          "our Privacy Policy for details on what's shared with each.",
+      },
+      disclaimers: {
+        heading: "Disclaimers and limitation of liability",
+        body:
+          "Greenie is provided \"as is,\" without warranties of any kind. We don't guarantee the app will " +
+          "be uninterrupted or error-free, or that any content (including AI-generated suggestions) is " +
+          "accurate. To the fullest extent permitted by law, Greenie and its developer aren't liable for " +
+          "any indirect, incidental, or consequential damages arising from your use of the app, including " +
+          "harm to a plant, pet, or person that relied on information provided in the app.",
+      },
+      termination: {
+        heading: "Termination",
+        body:
+          "You may stop using Greenie and delete your account at any time from Settings → Danger zone. We " +
+          "may suspend or terminate your access if you violate these Terms, misuse the service, or if we " +
+          "discontinue the app.",
+      },
+      changes: {
+        heading: "Changes to these Terms",
+        body:
+          "We may update these Terms from time to time. If a change is material, we'll ask you to review " +
+          "and accept the updated Terms again the next time you use the app, the same way we handle privacy " +
+          "policy updates.",
+      },
+      governingLaw: {
+        heading: "Governing law",
+        body:
+          "These Terms are governed by the laws of Portugal and the European Union, without regard to " +
+          "conflict-of-law principles. Any dispute arising from these Terms or your use of Greenie is " +
+          "subject to the exclusive jurisdiction of the courts of Portugal.",
+      },
+      contact: {
+        heading: "Contact",
+        body:
+          "Questions about these Terms? Reach out via the feedback option in Settings, or through the same " +
+          "contact channel listed in our Privacy Policy.",
       },
     },
   },

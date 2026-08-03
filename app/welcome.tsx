@@ -207,7 +207,14 @@ export default function WelcomeScreen() {
               style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
               onPress={() => router.push("/privacy-policy")}
             >
-              {t("welcome.consent.link")}
+              {t("welcome.consent.privacyLink")}
+            </Text>
+            {t("welcome.consent.middle")}
+            <Text
+              style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
+              onPress={() => router.push("/terms-of-use")}
+            >
+              {t("welcome.consent.termsLink")}
             </Text>
           </Text>
         </Pressable>

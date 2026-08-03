@@ -259,7 +259,14 @@ export default function SignUpScreen() {
               style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
               onPress={() => router.push("/privacy-policy")}
             >
-              {t("signUp.form.consent.link")}
+              {t("signUp.form.consent.privacyLink")}
+            </Text>
+            {t("signUp.form.consent.middle")}
+            <Text
+              style={{ fontFamily: fonts.bodyMedium, color: colors.moss }}
+              onPress={() => router.push("/terms-of-use")}
+            >
+              {t("signUp.form.consent.termsLink")}
             </Text>
           </Text>
         </Pressable>

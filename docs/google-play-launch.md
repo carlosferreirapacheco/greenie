@@ -9,9 +9,14 @@ section there is a copy/adjust job instead of a research project.
 - [ ] **Play Developer account registered** ($25 one-time). No account
   exists yet as of this doc — see "Closed testing" below, since a new
   personal account cannot publish straight to production.
-- [ ] **Privacy policy legally reviewed.** `app/privacy-policy.tsx` is
-  still marked "Draft — requires review before public launch." Don't
-  submit for production review until that's resolved.
+- [x] **Privacy policy legally reviewed.** Done — the "Draft — requires
+  review before public launch" banner was removed from
+  `app/privacy-policy.tsx` per explicit user sign-off.
+- [ ] **Terms of Use legally reviewed.** `app/terms-of-use.tsx` is
+  still marked "Draft — requires review before public launch" (new
+  this session, added to satisfy Play's UGC-terms requirement — see
+  the Content rating section below). Don't submit for production
+  review until that's resolved.
 - [ ] **Target API level compliant.** Google requires new apps to target
   Android 15 (API level 35) or higher as of this writing. Expo SDK 57
   should already meet this, but confirm from the actual EAS build
@@ -26,23 +31,29 @@ section there is a copy/adjust job instead of a research project.
   verification review for some scopes — this app only requests default
   scopes, so it likely doesn't need Google's full verification process,
   but confirm in-console since this depends on Google's current rules.)
-- [ ] **Two public URLs ready** (both already live, no work needed):
+- [ ] **Three public URLs ready** (all already live, no work needed):
   - Privacy policy: `<demo-host>/privacy-policy`
+  - Terms of use: `<demo-host>/terms-of-use`
   - Account deletion: `<demo-host>/delete-account`
   Play Console's store listing and Data Safety section both ask for a
   privacy policy URL; the Data Safety section also asks whether
   in-app account deletion is available and may ask for the URL if the
-  app supports web-based deletion outside the app.
+  app supports web-based deletion outside the app. The terms-of-use URL
+  isn't a Play Console form field itself, but Play's UGC policy expects
+  it to be linked from the app (it's now reachable from the signup and
+  re-consent consent checkboxes) and reviewers may check it.
 
 ## Data Safety section
 
 Cross-checked against `lib/supabase/gdpr.ts`'s `collectMyData()` —
 that function is the actual single source of truth for what this app
-stores, so this table won't drift from it silently. Note: that export
-(and the privacy policy's "What Greenie stores" section) predates this
-session's new `reports` table and doesn't yet mention it, blocks,
-plant-sitting, or the notifications inbox — a pre-existing content gap,
-not something introduced here; worth a follow-up pass before launch.
+stores, so this table won't drift from it silently. The export now
+covers every user-facing table, including `reports` and
+`plant_sitting_assignments` (closed out in the same session that added
+the Terms of Use — see CLAUDE.md's "Public launch / production
+readiness" backlog); the privacy policy's "What Greenie stores"
+section already covered blocks, plant-sitting, and the notifications
+inbox from an earlier content pass.
 
 | Data type | Collected? | Shared? | Purpose | User can request deletion? |
 |---|---|---|---|---|

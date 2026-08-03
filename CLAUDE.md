@@ -2413,6 +2413,69 @@ unrelated history.
   "DRAFT: needs proper (legal) review" comment) — the policy is now
   treated as final content in both languages, not a draft awaiting
   review.
+- Terms of Use + GDPR export completeness — done. A Google Play policy
+  compliance review (against the current, freshly-fetched Play policy
+  pages, not assumed from memory) turned up two concrete gaps, both
+  closed in one pass. **Terms of Use**: Play's User Generated Content
+  policy (effective April 15, 2026) requires apps hosting UGC to get
+  users to accept a terms of use / user policy that defines and
+  prohibits objectionable content and behavior, *before* they can post
+  UGC — separate from a privacy policy, which only covers data
+  handling. New `app/terms-of-use.tsx`, structurally identical to
+  `app/privacy-policy.tsx` (same page-local English/Português toggle
+  that never touches the app-wide language setting, same section-map
+  rendering) with an `termsOfUse` i18n namespace covering acceptance,
+  account eligibility, user content & conduct (prohibited: harassment,
+  hate speech, spam, illegal content, impersonation, IP infringement,
+  sexual content involving minors), moderation & enforcement
+  (cross-references the existing Report/Block features), content
+  ownership & license, the AI plant-lookup feature (informational, not
+  a substitute for professional advice), third-party services,
+  disclaimers & limitation of liability, termination, changes to the
+  terms, governing law (**Portugal / EU**, per explicit user decision),
+  and contact. Ships with the same "Draft — requires review before
+  public launch" banner the Privacy Policy originally launched with
+  (see the Privacy Policy's own legal-review entry above for the
+  precedent) — this is legal content and a real review pass is the
+  user's own call, not something to certify from here. `app/_layout.tsx`'s
+  `inPublicGroup` check gained `"terms-of-use"` alongside
+  `"privacy-policy"`/`"delete-account"`, so it's reachable without a
+  session. **Wired into the existing consent mechanism, no new schema**:
+  the single consent checkbox on `app/sign-up.tsx` and
+  `app/welcome.tsx` now reads "I have read and agree to the *Privacy
+  Policy* and *Terms of Use*" (two separately-tappable links, one
+  checkbox, one `acceptPrivacyPolicy()` call, one `accepted_privacy_at`
+  stamp — unchanged from before) since introducing this requirement for
+  the first time is itself the kind of material change the existing
+  `app_config.privacy_policy_updated_at` re-consent trigger exists for
+  (migration `0037_terms_of_use_reconsent.sql`, same shape as migrations
+  `0013`/`0034`) — every existing user is routed through
+  `app/welcome.tsx`'s re-consent mode once, where the updated checkbox
+  now covers both documents. **GDPR export completeness**:
+  `collectMyData()` (`lib/supabase/gdpr.ts`) was missing two tables —
+  `reports` (content/user reports the account has filed,
+  `reports_select_own` RLS) and `plant_sitting_assignments` (covers
+  both the owner and sitter role in one `.or()` query, same shape as
+  the existing `follows` query, `plant_sitting_select_own` RLS) — a
+  real completeness gap against the privacy policy's own claim of a
+  full data export, already flagged as a known TODO in this doc's
+  "Report content and users" entry but never closed out until now.
+  Verified: `tsc`/`npm test` clean (`gdpr.test.ts` extended for both
+  new fields); migration applied + `get_advisors` clean; live web — a
+  stale-consent account was correctly routed to `/welcome`'s re-consent
+  mode showing the updated two-link Portuguese checkbox
+  ("Li e concordo com a Política de Privacidade e os Termos de
+  Utilização"), accepting it navigated back into the signed-in app;
+  `/terms-of-use` rendered correctly with working language toggle and
+  draft banner; and, for a fixture account seeded with one real
+  `reports` row and one real `plant_sitting_assignments` row, clicking
+  "Download my data" in Settings was confirmed via intercepted network
+  requests to fire the exact expected
+  `reports?reporter_id=eq.<id>`/`plant_sitting_assignments?or=(owner_id.eq.<id>,sitter_id.eq.<id>)`
+  queries, cross-checked against the live database to confirm both
+  seeded rows were within scope of those filters (test rows deleted
+  after). `docs/google-play-launch.md` updated to list the new
+  `/terms-of-use` public URL and to reflect the export's completeness.
 - Store-required public pages — done, both halves. Privacy policy:
   `/privacy-policy`, carved out of the online demo's Cloudflare Access
   gate (see Online demo, Product features). **Account deletion**:

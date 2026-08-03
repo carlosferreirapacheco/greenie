@@ -193,7 +193,9 @@ export const ptPT: typeof en = {
       },
       consent: {
         prefix: "Li e concordo com a ",
-        link: "Política de Privacidade",
+        privacyLink: "Política de Privacidade",
+        middle: " e os ",
+        termsLink: "Termos de Utilização",
       },
       submitButton: "Criar conta",
       divider: "ou",
@@ -206,16 +208,16 @@ export const ptPT: typeof en = {
     errorScreenTitle: "Bem-vindo",
     error: "Erro: {error}",
     reconsent: {
-      screenTitle: "Política de Privacidade",
-      heading: "Atualização da Política de Privacidade",
-      intro: "A política de privacidade foi alterada desde a última vez que a aceitou — reveja-a para continuar.",
+      screenTitle: "Privacidade e Termos",
+      heading: "Atualização da Política de Privacidade e dos Termos de Utilização",
+      intro: "A política de privacidade e/ou os termos de utilização foram alterados desde a última vez que os aceitou — reveja-os para continuar.",
       submitButton: "Aceitar e continuar",
       signOutLink: "Terminar sessão",
     },
     firstTime: {
       screenTitle: "Bem-vindo",
       heading: "Bem-vindo ao Greenie",
-      intro: "Só mais um passo antes de continuar: confirme que está tudo correto e aceite a política de privacidade.",
+      intro: "Só mais um passo antes de continuar: confirme que está tudo correto e aceite a política de privacidade e os termos de utilização.",
       displayName: {
         label: "Nome apresentado",
         placeholder: "ex.: Carlos",
@@ -230,7 +232,9 @@ export const ptPT: typeof en = {
     },
     consent: {
       prefix: "Li e concordo com a ",
-      link: "Política de Privacidade",
+      privacyLink: "Política de Privacidade",
+      middle: " e os ",
+      termsLink: "Termos de Utilização",
     },
   },
   settings: {
@@ -980,6 +984,101 @@ export const ptPT: typeof en = {
           "Criar uma conta requer que concorde com esta política; o momento em que concorda é guardado com " +
           "o seu perfil. Se esta política sofrer alterações substanciais, ser-lhe-á pedido que a reveja " +
           "novamente.",
+      },
+    },
+  },
+  termsOfUse: {
+    screenTitle: "Termos de Utilização",
+    draftBanner: "Rascunho — requer revisão antes do lançamento público.",
+    lastUpdated: "Última atualização: 3 de agosto de 2026",
+    sections: {
+      acceptance: {
+        heading: "Aceitação destes Termos",
+        body:
+          "Ao criar uma conta ou utilizar o Greenie, concorda com estes Termos de Utilização e com a nossa " +
+          "Política de Privacidade. Se não concordar, não utilize a aplicação.",
+      },
+      account: {
+        heading: "A sua conta",
+        body:
+          "Tem de ter pelo menos 13 anos para utilizar o Greenie. É responsável pela atividade na sua conta " +
+          "e por manter a sua palavra-passe segura. Os nomes de utilizador e o conteúdo do perfil não podem " +
+          "fazer-se passar por outra pessoa ou organização.",
+      },
+      userContent: {
+        heading: "O seu conteúdo e conduta",
+        body:
+          "Mantém a propriedade das plantas, fotografias, relatórios de progresso, comentários e restante " +
+          "conteúdo que publica (\"o seu conteúdo\"). Ao publicá-lo, concede ao Greenie uma licença limitada " +
+          "para o armazenar, exibir e partilhar dentro da aplicação, de acordo com as suas próprias " +
+          "definições de privacidade — nada mais. " +
+          "Compromete-se a não publicar nem partilhar conteúdo que: seja ilegal, de assédio, de ódio ou " +
+          "ameaçador; seja sexualmente explícito, ou que de alguma forma envolva a exploração ou colocação " +
+          "em risco de um menor; se faça passar por outra pessoa; viole direitos de autor, marcas " +
+          "registadas ou outros direitos de terceiros; seja spam, uma burla ou código malicioso; ou que de " +
+          "outra forma viole estes Termos.",
+      },
+      moderation: {
+        heading: "Moderação e aplicação",
+        body:
+          "O Greenie disponibiliza ferramentas na aplicação para denunciar conteúdo ou contas (Denunciar) " +
+          "e para bloquear outros utilizadores (Bloquear). Podemos analisar conteúdo denunciado, remover " +
+          "conteúdo que viole estes Termos e suspender ou encerrar contas que os violem de forma repetida " +
+          "ou grave, com ou sem aviso prévio.",
+      },
+      aiFeatures: {
+        heading: "Identificação de plantas assistida por IA",
+        body:
+          "A identificação de plantas por fotografia do Greenie utiliza o Google Gemini para sugerir o " +
+          "nome, a espécie e o calendário de cuidados de uma planta. Estas sugestões são meramente " +
+          "informativas e podem estar incorretas ou incompletas — não substituem aconselhamento " +
+          "profissional, e não deve utilizá-las como única fonte de informação sobre a segurança de uma " +
+          "planta, incluindo a sua toxicidade para pessoas ou animais de estimação.",
+      },
+      thirdParty: {
+        heading: "Serviços de terceiros",
+        body:
+          "O Greenie depende de serviços de terceiros para funcionar — incluindo o Supabase para " +
+          "armazenamento de dados, o Google Gemini para identificação de plantas, o Resend para envio de " +
+          "emails e o Expo para notificações push. Consulte a nossa Política de Privacidade para mais " +
+          "detalhes sobre o que é partilhado com cada um.",
+      },
+      disclaimers: {
+        heading: "Isenções e limitação de responsabilidade",
+        body:
+          "O Greenie é fornecido \"tal como está\", sem garantias de qualquer tipo. Não garantimos que a " +
+          "aplicação funcione sem interrupções ou erros, nem que qualquer conteúdo (incluindo sugestões " +
+          "geradas por IA) seja exato. Na máxima medida permitida por lei, o Greenie e o seu criador não " +
+          "são responsáveis por quaisquer danos indiretos, incidentais ou consequenciais resultantes da " +
+          "utilização da aplicação, incluindo danos a uma planta, animal de estimação ou pessoa que se " +
+          "tenha baseado em informação fornecida na aplicação.",
+      },
+      termination: {
+        heading: "Cessação",
+        body:
+          "Pode deixar de utilizar o Greenie e eliminar a sua conta a qualquer momento em Definições → " +
+          "Zona de perigo. Podemos suspender ou encerrar o seu acesso caso viole estes Termos, utilize " +
+          "indevidamente o serviço, ou caso a aplicação seja descontinuada.",
+      },
+      changes: {
+        heading: "Alterações a estes Termos",
+        body:
+          "Podemos atualizar estes Termos periodicamente. Se uma alteração for substancial, pediremos que " +
+          "reveja e aceite novamente os Termos atualizados da próxima vez que utilizar a aplicação, tal " +
+          "como fazemos com as atualizações da política de privacidade.",
+      },
+      governingLaw: {
+        heading: "Lei aplicável",
+        body:
+          "Estes Termos regem-se pelas leis de Portugal e da União Europeia, sem consideração pelos " +
+          "respetivos princípios de conflito de leis. Qualquer litígio decorrente destes Termos ou da " +
+          "utilização do Greenie está sujeito à jurisdição exclusiva dos tribunais de Portugal.",
+      },
+      contact: {
+        heading: "Contacto",
+        body:
+          "Tem dúvidas sobre estes Termos? Contacte-nos através da opção de feedback em Definições, ou " +
+          "através do mesmo canal de contacto indicado na nossa Política de Privacidade.",
       },
     },
   },
