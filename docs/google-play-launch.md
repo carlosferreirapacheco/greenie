@@ -18,21 +18,18 @@ section there is a copy/adjust job instead of a research project.
   this session, added to satisfy Play's UGC-terms requirement — see
   the Content rating section below). Don't submit for production
   review until that's resolved.
-- [ ] **Target API level compliant.** Google requires new apps to target
-  Android 15 (API level 35) or higher as of this writing. Expo SDK 57
-  should already meet this, but confirm from the actual EAS build
-  output rather than assuming — check the build logs
-  (`eas build:view <build-id>` or the Expo dashboard) for the Gradle
-  `targetSdkVersion` it compiled against. If it's below the current
-  requirement, bump the Expo SDK before submitting.
-- [ ] **Google OAuth consent screen moved to production.** Currently
-  "Testing" status (`docs/google-oauth.md`), which caps sign-in to
-  manually-added test accounts. Google Cloud Console → APIs & Services
-  → OAuth consent screen → Publish App. (Google may require its own
-  verification review for some scopes — this app only requests default
-  scopes, so it likely doesn't need Google's full verification process,
-  but confirm in-console since this depends on Google's current rules.)
-- [ ] **Three public URLs ready** (all already live, no work needed):
+- [x] **Target API level compliant.** New apps and updates need to
+  target Android 16 (API level 36) by Aug 31, 2026 (extension to Nov 1,
+  2026 available). Confirmed from a real production build's Gradle log
+  (`eas build:view <build-id> --json` → build log): `compileSdk 36`,
+  `targetSdk 36`, `minSdk 24` — ahead of the deadline. Re-confirm on
+  each future build if the Expo SDK ever gets bumped.
+- [x] **Google OAuth consent screen moved to production.** Done —
+  Publish App clicked in Google Cloud Console. Sign-in now works for
+  any Google account, not just manually-added test users; publishing
+  didn't trigger Google's verification review since only default
+  (non-sensitive) scopes are requested. See `docs/google-oauth.md`.
+- [x] **Three public URLs ready** (all already live, no work needed):
   - Privacy policy: `<demo-host>/privacy-policy`
   - Terms of use: `<demo-host>/terms-of-use`
   - Account deletion: `<demo-host>/delete-account`
