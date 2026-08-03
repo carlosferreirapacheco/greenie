@@ -64,8 +64,12 @@ sign-in. That is the consent rollout, not a bug.
 ### 1. Google Cloud Console
 1. https://console.cloud.google.com → create (or pick) a project.
 2. First time only: **APIs & Services → OAuth consent screen** —
-   External, app name "Greenie", your email, default scopes, add
-   yourself as a test user while the app is unverified.
+   External, app name "Greenie", your email, default scopes.
+   **Publish App is done** — the consent screen is in production, not
+   "Testing," so sign-in works for any Google account, not just
+   manually-added test users. Since only default (non-sensitive)
+   scopes are requested, publishing didn't trigger Google's
+   verification review.
 3. **APIs & Services → Credentials → Create credentials → OAuth client
    ID**, application type **Web application**:
    - Authorized JavaScript origins:
