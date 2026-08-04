@@ -149,8 +149,15 @@ inbox from an earlier content pass.
 > • Full data export and account deletion, right from Settings
 > • Available in English and Português (Portugal)
 
-**Category suggestion**: Lifestyle (or House & Home, if Play offers a
-closer match at submission time — check current category list).
+**Category suggestion**: Lifestyle — "style guides, wedding and party
+planning, how-to guides" per Play's own category definitions, the best
+fit for a plant-care hobby app. House & Home was considered and
+dropped: despite the name, its actual scope is "house and apartment
+search, home improvement, interior decoration, mortgages, real
+estate," which doesn't fit Greenie at all. Productivity was also
+considered (Greenie does have care-task scheduling) but Lifestyle
+better matches the app's actual identity as a plant-care hobby app,
+not a general organizational tool.
 
 **Contact email**: use the same address the Support Greenie link and
 account-deletion emails already come from.
