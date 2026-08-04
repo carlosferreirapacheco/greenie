@@ -159,8 +159,16 @@ considered (Greenie does have care-task scheduling) but Lifestyle
 better matches the app's actual identity as a plant-care hobby app,
 not a general organizational tool.
 
-**Contact email**: use the same address the Support Greenie link and
-account-deletion emails already come from.
+**Contact email**: `greenie.app.pt@gmail.com` — a personal Gmail used
+as the public support contact for now, not `@greenie-app.com` (that
+domain has no real receivable inbox — `mail.greenie-app.com` is
+Resend's send-only sending domain, not something anyone can reply to).
+Google Workspace was considered for a real `@greenie-app.com` inbox
+but deferred (no permanent free tier for real accounts anymore, only
+a 14-day trial requiring a card). This field is editable anytime after
+publishing, so switching to a real custom-domain inbox later (Workspace
+or a free alternative like Zoho Mail) is a low-stakes deferred decision,
+not something blocking submission.
 
 ## Closed testing (mandatory — no existing developer account)
 
