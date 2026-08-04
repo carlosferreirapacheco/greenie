@@ -985,7 +985,6 @@ export const en = {
   },
   termsOfUse: {
     screenTitle: "Terms of Use",
-    draftBanner: "Draft — requires review before public launch.",
     // Keep in sync with app_config.privacy_policy_updated_at, the same
     // trigger the Privacy Policy uses (see that namespace's own
     // comment) -- this document is re-consented to together with the
