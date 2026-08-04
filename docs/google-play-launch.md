@@ -122,6 +122,19 @@ inbox from an earlier content pass.
 - **Digital purchases**: No in-app purchases; the donation link is an
   external site, not an IAP flow.
 
+## Assets
+
+- Icon (512×512): `assets/play-store-icon-512.png`
+- Feature graphic, English (1024×500): `assets/play-store-feature-graphic.png`
+- Feature graphic, Português (1024×500): `assets/play-store-feature-graphic-pt.png`
+  — same mark/layout, "Greenie" wordmark kept untranslated (brand
+  name), tagline swapped to "Cuidado de plantas, simplificado."
+- Phone screenshots (7, redacted for the account owner's avatar photo
+  and name): `drive-download-20260804T133518Z-1-001/processed/` (not
+  committed to the repo — a local capture directory, not project
+  source; re-derive by capturing fresh screenshots and following the
+  same redaction/padding process if this directory is ever lost).
+
 ## Store listing — draft copy
 
 **Short description** (≤80 characters):
@@ -147,6 +160,38 @@ inbox from an earlier content pass.
 > • Plant-sitting: delegate care access to a trusted friend
 > • Full data export and account deletion, right from Settings
 > • Available in English and Português (Portugal)
+
+**Português (Portugal) listing** — Play Console supports a per-language
+store listing; this is the PT-PT translation of the copy above, terms
+matched to the app's own `lib/i18n/pt-PT.ts` strings (rega, adubação,
+trocar terra, Cuidar de plantas) so the listing stays consistent with
+the in-app experience:
+
+**Short description** (≤80 characters, 79 used):
+> Acompanhe os cuidados das plantas, registe o crescimento e partilhe com amigos.
+
+**Full description**:
+> O Greenie ajuda a manter as suas plantas de interior vivas e
+> saudáveis. Adicione uma planta (a identificação por IA a partir de
+> fotografia ajuda a obter o nome e o calendário de rega certos),
+> acompanhe tarefas de cuidado como a rega e a adubação, e registe
+> relatórios de progresso com fotografias e medições de altura para
+> ver o crescimento ao longo do tempo.
+>
+> Siga outras pessoas apaixonadas por plantas, partilhe o progresso das
+> suas próprias plantas, e dê uma ajuda a cuidar de plantas quando um
+> amigo vai de férias — acesso total às tarefas de cuidado e registo de
+> progresso para quem estiver a tratar das suas plantas enquanto está
+> fora.
+>
+> Funcionalidades:
+> • Identificação de plantas por fotografia com IA e sugestões de cuidados
+> • Lembretes de tarefas de cuidado (rega, adubação, troca de terra)
+> • Acompanhamento do crescimento com fotografias e gráfico de altura ao longo do tempo
+> • Feed social para seguir outros donos de plantas e partilhar o progresso
+> • Cuidar de plantas: delegue o acesso aos cuidados a um amigo de confiança
+> • Exportação completa de dados e eliminação de conta, diretamente nas Definições
+> • Disponível em inglês e em português (Portugal)
 
 **Category suggestion**: Lifestyle — "style guides, wedding and party
 planning, how-to guides" per Play's own category definitions, the best
