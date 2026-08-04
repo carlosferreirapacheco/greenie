@@ -60,7 +60,7 @@ inbox from an earlier content pass.
 | Photos (profile/plant/progress photos) | Yes | No | Core app functionality | Yes |
 | User-generated content (progress reports, comments, bio) | Yes | No | Core app functionality (social features) | Yes |
 | App activity (follows, likes, blocks, reports filed) | Yes | No | Core app functionality | Yes |
-| Device or other IDs (push notification token) | Yes, if push enabled | Yes — Expo's push service (see note) | Deliver push notifications | Yes (disable push / delete account) |
+| Device or other IDs (push notification token) | Yes, if push enabled | No (see note below) | Deliver push notifications | Yes (disable push / delete account) |
 | Location | **No** — `plants.location` is a free-text field the user types (e.g. "Living room"), not device geolocation | — | — | — |
 | Financial info, health info, contacts, messages, calendar, etc. | No | — | — | — |
 
@@ -74,7 +74,12 @@ inbox from an earlier content pass.
   through **Resend**. Declare as shared with a service provider for
   account management, not third-party marketing.
 - Push notification delivery goes through **Expo's push service**,
-  which needs the device's push token to route notifications.
+  which needs the device's push token to route notifications — but
+  Expo only relays the notification you send to Apple/Google's push
+  infrastructure on your instruction, the same service-provider
+  relationship as Resend for email, not a third party the token is
+  "shared" with. Corrected from an earlier draft that marked this
+  "Shared: Yes" before that distinction was worked through carefully.
 - The **Support/donation link** (Settings → "Buy me a coffee") is a
   plain outbound link to an external site (buymeacoffee.com) — the app
   never handles payment details itself, so this does **not** trigger
