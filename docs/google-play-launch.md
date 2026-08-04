@@ -62,7 +62,8 @@ inbox from an earlier content pass.
 | App activity (follows, likes, blocks, reports filed) | Yes | No | Core app functionality | Yes |
 | Device or other IDs (push notification token) | Yes, if push enabled | No (see note below) | Deliver push notifications | Yes (disable push / delete account) |
 | Location | **No** — `plants.location` is a free-text field the user types (e.g. "Living room"), not device geolocation | — | — | — |
-| Financial info, health info, contacts, messages, calendar, etc. | No | — | — | — |
+| Financial info (purchase history) | Yes — `profiles.total_donated` / `bmc_donations.amount`+`currency` (see note below) | No | Drives the supporter badge tier | Yes (delete account) |
+| Health info, contacts, messages, calendar, etc. | No | — | — | — |
 
 **Notes for the "shared" answers:**
 - The AI plant-lookup feature sends a plant name/description or photo
@@ -82,10 +83,18 @@ inbox from an earlier content pass.
   "Shared: Yes" before that distinction was worked through carefully.
 - The **Support/donation link** (Settings → "Buy me a coffee") is a
   plain outbound link to an external site (buymeacoffee.com) — the app
-  never handles payment details itself, so this does **not** trigger
-  Play Billing policy and isn't a "financial info" collection point.
-  Still worth a one-line mention in the store listing's "About" text
-  for transparency (e.g. "Optional external link to support
+  never handles payment details itself, and the donation transaction
+  happens entirely on Buy Me a Coffee's own site, so this does
+  **not** trigger Play Billing policy. That said, the *separate*
+  `bmc-webhook` integration is a real financial-info collection point:
+  once a donation happens on BMC, their webhook sends the amount and
+  currency into Greenie, which stores it (`bmc_donations`,
+  `profiles.total_donated`) to compute the supporter badge tier. BMC
+  is the *source* of that data here, not a recipient — Greenie never
+  transmits a donation amount back out to BMC or anyone else, so
+  "Shared" is still "No" even though "Collected" is "Yes." Still worth
+  a one-line mention in the store listing's "About" text for
+  transparency (e.g. "Optional external link to support
   development").
 - All data is encrypted in transit (HTTPS/TLS via Supabase); answer
   "Yes" to the encryption-in-transit question.
