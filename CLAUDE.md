@@ -2518,6 +2518,19 @@ unrelated history.
   seeded rows were within scope of those filters (test rows deleted
   after). `docs/google-play-launch.md` updated to list the new
   `/terms-of-use` public URL and to reflect the export's completeness.
+- Legal review of the Terms of Use — done. Per explicit user sign-off,
+  same process the Privacy Policy went through: the "Draft — requires
+  review before public launch" banner is removed from
+  `app/terms-of-use.tsx` (and the corresponding `termsOfUse.draftBanner`
+  key dropped from both `lib/i18n/en.ts` and `pt-PT.ts`) — the Terms of
+  Use is now treated as final content in both languages, not a draft
+  awaiting review. `docs/google-play-launch.md`'s pre-flight checklist
+  updated to check this off. Same session, also corrected a stale
+  Data Safety answer in that doc: the Photos row was still marked
+  "Shared: No" even though the AI plant-lookup feature sends photos to
+  Google Gemini (the same third-party-sharing logic already applied to
+  every other data type in that table) — updated to "Shared: Yes —
+  Google Gemini."
 - Store-required public pages — done, both halves. Privacy policy:
   `/privacy-policy`, carved out of the online demo's Cloudflare Access
   gate (see Online demo, Product features). **Account deletion**:

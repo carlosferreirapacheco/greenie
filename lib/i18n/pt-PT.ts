@@ -990,7 +990,6 @@ export const ptPT: typeof en = {
   },
   termsOfUse: {
     screenTitle: "Termos de Utilização",
-    draftBanner: "Rascunho — requer revisão antes do lançamento público.",
     lastUpdated: "Última atualização: 3 de agosto de 2026",
     sections: {
       acceptance: {

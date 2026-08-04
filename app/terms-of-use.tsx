@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { t as translate, type SupportedLocale } from "../lib/i18n";
-import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
+import { fontAssets, getFonts, spacing } from "../lib/theme";
 import { useTheme } from "../lib/ThemeContext";
 import { useLanguage } from "../lib/LanguageContext";
 
@@ -67,12 +67,6 @@ export default function TermsOfUseScreen() {
         })}
       </View>
 
-      <View style={[styles.draftBanner, { backgroundColor: colors.coralSoft }]}>
-        <Text style={[styles.draftBannerText, { fontFamily: fonts.bodyMedium, color: colors.coral }]}>
-          {t("termsOfUse.draftBanner")}
-        </Text>
-      </View>
-
       <Text style={[styles.lastUpdated, { fontFamily: fonts.body, color: colors.inkSoft }]}>
         {t("termsOfUse.lastUpdated")}
       </Text>
@@ -103,14 +97,6 @@ const styles = StyleSheet.create({
   },
   languageToggleLabel: {
     fontSize: 13,
-  },
-  draftBanner: {
-    borderRadius: radius.sm,
-    padding: spacing.sm,
-  },
-  draftBannerText: {
-    fontSize: 13,
-    lineHeight: 18,
   },
   lastUpdated: {
     fontSize: 12,

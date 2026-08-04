@@ -13,11 +13,10 @@ section there is a copy/adjust job instead of a research project.
 - [x] **Privacy policy legally reviewed.** Done — the "Draft — requires
   review before public launch" banner was removed from
   `app/privacy-policy.tsx` per explicit user sign-off.
-- [ ] **Terms of Use legally reviewed.** `app/terms-of-use.tsx` is
-  still marked "Draft — requires review before public launch" (new
-  this session, added to satisfy Play's UGC-terms requirement — see
-  the Content rating section below). Don't submit for production
-  review until that's resolved.
+- [x] **Terms of Use legally reviewed.** Done — the "Draft — requires
+  review before public launch" banner was removed from
+  `app/terms-of-use.tsx` per explicit user sign-off, same process the
+  Privacy Policy went through.
 - [x] **Target API level compliant.** New apps and updates need to
   target Android 16 (API level 36) by Aug 31, 2026 (extension to Nov 1,
   2026 available). Confirmed from a real production build's Gradle log
@@ -57,7 +56,7 @@ inbox from an earlier content pass.
 |---|---|---|---|---|
 | Email address | Yes | No (see note below) | Account creation/login, security codes | Yes |
 | Name (display name, username) | Yes | No | Account, shown to other users | Yes |
-| Photos (profile/plant/progress photos) | Yes | No | Core app functionality | Yes |
+| Photos (profile/plant/progress photos) | Yes | Yes — Google Gemini (see note below) | Core app functionality, AI plant identification | Yes |
 | User-generated content (progress reports, comments, bio) | Yes | No | Core app functionality (social features) | Yes |
 | App activity (follows, likes, blocks, reports filed) | Yes | No | Core app functionality | Yes |
 | Device or other IDs (push notification token) | Yes, if push enabled | No (see note below) | Deliver push notifications | Yes (disable push / delete account) |
