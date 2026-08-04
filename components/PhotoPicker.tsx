@@ -20,6 +20,7 @@ export function PhotoPicker({
   size = 88,
   photoRadius,
   fonts,
+  onPhotoPress,
 }: {
   value: string | null;
   onChange: (url: string) => void;
@@ -27,6 +28,7 @@ export function PhotoPicker({
   size?: number;
   photoRadius?: number;
   fonts: Fonts;
+  onPhotoPress?: () => void;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -61,14 +63,18 @@ export function PhotoPicker({
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.thumbWrap, { width: size, height: size }]}>
+      <Pressable
+        style={[styles.thumbWrap, { width: size, height: size }]}
+        onPress={value && onPhotoPress ? onPhotoPress : undefined}
+        disabled={!value || !onPhotoPress}
+      >
         <PhotoThumb uri={value} size={size} radius={resolvedRadius} />
         {busy ? (
           <View style={[styles.overlay, { borderRadius: resolvedRadius }]}>
             <ActivityIndicator color={colors.paperRaised} />
           </View>
         ) : null}
-      </View>
+      </Pressable>
       <View style={styles.linksRow}>
         <Pressable onPress={() => handlePick("camera")} disabled={busy} hitSlop={6}>
           <Text style={[styles.link, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>

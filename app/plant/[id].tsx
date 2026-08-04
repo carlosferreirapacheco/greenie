@@ -28,6 +28,7 @@ import { HeightChart } from "../../components/HeightChart";
 import { DatePickerField } from "../../components/DatePickerField";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { PhotoViewerModal } from "../../components/PhotoViewerModal";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { todayISO } from "../../lib/dateGrid";
 import {
@@ -127,6 +128,7 @@ export default function PlantProfileScreen() {
   const isSaving = useRef(false);
 
   const [photoSaveError, setPhotoSaveError] = useState<string | null>(null);
+  const [viewerPhotoUrl, setViewerPhotoUrl] = useState<string | null>(null);
 
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [nicknameInput, setNicknameInput] = useState("");
@@ -458,9 +460,14 @@ export default function PlantProfileScreen() {
           size={88}
           photoRadius={radius.lg}
           fonts={fonts}
+          onPhotoPress={() => setViewerPhotoUrl(plant.photo_urls?.[0] ?? null)}
         />
+      ) : plant.photo_urls?.[0] ? (
+        <Pressable onPress={() => setViewerPhotoUrl(plant.photo_urls?.[0] ?? null)}>
+          <PhotoThumb uri={plant.photo_urls[0]} size={88} radius={radius.lg} />
+        </Pressable>
       ) : (
-        <PhotoThumb uri={plant.photo_urls?.[0] ?? null} size={88} radius={radius.lg} />
+        <PhotoThumb uri={null} size={88} radius={radius.lg} />
       )}
       {photoSaveError ? (
         <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{photoSaveError}</Text>
@@ -894,6 +901,8 @@ export default function PlantProfileScreen() {
         fonts={fonts}
       />
     ) : null}
+
+    {viewerPhotoUrl ? <PhotoViewerModal uri={viewerPhotoUrl} onClose={() => setViewerPhotoUrl(null)} /> : null}
     </>
   );
 }

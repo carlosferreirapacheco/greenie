@@ -27,6 +27,7 @@ import { getFollowStatus } from "../../lib/supabase/follows";
 import { deletePhotoByUrl } from "../../lib/supabase/storage";
 import { supabase } from "../../lib/supabase/client";
 import { PhotoThumb } from "../../components/PhotoThumb";
+import { PhotoViewerModal } from "../../components/PhotoViewerModal";
 import { BadgeIconRow } from "../../components/badges/BadgeIconRow";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
@@ -68,6 +69,8 @@ export default function ProgressDetailScreen() {
 
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const isSavingSettings = useRef(false);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const fetchData = useCallback(() => {
     if (!id) {
@@ -302,7 +305,9 @@ export default function ProgressDetailScreen() {
 
         {report.photo_url ? (
           <>
-            <PhotoThumb uri={report.photo_url} size={220} radius={radius.md} />
+            <Pressable onPress={() => setViewerOpen(true)}>
+              <PhotoThumb uri={report.photo_url} size={220} radius={radius.md} />
+            </Pressable>
             {isPlantOwner && report.photo_url !== report.plant_photo_url ? (
               <Pressable onPress={handleSetAsPlantPhoto} disabled={setPhotoStatus === "saving"} hitSlop={8}>
                 {setPhotoStatus === "saving" ? (
@@ -517,6 +522,10 @@ export default function ProgressDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      {viewerOpen && report.photo_url ? (
+        <PhotoViewerModal uri={report.photo_url} onClose={() => setViewerOpen(false)} />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
