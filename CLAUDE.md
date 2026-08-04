@@ -1528,6 +1528,48 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Plant photo zoom/viewer + header font-scale collision fix — done.
+  **Photo viewer**: tapping the plant's main photo (`app/plant/[id].tsx`,
+  both the owner's `PhotoPicker` thumb and a non-owner's bare
+  `PhotoThumb`) or a progress report's photo (`app/progress/[id].tsx`,
+  the 220px `PhotoThumb`, previously not tappable at all) opens a new
+  full-screen `components/PhotoViewerModal.tsx` — pinch-to-zoom
+  (two-finger), drag-to-pan once zoomed, and double-tap to toggle zoom,
+  plus an explicit close button (and Android back / `onRequestClose`).
+  Built entirely on core React Native `Animated`/`PanResponder` rather
+  than a pinch-zoom library — neither `react-native-gesture-handler`
+  nor `react-native-reanimated` is installed, and adding either would
+  have meant a fresh EAS build before it worked on a real device; this
+  needed none. Follows the same conditionally-rendered-`Modal` pattern
+  `DatePickerField.tsx` established (RN Web won't reliably hide `Modal`
+  content via `visible={false}` alone), so every open is a fresh
+  instance and zoom/pan state never leaks between photos.
+  `components/PhotoPicker.tsx` gained an optional `onPhotoPress` prop
+  (undefined everywhere else — no behavior change for Add Plant, Log
+  Progress, or the profile avatar, which don't wire it up) so the
+  plant screen's owner view could open the viewer without restructuring
+  the picker. New `common.close` i18n key (English/Português) for the
+  close button's `accessibilityLabel`. **Header collision fix**:
+  `components/HeaderIconButton.tsx`'s label (`fontSize: 9`, default
+  font-scaling on, no `numberOfLines`) could grow and wrap on a device
+  with a larger accessibility font size, widening the header-right
+  icon row until it overlapped the centered title — the earlier
+  "Social discoverability UI pass" fix for the People screen only
+  solved narrow-viewport overlap (verified at 375px), not this
+  font-scale axis, and the same shared component is used by four
+  screens (People, Plants, Plant Sitting, Profile). Fixed by adding
+  `maxFontSizeMultiplier={1.3}` and `numberOfLines={1}` to the label —
+  one shared-component change covers all four screens. Verified:
+  `tsc`/`npm test` clean; live web — both photo viewers open and close
+  correctly (confirmed via DOM inspection since this environment's
+  screenshot tool wasn't available this session), a seeded progress-
+  report photo was used for that path and removed after; the People
+  screen's header still renders correctly at normal scale with no
+  regressions. Actual pinch/pan gestures and the real font-scale
+  collision fix can't be verified in this environment (no multi-touch
+  in the browser preview, and React Native Web doesn't replicate
+  Android's system font-scale setting) — both need a pass on the
+  Android test device.
 - Care task status: fix same-day-overdue bug + add a "due today" state —
   done. Bug report: a task due today (e.g. watering, `next_due` at some
   specific time today) showed a red "overdue" badge and triggered the

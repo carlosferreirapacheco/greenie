@@ -37,7 +37,13 @@ export function HeaderIconButton({
         )}
         {badge ? <View style={[styles.badgeDot, { backgroundColor: colors.coral }]} /> : null}
       </View>
-      <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: tint }]}>{label}</Text>
+      <Text
+        style={[styles.label, { fontFamily: fonts.bodyMedium, color: tint }]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={1.3}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }

@@ -398,6 +398,7 @@ export const en = {
     decline: "Decline",
     unblock: "Unblock",
     report: "Report",
+    close: "Close",
     chipOptions: {
       commentPolicy: {
         anyone: "Anyone",

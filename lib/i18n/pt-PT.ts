@@ -400,6 +400,7 @@ export const ptPT: typeof en = {
     decline: "Recusar",
     unblock: "Desbloquear",
     report: "Denunciar",
+    close: "Fechar",
     chipOptions: {
       commentPolicy: {
         anyone: "Todos",
