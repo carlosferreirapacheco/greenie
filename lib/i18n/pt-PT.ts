@@ -70,7 +70,7 @@ export const ptPT: typeof en = {
     },
     name: {
       label: "Nome (opcional)",
-      placeholder: "ex.: Pothos — deixe em branco para a IA identificar pela foto",
+      hint: "ex.: Pothos — deixe em branco para a IA identificar pela foto",
     },
     nickname: {
       label: "Alcunha (opcional)",
