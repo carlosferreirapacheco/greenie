@@ -329,12 +329,13 @@ export default function AddPlantScreen() {
           <Text style={[styles.label, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
             {t("addPlant.name.label")}
           </Text>
+          <Text style={[styles.hint, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+            {t("addPlant.name.hint")}
+          </Text>
           <TextInput
             style={[styles.input, { fontFamily: fonts.body, color: colors.ink, borderColor: colors.line }]}
             value={name}
             onChangeText={setName}
-            placeholder={t("addPlant.name.placeholder")}
-            placeholderTextColor={colors.inkSoft}
           />
         </View>
 
@@ -632,6 +633,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
+  },
+  hint: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   input: {
     borderWidth: StyleSheet.hairlineWidth,

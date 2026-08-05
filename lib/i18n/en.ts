@@ -71,7 +71,7 @@ export const en = {
     },
     name: {
       label: "Name (optional)",
-      placeholder: "e.g. Pothos — leave blank to let AI name it from the photo",
+      hint: "e.g. Pothos — leave blank to let AI name it from the photo",
     },
     nickname: {
       label: "Nickname (optional)",
