@@ -1,5 +1,6 @@
 import { supabase } from "./client";
 import { getFollowing } from "./follows";
+import { getMyProfile } from "./profiles";
 import { getLikesForProgress } from "./likes";
 import { getCommentsForProgressIds, type CommentWithAuthor } from "./comments";
 import { getVisibleBadges, type ResolvedBadge } from "../badges";
@@ -202,13 +203,14 @@ export type FeedPage = { items: FeedItem[]; nextCursor: string | null };
 // offset), which keyset pagination avoids since each page is anchored
 // to the last row actually seen, not a position in a moving set.
 export async function getFeed(options?: { before?: string }): Promise<FeedPage> {
-  const following = await getFollowing();
-  if (following.length === 0) {
-    return { items: [], nextCursor: null };
-  }
+  // Includes the caller's own reports, not just people they follow --
+  // your own feed should show your own posts. No early return on an
+  // empty following list anymore: even with zero follows, the query
+  // below always has at least the caller's own id to match against.
+  const [following, myProfile] = await Promise.all([getFollowing(), getMyProfile()]);
 
   const authorInfoById = new Map<string, AuthorInfo>(
-    following.map((person) => [
+    [...following, myProfile].map((person) => [
       person.id,
       {
         display_name: person.display_name,
@@ -225,10 +227,7 @@ export async function getFeed(options?: { before?: string }): Promise<FeedPage> 
   let query = supabase
     .from("plant_progress")
     .select("*")
-    .in(
-      "user_id",
-      following.map((person) => person.id)
-    )
+    .in("user_id", [...following.map((person) => person.id), myProfile.id])
     .eq("shared_to_feed", true)
     .order("created_at", { ascending: false })
     .limit(FEED_PAGE_SIZE);

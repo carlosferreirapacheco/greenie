@@ -14,8 +14,10 @@ import {
   effectiveCommentPolicy,
 } from "./plant_progress";
 import { getFollowing } from "./follows";
+import { getMyProfile } from "./profiles";
 
 jest.mock("./follows", () => ({ getFollowing: jest.fn() }));
+jest.mock("./profiles", () => ({ getMyProfile: jest.fn() }));
 
 const mockSupabase = supabase as unknown as ReturnType<
   typeof import("./testUtils/mockClient").createMockSupabaseClient
@@ -387,8 +389,20 @@ describe("createProgressReport", () => {
 });
 
 describe("getFeed", () => {
+  const myProfile = {
+    id: "me",
+    display_name: "Me",
+    username: "me",
+    avatar_url: null,
+    total_donated: 0,
+    is_beta_tester: false,
+    show_supporter_badge: true,
+    show_beta_tester_badge: true,
+  };
+
   it("only fetches reports shared to the feed", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reportsChain = createChainableQueryMock({ data: [], error: null });
     mockSupabase.from.mockReturnValue(reportsChain);
 
@@ -399,17 +413,49 @@ describe("getFeed", () => {
     expect(result).toEqual({ items: [], nextCursor: null });
   });
 
-  it("returns empty without querying when following nobody", async () => {
+  it("includes the caller's own reports even when following nobody", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(reportsChain);
 
     const result = await getFeed();
 
+    expect(reportsChain.in).toHaveBeenCalledWith("user_id", ["me"]);
     expect(result).toEqual({ items: [], nextCursor: null });
-    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("includes the caller's own id alongside people they follow", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
+    const reportsChain = createChainableQueryMock({ data: [], error: null });
+    mockSupabase.from.mockReturnValue(reportsChain);
+
+    await getFeed();
+
+    expect(reportsChain.in).toHaveBeenCalledWith("user_id", ["person1", "me"]);
+  });
+
+  it("resolves the caller's own report using their own profile info, not just people they follow", async () => {
+    (getFollowing as jest.Mock).mockResolvedValue([]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
+    const reports = [{ id: "pr1", plant_id: "pl1", user_id: "me", created_at: "2026-07-01T00:00:00Z" }];
+    mockSupabase.from
+      .mockReturnValueOnce(createChainableQueryMock({ data: reports, error: null })) // plant_progress
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // plants
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })) // likes
+      .mockReturnValueOnce(createChainableQueryMock({ data: [], error: null })); // comments
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await getFeed();
+
+    expect(result.items[0].author_username).toBe("me");
+    expect(result.items[0].author_display_name).toBe("Me");
   });
 
   it("does not filter by created_at when no cursor is given", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reportsChain = createChainableQueryMock({ data: [], error: null });
     mockSupabase.from.mockReturnValue(reportsChain);
 
@@ -420,6 +466,7 @@ describe("getFeed", () => {
 
   it("filters by created_at when a cursor is given", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reportsChain = createChainableQueryMock({ data: [], error: null });
     mockSupabase.from.mockReturnValue(reportsChain);
 
@@ -430,6 +477,7 @@ describe("getFeed", () => {
 
   it("returns a null nextCursor when fewer than a full page comes back", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reports = Array.from({ length: 5 }, (_, i) => ({
       id: `pr${i}`,
       plant_id: "pl1",
@@ -451,6 +499,7 @@ describe("getFeed", () => {
 
   it("returns the last row's created_at as nextCursor when a full page comes back", async () => {
     (getFollowing as jest.Mock).mockResolvedValue([{ id: "person1", display_name: "Ann", username: "ann" }]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reports = Array.from({ length: 20 }, (_, i) => ({
       id: `pr${i}`,
       plant_id: "pl1",
@@ -481,6 +530,7 @@ describe("getFeed", () => {
         show_beta_tester_badge: true,
       },
     ]);
+    (getMyProfile as jest.Mock).mockResolvedValue(myProfile);
     const reports = [
       { id: "pr1", plant_id: "pl1", user_id: "person1", created_at: "2026-07-01T00:00:00Z" },
     ];
