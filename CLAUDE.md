@@ -114,7 +114,13 @@ sharing them socially with other users.
 - Always present a plan before editing files — explain the approach
   (what files change, what's added/removed, any schema or dependency
   impact) and get it confirmed before making changes, no matter the
-  size of the change.
+  size of the change. This applies to every kind of change alike —
+  new features, bug fixes, UX/UI tweaks, refactors, docs — not just
+  net-new feature work. Even when the root cause or fix was already
+  discussed earlier in conversation (e.g. while triaging a bug
+  report), restate the concrete plan as its own step and get an
+  explicit go-ahead before touching files; a prior diagnosis is not
+  itself a plan confirmation.
 - Run `npm test` alongside `tsc --noEmit` before finishing or opening a
   PR for any feature — same habit already applied to type-checking, now
   covering test regressions too. CI (`.github/workflows/ci.yml`) runs
