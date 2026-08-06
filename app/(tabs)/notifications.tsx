@@ -8,6 +8,7 @@ import {
   type NotificationWithActor,
 } from "../../lib/supabase/notifications";
 import { notificationTargetPath } from "../../lib/pushNotifications";
+import { emitNotificationsRead } from "../../lib/notificationEvents";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
@@ -149,9 +150,11 @@ export default function NotificationsScreen() {
         // The fetched snapshot keeps its unread highlights for this
         // visit; marking read here means they're gone next time.
         if (data.some((notification) => notification.read_at === null)) {
-          markAllNotificationsRead().catch(() => {
-            // Non-critical -- rows just stay unread until the next visit.
-          });
+          markAllNotificationsRead()
+            .then(() => emitNotificationsRead())
+            .catch(() => {
+              // Non-critical -- rows just stay unread until the next visit.
+            });
         }
       })
       .catch((err) => {

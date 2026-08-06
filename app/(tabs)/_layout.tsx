@@ -12,6 +12,7 @@ import {
 } from "../../lib/supabase/notifications";
 import { getPendingFollowRequests } from "../../lib/supabase/follows";
 import { getHasSeenHelpPrompt, setHasSeenHelpPrompt } from "../../lib/tutorialPrompt";
+import { onNotificationsRead } from "../../lib/notificationEvents";
 import { PhotoThumb } from "../../components/PhotoThumb";
 import { HeaderIconButton } from "../../components/HeaderIconButton";
 import { ConfirmModal } from "../../components/ConfirmModal";
@@ -141,11 +142,18 @@ export default function TabsLayout() {
   // /notifications' deep-link targets), keeping the avatar and both
   // badge dots as fresh as the old per-screen focus refetch did.
   // (useSegments() was tried first and does not re-render this layout
-  // on tab changes.)
+  // on tab changes.) Also refetches on notificationEvents' signal --
+  // the Alerts screen's mark-all-read call is fire-and-forget, so
+  // without this the unread badge could stay stuck lit until some
+  // later, unrelated navigation happened to trigger a refetch.
   useEffect(() => {
     refetchHeaderState();
-    const unsubscribe = navigation.addListener("state", refetchHeaderState);
-    return unsubscribe;
+    const unsubscribeNav = navigation.addListener("state", refetchHeaderState);
+    const unsubscribeRead = onNotificationsRead(refetchHeaderState);
+    return () => {
+      unsubscribeNav();
+      unsubscribeRead();
+    };
   }, [navigation, refetchHeaderState]);
 
   return (
