@@ -60,6 +60,7 @@ export default function TabsLayout() {
   const navigation = useNavigation();
 
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
 
@@ -98,7 +99,10 @@ export default function TabsLayout() {
 
   const refetchHeaderState = useCallback(() => {
     getMyProfile()
-      .then((profile) => setMyAvatarUrl(profile.avatar_url))
+      .then((profile) => {
+        setMyAvatarUrl(profile.avatar_url);
+        setMyName(profile.display_name ?? profile.username);
+      })
       .catch(() => {
         // Non-critical -- the header keeps the placeholder if this fails.
       });
@@ -168,7 +172,7 @@ export default function TabsLayout() {
         headerRightContainerStyle: { paddingRight: spacing.md },
         headerLeft: () => (
           <Pressable onPress={() => router.push("/profile")} hitSlop={8}>
-            <PhotoThumb uri={myAvatarUrl} size={28} radius={radius.sm} />
+            <PhotoThumb uri={myAvatarUrl} size={28} radius={radius.sm} name={myName} />
           </Pressable>
         ),
         sceneStyle: { backgroundColor: colors.paper },

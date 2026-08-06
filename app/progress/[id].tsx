@@ -246,7 +246,7 @@ export default function ProgressDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.author}>
           <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${report.user_id}`)} hitSlop={4}>
-            <PhotoThumb uri={report.author_avatar_url} size={28} radius={radius.sm} />
+            <PhotoThumb uri={report.author_avatar_url} size={28} radius={radius.sm} name={report.author_display_name ?? report.author_username} />
             <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
               {report.author_display_name ?? `@${report.author_username}`}
             </Text>

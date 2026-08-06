@@ -62,7 +62,7 @@ function RequestRow({
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.owner.id}`)}>
-        <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} />
+        <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} name={assignment.owner.display_name ?? assignment.owner.username} />
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.owner.display_name ?? `@${assignment.owner.username}`}
         </Text>
@@ -104,7 +104,7 @@ function AssignmentRow({
       style={[styles.row, { borderBottomColor: colors.line }]}
       onPress={() => router.push(`/user/${assignment.owner.id}`)}
     >
-      <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={assignment.owner.avatar_url} size={44} radius={radius.sm} name={assignment.owner.display_name ?? assignment.owner.username} />
       <View style={styles.rowText}>
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.owner.display_name ?? `@${assignment.owner.username}`}
@@ -135,7 +135,7 @@ function SentRequestRow({
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <Pressable style={styles.rowLink} onPress={() => router.push(`/user/${assignment.sitter.id}`)}>
-        <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} />
+        <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} name={assignment.sitter.display_name ?? assignment.sitter.username} />
         <View style={styles.rowText}>
           <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
             {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}
@@ -181,7 +181,7 @@ function HistoryRow({
       style={[styles.row, { borderBottomColor: colors.line }]}
       onPress={() => router.push(`/user/${assignment.sitter.id}`)}
     >
-      <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={assignment.sitter.avatar_url} size={44} radius={radius.sm} name={assignment.sitter.display_name ?? assignment.sitter.username} />
       <View style={styles.rowText}>
         <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
           {assignment.sitter.display_name ?? `@${assignment.sitter.username}`}

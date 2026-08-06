@@ -57,7 +57,7 @@ function FeedRow({ item, fonts }: { item: FeedItem; fonts: ReturnType<typeof get
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
       <View style={styles.author}>
         <Pressable style={styles.authorLink} onPress={() => router.push(`/user/${item.user_id}`)} hitSlop={4}>
-          <PhotoThumb uri={item.author_avatar_url} size={28} radius={radius.sm} />
+          <PhotoThumb uri={item.author_avatar_url} size={28} radius={radius.sm} name={item.author_display_name ?? item.author_username} />
           <Text style={[styles.authorName, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
             {item.author_display_name ?? `@${item.author_username}`}
           </Text>
