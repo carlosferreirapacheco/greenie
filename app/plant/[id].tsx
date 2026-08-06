@@ -47,6 +47,7 @@ import { dismissStaleCareDueNotifications } from "../../lib/pushNotificationMana
 import { fontAssets, getFonts, getStatusColors, radius, spacing } from "../../lib/theme";
 import { useTheme } from "../../lib/ThemeContext";
 import { useLanguage } from "../../lib/LanguageContext";
+import { splitTemplate } from "../../lib/i18n";
 import { getErrorMessage } from "../../lib/errors";
 import { formatDisplayDate } from "../../lib/dateFormat";
 
@@ -103,6 +104,41 @@ function statusText(status: PlantCareStatus, t: (key: string) => string): string
 
 function formatTaskDate(iso: string | null, t: (key: string) => string): string {
   return iso ? formatDisplayDate(iso) : t("plantDetail.neverDoneDate");
+}
+
+// Renders a "Label: {value}" translation template with the label plain
+// and everything from the token onward (the value itself, plus any
+// trailing text like " days") emphasized -- splitTemplate() already
+// handles the word-order differences between languages, this just
+// decides which side of the split gets weight.
+function TaskMetaLine({
+  template,
+  token,
+  value,
+  fonts,
+  colors,
+}: {
+  template: string;
+  token: string;
+  value: string;
+  fonts: ReturnType<typeof getFonts>;
+  colors: ReturnType<typeof useTheme>["colors"];
+}) {
+  const segments = splitTemplate(template, [token]);
+  return (
+    <Text style={[styles.taskMetaLine, { fontFamily: fonts.body, color: colors.inkSoft }]}>
+      {segments.map((segment, index) => {
+        const text = typeof segment === "string" ? segment : value;
+        return index === 0 ? (
+          text
+        ) : (
+          <Text key={index} style={{ fontFamily: fonts.bodySemiBold, color: colors.ink }}>
+            {text}
+          </Text>
+        );
+      })}
+    </Text>
+  );
 }
 
 export default function PlantProfileScreen() {
@@ -705,13 +741,27 @@ export default function PlantProfileScreen() {
                   <Text style={[styles.taskType, { fontFamily: fonts.bodySemiBold, color: colors.ink }]}>
                     {careTaskLabel(task.type, t)}
                   </Text>
-                  <Text style={[styles.taskMeta, { fontFamily: fonts.body, color: colors.inkSoft }]}>
-                    {t(task.frequency_days === 1 ? "plantDetail.careTasks.frequencyOne" : "plantDetail.careTasks.frequencyMany", {
-                      count: task.frequency_days,
-                    })}{" "}
-                    · {t("plantDetail.careTasks.lastDone", { date: formatTaskDate(task.last_done, t) })} ·{" "}
-                    {t("plantDetail.careTasks.nextDue", { date: formatTaskDate(task.next_due, t) })}
-                  </Text>
+                  <TaskMetaLine
+                    template={t(task.frequency_days === 1 ? "plantDetail.careTasks.frequencyOne" : "plantDetail.careTasks.frequencyMany")}
+                    token="count"
+                    value={String(task.frequency_days)}
+                    fonts={fonts}
+                    colors={colors}
+                  />
+                  <TaskMetaLine
+                    template={t("plantDetail.careTasks.lastDone")}
+                    token="date"
+                    value={formatTaskDate(task.last_done, t)}
+                    fonts={fonts}
+                    colors={colors}
+                  />
+                  <TaskMetaLine
+                    template={t("plantDetail.careTasks.nextDue")}
+                    token="date"
+                    value={formatTaskDate(task.next_due, t)}
+                    fonts={fonts}
+                    colors={colors}
+                  />
                 </View>
 
                 {isOwner && editingTaskId === task.id ? (
@@ -783,7 +833,7 @@ export default function PlantProfileScreen() {
                     ]}
                     onPress={() => setNewTaskType(taskType)}
                   >
-                    <Text style={[styles.taskMeta, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
+                    <Text style={[styles.taskMetaLine, { fontFamily: fonts.bodyMedium, color: colors.ink }]}>
                       {careTaskLabel(taskType, t)}
                     </Text>
                   </Pressable>
@@ -1053,13 +1103,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   taskRowMain: {
-    gap: 2,
+    gap: 3,
   },
   taskType: {
     fontSize: 14,
     textTransform: "capitalize",
   },
-  taskMeta: {
+  taskMetaLine: {
     fontSize: 12,
   },
   taskActionsRow: {

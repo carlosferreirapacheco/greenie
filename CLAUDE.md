@@ -1663,6 +1663,32 @@ sharing them socially with other users.
   and tapping "Marcar como feita" completed the task directly with no
   anchor-date prompt, advancing `next_due` by the task's normal
   frequency; fixture data restored after.
+- Care task row: separate frequency/last-done/next-due + emphasize the
+  values — done, a tester feedback item (Rita Cortes Rosa — the row
+  read as cluttered with everything crammed into one dense line, all
+  the same weight/color). `app/plant/[id].tsx`'s care-task row split
+  the single `taskMeta` line ("Every 8 days · Last done: Never · Next
+  due: 12-08-2026", all 12px `inkSoft`) into three separate lines —
+  frequency, last-done, next-due — with each line's label staying
+  plain/`inkSoft` and everything from the interpolated value onward
+  (the number/date itself, plus any trailing unit text like " days")
+  rendered bold/`ink` for emphasis. No i18n string changes: the
+  existing `frequencyOne`/`frequencyMany`/`lastDone`/`nextDue`
+  templates keep their exact wording in both languages. New local
+  `TaskMetaLine` component reuses the existing `splitTemplate()`
+  helper (already used the same way in `app/(tabs)/feed.tsx`) —
+  called on the *un-interpolated* template so it still finds the
+  `{token}` marker, then every segment from the token onward (not
+  just the token itself) renders emphasized, which is what makes "8
+  days" bold as one unit rather than just the "8". `styles.taskMeta`
+  renamed to `taskMetaLine` (also reused, unchanged, by the "+ Add
+  task" type-choice chips) and `taskRowMain`'s gap nudged from 2 to 3
+  for the extra lines. Verified: `tsc`/`npm test` clean (430/430, no
+  structural changes); live web on a real plant with a task, in
+  Português — confirmed via computed styles that the label portions
+  render `WorkSans_400Regular`/`inkSoft` while the frequency count +
+  unit and both dates render `WorkSans_600SemiBold`/`ink`, correct in
+  both light and dark mode.
 - AI lookup non-2xx error investigation and durable logging — done.
   Investigated tester reports of `lookup-plant` "returning a status code
   not 2XX." The edge function itself was working correctly (confirmed
