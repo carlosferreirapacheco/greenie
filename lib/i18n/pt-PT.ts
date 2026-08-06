@@ -70,7 +70,7 @@ export const ptPT: typeof en = {
     },
     name: {
       label: "Nome (opcional)",
-      hint: "ex.: Pothos — deixe em branco para a IA identificar pela foto",
+      hint: "ex.: Pothos — deixa em branco para a IA identificar pela foto",
     },
     nickname: {
       label: "Alcunha (opcional)",
@@ -133,11 +133,11 @@ export const ptPT: typeof en = {
       placeholder: "ex.: 32",
     },
     saveButton: "Guardar planta",
-    lookupError: "Não foi possível identificar esta planta. Tente novamente.",
-    lookupErrorOverloaded: "A IA está com muita carga neste momento. Tente novamente dentro de alguns minutos.",
+    lookupError: "Não foi possível identificar esta planta. Tenta novamente.",
+    lookupErrorOverloaded: "A IA está com muita carga neste momento. Tenta novamente dentro de alguns minutos.",
     lookupModal: {
       nameMismatch: {
-        message: 'A IA identificou isto como "{aiName}", mas introduziu "{typedName}".',
+        message: 'A IA identificou isto como "{aiName}", mas introduziste "{typedName}".',
         keepTyped: 'Manter "{typedName}"',
         useAi: 'Usar "{aiName}"',
       },
@@ -146,7 +146,7 @@ export const ptPT: typeof en = {
       },
       notFound: {
         message:
-          "Não foi possível identificar uma planta nesta foto. Tire uma nova fotografia, ou feche esta janela, escreva um nome comum acima e tente novamente.",
+          "Não foi possível identificar uma planta nesta foto. Tira uma nova fotografia, ou fecha esta janela, escreve um nome comum acima e tenta novamente.",
       },
       takeNewPicture: "Tirar nova fotografia",
       cancel: "Cancelar",
@@ -172,7 +172,7 @@ export const ptPT: typeof en = {
     usernameTakenError: "Nome de utilizador já está em uso",
     checkEmail: {
       screenTitle: "Criar Conta",
-      message: "Enviámos um código de confirmação para {email}. Introduza-o abaixo para concluir a criação da sua conta.",
+      message: "Enviámos um código de confirmação para {email}. Introduz-o abaixo para concluir a criação da tua conta.",
       confirmButton: "Confirmar",
       backToSignInLink: "Voltar ao início de sessão",
     },
@@ -200,7 +200,7 @@ export const ptPT: typeof en = {
       submitButton: "Criar conta",
       divider: "ou",
       googleButton: "Continuar com Google",
-      signInLink: "Já tem uma conta? Iniciar sessão",
+      signInLink: "Já tens uma conta? Iniciar sessão",
     },
   },
   welcome: {
@@ -210,14 +210,14 @@ export const ptPT: typeof en = {
     reconsent: {
       screenTitle: "Privacidade e Termos",
       heading: "Atualização da Política de Privacidade e dos Termos de Utilização",
-      intro: "A política de privacidade e/ou os termos de utilização foram alterados desde a última vez que os aceitou — reveja-os para continuar.",
+      intro: "A política de privacidade e/ou os termos de utilização foram alterados desde a última vez que os aceitaste — revê-os para continuar.",
       submitButton: "Aceitar e continuar",
       signOutLink: "Terminar sessão",
     },
     firstTime: {
       screenTitle: "Bem-vindo",
       heading: "Bem-vindo ao Greenie",
-      intro: "Só mais um passo antes de continuar: confirme que está tudo correto e aceite a política de privacidade e os termos de utilização.",
+      intro: "Só mais um passo antes de continuar: confirma que está tudo correto e aceita a política de privacidade e os termos de utilização.",
       displayName: {
         label: "Nome apresentado",
         placeholder: "ex.: Carlos",
@@ -228,7 +228,7 @@ export const ptPT: typeof en = {
         cooldownHint: "Esta primeira alteração é gratuita; depois, o nome de utilizador só pode ser alterado de vez em quando.",
       },
       submitButton: "Continuar",
-      signOutLink: "Não é você? Terminar sessão",
+      signOutLink: "Não és tu? Terminar sessão",
     },
     consent: {
       prefix: "Li e concordo com a ",
@@ -246,7 +246,7 @@ export const ptPT: typeof en = {
         light: "Claro",
         dark: "Escuro",
       },
-      hint: "Sistema segue a definição do seu dispositivo.",
+      hint: "Sistema segue a definição do teu dispositivo.",
     },
     language: {
       sectionTitle: "Idioma",
@@ -258,16 +258,16 @@ export const ptPT: typeof en = {
         en: "English",
         ptPT: "Português (Portugal)",
       },
-      hint: "Sistema segue o idioma do seu dispositivo.",
+      hint: "Sistema segue o idioma do teu dispositivo.",
     },
     feedback: {
       sectionTitle: "Feedback",
-      sectionIntro: "Encontrou um problema ou tem uma sugestão? Diga-nos.",
+      sectionIntro: "Encontraste um problema ou tens uma sugestão? Diz-nos.",
       link: "Enviar feedback",
     },
     changePassword: {
       sectionTitle: "Alterar palavra-passe",
-      googleOnlyHint: "Inicia sessão com Google — esta conta não tem palavra-passe.",
+      googleOnlyHint: "Inicias sessão com Google — esta conta não tem palavra-passe.",
       currentPassword: { label: "Palavra-passe atual" },
       newPassword: { label: "Nova palavra-passe (mín. 6 caracteres)" },
       confirmPassword: {
@@ -280,7 +280,7 @@ export const ptPT: typeof en = {
     emailLinkedAccounts: {
       sectionTitle: "Email e contas associadas",
       googleSyncBanner:
-        "Conta Google associada — verifique {email} para o link de confirmação e concluir a alteração do email da conta.",
+        "Conta Google associada — verifica {email} para o link de confirmação e concluir a alteração do email da conta.",
       currentEmail: "Email atual: {email}",
       newEmail: {
         label: "Novo email",
@@ -288,7 +288,7 @@ export const ptPT: typeof en = {
       },
       codeSent: "Código enviado para {email}",
       confirmationCode: { label: "Código de confirmação" },
-      emailChanged: "Verifique {newEmail} para o link de confirmação e concluir a alteração.",
+      emailChanged: "Verifica {newEmail} para o link de confirmação e concluir a alteração.",
       confirmChangeButton: "Confirmar e alterar email",
       sendCodeButton: "Enviar código para o email atual",
       linkedAccounts: {
@@ -298,7 +298,7 @@ export const ptPT: typeof en = {
         confirmLinkButton: "Confirmar e associar conta Google",
         unlinkButton: "Desassociar",
         confirmUnlink: {
-          message: "Desassociar a sua conta Google ({email})? Pode voltar a associá-la quando quiser.",
+          message: "Desassociar a tua conta Google ({email})? Podes voltar a associá-la quando quiseres.",
           confirmButton: "Desassociar",
         },
       },
@@ -310,7 +310,7 @@ export const ptPT: typeof en = {
       profileVisibility: {
         label: "Perfil",
         options: { public: "Público", private: "Privado" },
-        hint: "Privado mostra apenas o seu nome, avatar e biografia a quem não o segue.",
+        hint: "Privado mostra apenas o teu nome, avatar e biografia a quem não te segue.",
       },
       followRequests: {
         label: "Pedidos para seguir",
@@ -327,7 +327,7 @@ export const ptPT: typeof en = {
           disabled: "Manter apenas no histórico da planta",
         },
         hint:
-          "Quando um cuidador regista um relatório de progresso numa das suas plantas, isto controla se pode partilhá-lo no seu próprio feed. Desativado: os relatórios ficam apenas no histórico desta planta.",
+          "Quando um cuidador regista um relatório de progresso numa das tuas plantas, isto controla se pode partilhá-lo no seu próprio feed. Desativado: os relatórios ficam apenas no histórico desta planta.",
       },
       savedText: "Definições de privacidade guardadas",
       saveButton: "Guardar definições de privacidade",
@@ -339,11 +339,11 @@ export const ptPT: typeof en = {
         webHint: "As notificações push estão disponíveis na aplicação móvel.",
         options: { on: "Ativado", off: "Desativado" },
         hint:
-          "Receba notificações neste dispositivo. Aplica-se apenas a este dispositivo — desativar não afeta a sua caixa de entrada na aplicação.",
+          "Recebe notificações neste dispositivo. Aplica-se apenas a este dispositivo — desativar não afeta a tua caixa de entrada na aplicação.",
         permissionDeniedError:
-          "A permissão de notificações foi recusada — ative as notificações para o Greenie nas definições do dispositivo e tente novamente.",
+          "A permissão de notificações foi recusada — ativa as notificações para o Greenie nas definições do dispositivo e tenta novamente.",
       },
-      sectionIntro: "Escolha o que aparece nas suas notificações. Tudo o que estiver desativado nunca é criado — não é apenas ocultado.",
+      sectionIntro: "Escolhe o que aparece nas tuas notificações. Tudo o que estiver desativado nunca é criado — não é apenas ocultado.",
       prefRows: {
         careTaskReminders: "Lembretes de tarefas",
         comments: "Comentários",
@@ -361,27 +361,27 @@ export const ptPT: typeof en = {
     support: {
       sectionTitle: "Apoiar o Greenie",
       sectionIntro:
-        "Se o Greenie lhe é útil, pode oferecer-me um café — totalmente opcional, é só uma forma de agradecer.",
+        "Se o Greenie te é útil, podes oferecer-me um café — totalmente opcional, é só uma forma de agradecer.",
       button: "Oferecer um café",
       hintModal: {
-        title: "Torne-se apoiante",
-        intro: "Uma doação desbloqueia um distintivo junto ao seu nome, com base no total doado ao longo do tempo:",
+        title: "Torna-te apoiante",
+        intro: "Uma doação desbloqueia um distintivo junto ao teu nome, com base no total doado ao longo do tempo:",
         tierThreshold: "€{amount}+",
         usernameNote:
-          "Para lhe ser atribuído, adicione o seu @nomedeutilizador ao campo de nome ou mensagem no checkout — é assim que associamos a sua doação à sua conta Greenie.",
+          "Para te ser atribuído, adiciona o teu @nomedeutilizador ao campo de nome ou mensagem no checkout — é assim que associamos a tua doação à tua conta Greenie.",
         continueButton: "Continuar para o Buy Me a Coffee",
       },
     },
     badges: {
       sectionTitle: "Distintivos",
-      sectionIntro: "Toque num distintivo para o mostrar ou ocultar junto ao seu nome.",
+      sectionIntro: "Toca num distintivo para o mostrar ou ocultar junto ao teu nome.",
       saveButton: "Guardar definições de distintivos",
       savedText: "Definições de distintivos guardadas",
     },
     yourData: {
-      sectionTitle: "Os seus dados",
+      sectionTitle: "Os teus dados",
       sectionIntro:
-        "Tudo o que o Greenie guarda sobre si — a sua conta, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores — num ficheiro JSON. Transfira-o para este dispositivo, ou receba uma cópia no email associado à sua conta.",
+        "Tudo o que o Greenie guarda sobre ti — a tua conta, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores — num ficheiro JSON. Transfere-o para este dispositivo, ou recebe uma cópia no email associado à tua conta.",
       downloadButton: "Transferir os meus dados",
       emailSent: "Enviado — verifique {email}.",
       emailButton: "Enviar-me uma cópia por email",
@@ -443,7 +443,7 @@ export const ptPT: typeof en = {
       badge: "Arquivada",
       archiveLink: "Arquivar esta planta",
       confirmMessage:
-        "Arquivar esta planta? Será escondida da sua lista de Plantas e os lembretes de cuidados serão pausados. Pode restaurá-la a qualquer momento em Plantas Arquivadas.",
+        "Arquivar esta planta? Será escondida da tua lista de Plantas e os lembretes de cuidados serão pausados. Podes restaurá-la a qualquer momento em Plantas Arquivadas.",
     },
     lightExposure: {
       low_light: "Pouca luz",
@@ -534,7 +534,7 @@ export const ptPT: typeof en = {
   },
   report: {
     screenTitle: "Denunciar",
-    reasonLabel: "Porque está a denunciar isto?",
+    reasonLabel: "Porque estás a denunciar isto?",
     reasons: {
       spam: "Spam",
       harassment: "Assédio ou bullying",
@@ -559,7 +559,7 @@ export const ptPT: typeof en = {
       other: "Outro",
     },
     descriptionLabel: "Descrição",
-    descriptionPlaceholder: "Diga-nos o que pensa. Para um problema, inclua os passos para o reproduzir, se possível.",
+    descriptionPlaceholder: "Diz-nos o que pensas. Para um problema, inclui os passos para o reproduzir, se possível.",
     photosLabel: "Fotografias (opcional)",
     addPhotoButton: "Adicionar fotografia",
     photoLimitHint: "Até {max} fotografias",
@@ -567,8 +567,8 @@ export const ptPT: typeof en = {
     submitButton: "Enviar",
     submitAnotherButton: "Enviar outro",
     doneButton: "Concluído",
-    successMessage: "Obrigado pelo seu feedback!",
-    rateLimitError: "Aguarde um minuto antes de enviar novamente.",
+    successMessage: "Obrigado pelo teu feedback!",
+    rateLimitError: "Aguarda um minuto antes de enviar novamente.",
   },
   heightChart: {
     captionEntry: "{date} · {height} cm",
@@ -618,9 +618,9 @@ export const ptPT: typeof en = {
       add: "Adicionar",
     },
     error: "Erro: {error}",
-    emptyState: "Ainda não segue ninguém",
-    noMatch: 'Ninguém que segue corresponde a "{query}"',
-    searchPlaceholder: "pessoas que segue",
+    emptyState: "Ainda não segues ninguém",
+    noMatch: 'Ninguém que segues corresponde a "{query}"',
+    searchPlaceholder: "pessoas que segues",
   },
   followers: {
     screenTitle: "Seguidores",
@@ -644,7 +644,7 @@ export const ptPT: typeof en = {
     screenTitle: "Pesquisar Utilizadores",
     placeholder: "utilizadores por nome ou nome de utilizador",
     error: "Erro: {error}",
-    promptState: "Escreva um nome ou nome de utilizador para pesquisar",
+    promptState: "Escreve um nome ou nome de utilizador para pesquisar",
     emptyState: "Nenhum utilizador encontrado",
     addButton: {
       add: "Adicionar",
@@ -672,7 +672,7 @@ export const ptPT: typeof en = {
     loadingTitle: "Perfil",
     error: "Erro: {error}",
     noBio: "Ainda sem biografia",
-    blockedNotice: "Bloqueou esta conta.",
+    blockedNotice: "Bloqueaste esta conta.",
     followButton: {
       follow: "Seguir",
       requested: "Pedido",
@@ -680,7 +680,7 @@ export const ptPT: typeof en = {
     },
     confirmBlock: {
       message:
-        "Bloquear esta conta? Deixará de poder segui-lo ou ver as suas plantas e relatórios de progresso, e também não verá os da pessoa bloqueada. Pode desbloquear a qualquer momento.",
+        "Bloquear esta conta? Deixará de poder seguir-te ou ver as tuas plantas e relatórios de progresso, e também não verás os da pessoa bloqueada. Podes desbloquear a qualquer momento.",
       confirm: "Bloquear",
     },
     blockLink: "Bloquear esta conta",
@@ -704,7 +704,7 @@ export const ptPT: typeof en = {
     },
     shareDialogTitle: "Instruções de cuidado das plantas",
     shareError: {
-      noPlants: "Ainda não tem plantas para partilhar instruções de cuidado.",
+      noPlants: "Ainda não tens plantas para partilhar instruções de cuidado.",
     },
     error: "Erro: {error}",
     sectionTitle: {
@@ -715,24 +715,24 @@ export const ptPT: typeof en = {
     },
     emptyState: {
       noRequests: "Sem pedidos pendentes",
-      notSittingForAnyone: "De momento não está a cuidar das plantas de ninguém",
-      noSitters: "Ainda não pediu a ninguém para cuidar das suas plantas",
+      notSittingForAnyone: "De momento não estás a cuidar das plantas de ninguém",
+      noSitters: "Ainda não pediste a ninguém para cuidar das tuas plantas",
       noHistory: "Ainda sem histórico de cuidadores",
     },
     sentRequestRow: {
       keep: "Manter",
     },
     confirmCancelRequest: {
-      message: "Cancelar o seu pedido de cuidado de plantas a {name}?",
+      message: "Cancelar o teu pedido de cuidado de plantas a {name}?",
     },
   },
   requestSitting: {
     screenTitle: "Pedir Cuidado de Plantas",
     sitterFallback: "este seguidor",
     intro:
-      "Peça a {sitterName} para cuidar de todas as suas plantas enquanto está fora. Vai poder ver as suas tarefas de cuidado, marcá-las como feitas, e registar novos relatórios de progresso em seu nome.",
+      "Pede a {sitterName} para cuidar de todas as tuas plantas enquanto estás fora. Vai poder ver as tuas tarefas de cuidado, marcá-las como feitas, e registar novos relatórios de progresso em teu nome.",
     streakHint:
-      "As tarefas de cuidado que o seu cuidador completar contam para a sequência dele, não para a sua. A sua sequência pausa enquanto ele cuida das suas plantas, e se falhar alguma tarefa, tem um dia de tolerância para a concluir antes de afetar a sequência dele.",
+      "As tarefas de cuidado que o teu cuidador completar contam para a sequência dele, não para a tua. A tua sequência pausa enquanto ele cuida das tuas plantas, e se falhar alguma tarefa, tem um dia de tolerância para a concluir antes de afetar a sequência dele.",
     startDate: {
       label: "Data de início (opcional)",
     },
@@ -740,62 +740,62 @@ export const ptPT: typeof en = {
       label: "Data de fim (opcional)",
       rangeError: "A data de fim deve ser igual ou posterior à data de início",
       hint:
-        "Deixe ambos em branco para um pedido sem data definida que pode cancelar a qualquer momento. O acesso abre na data de início e fecha após a data de fim -- aceitar mais cedo não antecipa a abertura.",
+        "Deixa ambos em branco para um pedido sem data definida que podes cancelar a qualquer momento. O acesso abre na data de início e fecha após a data de fim -- aceitar mais cedo não antecipa a abertura.",
     },
     sendButton: "Enviar pedido",
   },
   selectSitter: {
     screenTitle: "Escolher um Cuidador",
     error: "Erro: {error}",
-    emptyState: "Ainda não tem seguidores mútuos -- para cuidar de plantas é preciso seguirem-se mutuamente.",
+    emptyState: "Ainda não tens seguidores mútuos -- para cuidar de plantas é preciso seguirem-se mutuamente.",
   },
   notificationsScreen: {
     error: "Erro: {error}",
     emptyState: "Ainda nada por aqui",
     sentence: {
-      comment: "{name} comentou o seu relatório",
-      like: "{name} gostou do seu relatório",
-      followRequest: "{name} pediu para o seguir",
-      newFollower: "{name} começou a segui-lo",
-      followAccepted: "{name} aceitou o seu pedido para seguir",
-      sittingRequest: "{name} pediu-lhe para cuidar das plantas",
-      sittingAccepted: "{name} aceitou o seu pedido de cuidado de plantas",
-      sittingDeclined: "{name} recusou o seu pedido de cuidado de plantas",
+      comment: "{name} comentou o teu relatório",
+      like: "{name} gostou do teu relatório",
+      followRequest: "{name} pediu para te seguir",
+      newFollower: "{name} começou a seguir-te",
+      followAccepted: "{name} aceitou o teu pedido para seguir",
+      sittingRequest: "{name} pediu-te para cuidar das plantas",
+      sittingAccepted: "{name} aceitou o teu pedido de cuidado de plantas",
+      sittingDeclined: "{name} recusou o teu pedido de cuidado de plantas",
       careDueWater: "Hora de regar {plant}",
       careDueFertilize: "Hora de adubar {plant}",
       careDueRepot: "Hora de trocar a terra de {plant}",
-      sittingGraceDayWater: "Dia de tolerância concedido: a rega de {plant} foi estendida por 1 dia — conclua-a até amanhã",
-      sittingGraceDayFertilize: "Dia de tolerância concedido: a adubação de {plant} foi estendida por 1 dia — conclua-a até amanhã",
-      sittingGraceDayRepot: "Dia de tolerância concedido: a troca de terra de {plant} foi estendida por 1 dia — conclua-a até amanhã",
-      sittingGraceExpiredWater: "O dia de tolerância para a rega de {plant} terminou — a sua sequência foi reiniciada",
-      sittingGraceExpiredFertilize: "O dia de tolerância para a adubação de {plant} terminou — a sua sequência foi reiniciada",
-      sittingGraceExpiredRepot: "O dia de tolerância para a troca de terra de {plant} terminou — a sua sequência foi reiniciada",
+      sittingGraceDayWater: "Dia de tolerância concedido: a rega de {plant} foi estendida por 1 dia — conclui-a até amanhã",
+      sittingGraceDayFertilize: "Dia de tolerância concedido: a adubação de {plant} foi estendida por 1 dia — conclui-a até amanhã",
+      sittingGraceDayRepot: "Dia de tolerância concedido: a troca de terra de {plant} foi estendida por 1 dia — conclui-a até amanhã",
+      sittingGraceExpiredWater: "O dia de tolerância para a rega de {plant} terminou — a tua sequência foi reiniciada",
+      sittingGraceExpiredFertilize: "O dia de tolerância para a adubação de {plant} terminou — a tua sequência foi reiniciada",
+      sittingGraceExpiredRepot: "O dia de tolerância para a troca de terra de {plant} terminou — a tua sequência foi reiniciada",
     },
-    plantFallback: "a sua planta",
+    plantFallback: "a tua planta",
   },
   careStreakGraceModal: {
     title: "Dia de tolerância",
-    messageWater: "Foi-lhe concedido um dia de tolerância: a tarefa de rega de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
-    messageFertilize: "Foi-lhe concedido um dia de tolerância: a tarefa de adubação de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
-    messageRepot: "Foi-lhe concedido um dia de tolerância: a tarefa de troca de terra de {plant} foi estendida por 1 dia. Conclua-a até amanhã, ou a sua sequência de cuidados será reiniciada.",
-    messageMultiple: "Foi-lhe concedido um dia de tolerância: {count} tarefas de cuidado em atraso foram estendidas por 1 dia. Conclua-as até amanhã, ou a sua sequência de cuidados será reiniciada.",
+    messageWater: "Foi-te concedido um dia de tolerância: a tarefa de rega de {plant} foi estendida por 1 dia. Conclui-a até amanhã, ou a tua sequência de cuidados será reiniciada.",
+    messageFertilize: "Foi-te concedido um dia de tolerância: a tarefa de adubação de {plant} foi estendida por 1 dia. Conclui-a até amanhã, ou a tua sequência de cuidados será reiniciada.",
+    messageRepot: "Foi-te concedido um dia de tolerância: a tarefa de troca de terra de {plant} foi estendida por 1 dia. Conclui-a até amanhã, ou a tua sequência de cuidados será reiniciada.",
+    messageMultiple: "Foi-te concedido um dia de tolerância: {count} tarefas de cuidado em atraso foram estendidas por 1 dia. Conclui-as até amanhã, ou a tua sequência de cuidados será reiniciada.",
     dismiss: "Entendi",
   },
   profile: {
     screenTitle: "Perfil",
     error: "Erro: {error}",
     username: {
-      cooldownHint: "Pode voltar a alterar o nome de utilizador a {date}",
+      cooldownHint: "Podes voltar a alterar o nome de utilizador a {date}",
     },
     careStreak: {
       sectionTitle: "Sequência de cuidados",
       current: "Sequência de {count} dias",
-      currentZero: "Marque uma tarefa de cuidado como concluída a tempo para começar uma sequência",
+      currentZero: "Marca uma tarefa de cuidado como concluída a tempo para começar uma sequência",
       longest: "Melhor: {count} dias",
     },
     bio: {
       label: "Biografia",
-      placeholder: "Fale um pouco sobre si a outros amantes de plantas",
+      placeholder: "Fala um pouco sobre ti a outros amantes de plantas",
     },
     savedText: "Guardado",
     confirmUsernameChange: {
@@ -806,29 +806,29 @@ export const ptPT: typeof en = {
   },
   deleteAccount: {
     screenTitle: "Eliminar Conta",
-    heading: "Eliminar a sua conta",
+    heading: "Eliminar a tua conta",
     intro:
-      "Esta página permite eliminar permanentemente a sua conta Greenie e todos os seus dados sem precisar de instalar a aplicação. Inicie sessão para continuar — a eliminação continua a exigir a confirmação de um código enviado para o email da sua conta, tal como ao eliminar dentro da aplicação.",
+      "Esta página permite eliminar permanentemente a tua conta Greenie e todos os teus dados sem precisar de instalar a aplicação. Inicia sessão para continuar — a eliminação continua a exigir a confirmação de um código enviado para o email da tua conta, tal como ao eliminar dentro da aplicação.",
     deletedMessage:
-      "A sua conta foi eliminada. Tudo o que estava associado a ela — o seu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores — foi removido permanentemente.",
+      "A tua conta foi eliminada. Tudo o que estava associado a ela — o teu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores — foi removido permanentemente.",
   },
   accountDeletionFlow: {
     sectionIntro: {
       base:
-        "Eliminar a sua conta remove permanentemente o seu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores. Esta ação não pode ser desfeita.",
-      passwordless: "Para confirmar que é mesmo você, escreva o seu nome de utilizador e introduza um código de confirmação enviado para o seu email.",
-      withPassword: "Para confirmar que é mesmo você, introduza a sua palavra-passe e um código de confirmação enviado para o seu email.",
+        "Eliminar a tua conta remove permanentemente o teu perfil, plantas, calendários de cuidados, relatórios de progresso, comentários, gostos e seguidores. Esta ação não pode ser desfeita.",
+      passwordless: "Para confirmar que és mesmo tu, escreve o teu nome de utilizador e introduz um código de confirmação enviado para o teu email.",
+      withPassword: "Para confirmar que és mesmo tu, introduz a tua palavra-passe e um código de confirmação enviado para o teu email.",
     },
     usernameConfirm: {
-      label: "Escreva @{username} para confirmar",
-      fallbackUsername: "o seu nome de utilizador",
+      label: "Escreve @{username} para confirmar",
+      fallbackUsername: "o teu nome de utilizador",
       placeholderFallback: "@nomedeutilizador",
     },
-    fallbackEmail: "o seu email",
+    fallbackEmail: "o teu email",
     codePlaceholder: "123456",
     sendCodeButton: "Enviar-me um código de confirmação",
     confirmDelete: {
-      message: "Última oportunidade — isto apaga permanentemente a sua conta e tudo o que ela contém.",
+      message: "Última oportunidade — isto apaga permanentemente a tua conta e tudo o que ela contém.",
       confirm: "Eliminar tudo",
     },
     deleteButton: "Eliminar permanentemente a minha conta",
@@ -837,7 +837,7 @@ export const ptPT: typeof en = {
     screenTitle: "Ajuda e Tutorial",
     prompt: {
       title: "Bem-vindo(a) ao Greenie!",
-      message: "Quer conhecer rapidamente o que pode fazer aqui?",
+      message: "Queres conhecer rapidamente o que podes fazer aqui?",
       takeTour: "Ver o tutorial",
       maybeLater: "Talvez mais tarde",
     },
@@ -846,80 +846,80 @@ export const ptPT: typeof en = {
         heading: "Como começar",
         body:
           "O Greenie tem cinco separadores na parte inferior: **Pessoas** para encontrar e seguir outros donos " +
-          "de plantas, **Feed** para relatórios de progresso de quem segue, **Plantas** para a sua coleção, " +
-          "**Cuidar** para organizar cuidados de plantas, e **Alertas** para as suas notificações. Toque no seu " +
-          "avatar no canto superior esquerdo de qualquer separador para abrir o seu perfil.",
+          "de plantas, **Feed** para relatórios de progresso de quem segues, **Plantas** para a tua coleção, " +
+          "**Cuidar** para organizar cuidados de plantas, e **Alertas** para as tuas notificações. Toca no teu " +
+          "avatar no canto superior esquerdo de qualquer separador para abrir o teu perfil.",
       },
       plantsAndCareTasks: {
         heading: "Plantas e tarefas de cuidado",
         body:
-          "Adicione uma planta a partir do separador **Plantas** com o botão **+**. Cada planta pode ter " +
-          "tarefas de rega, adubação e troca de terra com o seu próprio calendário — marque uma tarefa como " +
+          "Adiciona uma planta a partir do separador **Plantas** com o botão **+**. Cada planta pode ter " +
+          "tarefas de rega, adubação e troca de terra com o seu próprio calendário — marca uma tarefa como " +
           "feita na página da planta e ela é reagendada automaticamente. Tarefas em atraso mostram um selo " +
-          "vermelho; as feitas a tempo ficam verdes. Arquive uma planta que já não está a acompanhar " +
-          "ativamente a partir da sua própria página — isto pausa os lembretes sem apagar nada, e pode " +
+          "vermelho; as feitas a tempo ficam verdes. Arquiva uma planta que já não estás a acompanhar " +
+          "ativamente a partir da tua própria página — isto pausa os lembretes sem apagar nada, e podes " +
           "restaurá-la mais tarde em **Plantas Arquivadas**.",
       },
       aiLookup: {
         heading: "Identificação de plantas com IA",
         body:
-          "Ao adicionar uma planta, tire ou escolha uma fotografia e toque em **\"Identificar com IA\"** — o " +
+          "Ao adicionar uma planta, tira ou escolhe uma fotografia e toca em **\"Identificar com IA\"** — o " +
           "Greenie vai tentar identificar a planta e sugerir o nome, a espécie e o calendário de cuidados. " +
-          "Pode escrever um nome primeiro como pista, ou fazer uma pesquisa só por texto se preferir não usar " +
-          "uma fotografia. Se a IA não tiver a certeza, mostra-lhe algumas hipóteses prováveis para escolher, " +
+          "Podes escrever um nome primeiro como pista, ou fazer uma pesquisa só por texto se preferires não usar " +
+          "uma fotografia. Se a IA não tiver a certeza, mostra-te algumas hipóteses prováveis para escolher, " +
           "em vez de adivinhar.",
       },
       progressAndPhotos: {
         heading: "Relatórios de progresso e fotografias",
         body:
-          "Registe um relatório de progresso na página de uma planta para acompanhar o seu crescimento — " +
-          "adicione uma altura, uma nota e uma fotografia, se quiser. Relatórios com altura constroem um " +
-          "gráfico de crescimento ao longo do tempo. Escolha se um relatório é **partilhado no Feed** (visível " +
-          "a quem o segue) ou fica **não listado** (só acessível a partir da página da própria planta).",
+          "Regista um relatório de progresso na página de uma planta para acompanhar o seu crescimento — " +
+          "adiciona uma altura, uma nota e uma fotografia, se quiseres. Relatórios com altura constroem um " +
+          "gráfico de crescimento ao longo do tempo. Escolhe se um relatório é **partilhado no Feed** (visível " +
+          "a quem te segue) ou fica **não listado** (só acessível a partir da página da própria planta).",
       },
       notificationsAndStreaks: {
         heading: "Notificações e sequências de cuidados",
         body:
           "O separador **Alertas** reúne tudo: comentários, gostos, pedidos de seguidor e lembretes de tarefas " +
-          "de cuidado. Ative as notificações push nas **Definições** para as receber também no seu dispositivo. " +
-          "Sempre que concluir a tempo todas as tarefas de cuidado do dia, a sua sequência de cuidados sobe um " +
-          "dia — se falhar uma, reinicia. Se estiver a cuidar das plantas de alguém, uma tarefa em atraso na " +
-          "planta dessa pessoa dá-lhe um dia de tolerância antes de afetar a sua própria sequência.",
+          "de cuidado. Ativa as notificações push nas **Definições** para as receber também no teu dispositivo. " +
+          "Sempre que concluíres a tempo todas as tarefas de cuidado do dia, a tua sequência de cuidados sobe um " +
+          "dia — se falhares uma, reinicia. Se estiveres a cuidar das plantas de alguém, uma tarefa em atraso na " +
+          "planta dessa pessoa dá-te um dia de tolerância antes de afetar a tua própria sequência.",
       },
       social: {
         heading: "Social",
         body:
-          "Siga outros donos de plantas em **Pessoas** para ver os seus relatórios de progresso públicos no seu " +
-          "**Feed**. Pode gostar e comentar qualquer relatório que consiga ver. Se a conta de alguém for " +
-          "privada, terá primeiro de enviar um pedido para seguir. Pode **bloquear** uma conta (esconde o " +
+          "Segue outros donos de plantas em **Pessoas** para ver os seus relatórios de progresso públicos no teu " +
+          "**Feed**. Podes gostar e comentar qualquer relatório que consigas ver. Se a conta de alguém for " +
+          "privada, terás primeiro de enviar um pedido para seguir. Podes **bloquear** uma conta (esconde o " +
           "conteúdo de ambos os lados) ou **denunciar** um relatório, comentário ou conta específicos que " +
           "quebrem as regras.",
       },
       plantSitting: {
         heading: "Cuidar de plantas",
         body:
-          "Peça a um seguidor mútuo para cuidar das suas plantas enquanto está fora, a partir do separador " +
-          "**Cuidar** — depois de aceitar, ele passa a ver as suas tarefas de cuidado, pode marcá-las como " +
-          "feitas, e registar relatórios de progresso em seu nome enquanto durar o acordo. As tarefas que ele " +
-          "completar contam para a sequência de cuidados **dele**, não para a sua — a sua própria sequência " +
-          "simplesmente pausa enquanto ele cuida das suas plantas. Se ele falhar uma tarefa, tem um dia de " +
+          "Pede a um seguidor mútuo para cuidar das tuas plantas enquanto estás fora, a partir do separador " +
+          "**Cuidar** — depois de aceitar, ele passa a ver as tuas tarefas de cuidado, pode marcá-las como " +
+          "feitas, e registar relatórios de progresso em teu nome enquanto durar o acordo. As tarefas que ele " +
+          "completar contam para a sequência de cuidados **dele**, não para a tua — a tua própria sequência " +
+          "simplesmente pausa enquanto ele cuida das tuas plantas. Se ele falhar uma tarefa, tem um dia de " +
           "tolerância antes de isso afetar a sequência dele.",
       },
       supporterBadges: {
         heading: "Selos de apoiante",
         body:
-          "Doar através do **Buy Me a Coffee** (ligado a partir das Definições) dá-lhe um selo de apoiante, com " +
-          "níveis mais altos desbloqueados a partir de determinados valores — escreva o seu " +
-          "**@nomedeutilizador** no checkout para ser associado automaticamente à sua conta. Existe também um " +
-          "selo separado para testadores beta. Pode escolher que selos mostrar no seu perfil a partir das " +
+          "Doar através do **Buy Me a Coffee** (ligado a partir das Definições) dá-te um selo de apoiante, com " +
+          "níveis mais altos desbloqueados a partir de determinados valores — escreve o teu " +
+          "**@nomedeutilizador** no checkout para ser associado automaticamente à tua conta. Existe também um " +
+          "selo separado para testadores beta. Podes escolher que selos mostrar no teu perfil a partir das " +
           "**Definições**.",
       },
       privacyAndData: {
-        heading: "Privacidade e os seus dados",
+        heading: "Privacidade e os teus dados",
         body:
-          "Controle quem pode ver as suas plantas, relatórios de progresso e lista de seguidores em " +
-          "**Definições → Privacidade**. Em **Definições → Os seus dados**, transfira tudo o que o Greenie " +
-          "guarda sobre si, ou receba uma cópia por email. Eliminar a sua conta em **Definições → Zona de " +
+          "Controla quem pode ver as tuas plantas, relatórios de progresso e lista de seguidores em " +
+          "**Definições → Privacidade**. Em **Definições → Os teus dados**, transfere tudo o que o Greenie " +
+          "guarda sobre ti, ou recebe uma cópia por email. Eliminar a tua conta em **Definições → Zona de " +
           "perigo** é imediato e permanente.",
       },
     },
