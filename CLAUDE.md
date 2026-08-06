@@ -1558,6 +1558,30 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Notifications: Alerts tab badge staying lit after read — done, from
+  tester feedback. The Alerts screen's mark-all-read call
+  (`markAllNotificationsRead()` in `app/(tabs)/notifications.tsx`) was
+  fire-and-forget, and `app/(tabs)/_layout.tsx` only refetched the
+  unread badge on navigation `state` events — so if the user didn't
+  navigate again right after mark-read resolved, the badge stayed lit
+  until some later, unrelated navigation happened to trigger a
+  refetch. New `lib/notificationEvents.ts` (same in-process
+  listener-set shape as the existing `consentEvents.ts`, reused rather
+  than reinvented) lets the Alerts screen signal the layout the moment
+  mark-read actually completes; the layout subscribes alongside its
+  existing nav-state listener. The tester's adjacent routing complaint
+  ("some notifications aren't linking to the correct screen") was
+  investigated but not reproduced — `notificationTargetPath()`
+  correctly resolves every kind, `follow_request` included — left
+  that code alone. Verified live: seeded a real unread notification,
+  confirmed via a temporary debug-log trace that
+  `markAllNotificationsRead()` resolving triggers the emit, the
+  layout's listener fires, and `getUnreadNotificationCount()`
+  immediately returns 0 (the exact state chain this fix changes) —
+  DOM-level badge-visibility scraping was unreliable since React
+  Navigation's own `Badge` component fades out via `opacity` rather
+  than unmounting, not a defect in the fix; debug logging removed
+  before commit, test data cleaned up after.
 - Plant photo zoom/viewer + header font-scale collision fix — done.
   **Photo viewer**: tapping the plant's main photo (`app/plant/[id].tsx`,
   both the owner's `PhotoPicker` thumb and a non-owner's bare
