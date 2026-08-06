@@ -1558,6 +1558,64 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Push notification cold-start deep linking — done, from tester
+  feedback (Marta Rodrigues: a comment notification's tap landed on
+  the Plants screen instead of the report, "like the follow
+  request"). `notificationTargetPath()` itself was already correct
+  (comment/like → `/progress/{id}`) and had already been re-checked
+  once with no defect found (PR #151) — but that check only covered
+  the *warm-app* tap path, `addNotificationResponseReceivedListener`,
+  which only receives responses that happen **after** it's
+  registered. The real gap: nothing called Expo's
+  `getLastNotificationResponse()` — the API for "what notification
+  launched the app" — so a **cold-start** tap (app fully killed, then
+  relaunched by tapping the notification) just did a normal boot and
+  landed on the default tab, regardless of kind; not comment-specific,
+  and almost certainly the same root cause behind the original
+  follow-request suspicion too. The existing response-parsing logic
+  inside `addPushResponseListener` was extracted into a shared, pure,
+  tested `resolvePushResponsePath()` (`lib/pushNotifications.ts`), so
+  both the live listener and the new cold-start path agree. New
+  `getInitialNotificationTargetPath()`
+  (`lib/pushNotificationManager.ts`) reads
+  `Notifications.getLastNotificationResponse()` (the current,
+  non-deprecated sync API — confirmed against the installed
+  `expo-notifications` package's own `.d.ts`, not assumed) and calls
+  `clearLastNotificationResponse()` right after, so the same response
+  can't be re-resolved into a stale navigation on a later call in the
+  same JS session (e.g. Fast Refresh). `app/_layout.tsx` captures this
+  once at mount alongside the existing listener setup, then a separate
+  effect defers the actual `router.push()` until the app has passed
+  the exact same loading/session/consent gates its own render logic
+  already uses before showing the real `<Stack>` — firing any earlier
+  would push into a navigator that doesn't exist yet (the app is still
+  on the loading spinner or about to redirect to sign-in), which is
+  exactly how a cold-start tap used to silently end up on the default
+  tab instead of its real target. A tap with no active session simply
+  drops the pending deep link rather than replaying it after sign-in.
+  Verified: `tsc`/`npm test` clean (`resolvePushResponsePath` cases
+  covering typed kinds, the old plantId-only transition path, and
+  unresolvable data); live web sanity check (push is native-only and
+  no-ops entirely on web, so this only confirms no regression — app
+  boots cleanly with no console errors). The actual cold-start
+  behavior can't be verified in this environment (no way to kill the
+  app and tap a real delivered push) and needs a pass on the physical
+  Android test device.
+- Keyboard covering the active input while typing — logged from
+  tester feedback (Marta Rodrigues: "when writing a comment or any
+  input, when the keyboard shows, the screen stays the same covering
+  the input"), confirmed as a real, systemic gap across all 12 screens
+  using `KeyboardAvoidingView` (comments, feedback, sign-in/up,
+  settings, add-plant, log-progress, and more) — every one uses
+  `behavior={Platform.OS === "ios" ? "padding" : undefined}`, and
+  `undefined` makes `KeyboardAvoidingView` a complete no-op on
+  Android. The app does default to Android's `adjustResize` window
+  mode (confirmed via `app.json` having no
+  `android.softwareKeyboardLayoutMode` override, and Expo's own
+  config-plugin source defaulting to `adjustResize` when unset), but
+  that alone doesn't reliably scroll a focused input into view past
+  the fold without React Native's own keyboard-avoidance logic
+  actually being enabled. Not yet implemented — next up.
 - Bottom UI hidden behind Android 3-button navigation — done, from
   tester feedback (Rita Cortes Rosa: a bottom-anchored action, e.g. a
   Save button, could sit partly behind the on-screen nav bar on a

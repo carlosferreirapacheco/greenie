@@ -5,8 +5,8 @@ import Constants from "expo-constants";
 import {
   PUSH_ENABLED_STORAGE_KEY,
   identifiersForDeletedPlants,
-  notificationTargetPath,
   parseStoredFlag,
+  resolvePushResponsePath,
 } from "./pushNotifications";
 import { deletePushToken, upsertPushToken } from "./supabase/push_tokens";
 
@@ -189,8 +189,11 @@ export async function dismissStaleCareDueNotifications(currentPlantIds: string[]
 }
 
 // Tapping a notification deep-links by kind via the shared
-// notificationTargetPath. Returns the subscription so the caller's
-// effect can clean it up.
+// resolvePushResponsePath. Returns the subscription so the caller's
+// effect can clean it up. Only fires for a tap received while the JS
+// runtime is already running (foreground/backgrounded) -- see
+// getInitialNotificationTargetPath() below for the cold-start case,
+// which this listener never receives.
 export function addPushResponseListener(
   onNavigate: (path: string) => void
 ): { remove: () => void } | null {
@@ -199,23 +202,33 @@ export function addPushResponseListener(
   }
 
   return Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data ?? {};
-    const asString = (value: unknown) => (typeof value === "string" ? value : null);
-
-    if (typeof data.type === "string") {
-      const path = notificationTargetPath(data.type, {
-        progressId: asString(data.progressId),
-        actorId: asString(data.actorId),
-        plantId: asString(data.plantId),
-      });
-      if (path) {
-        onNavigate(path);
-      }
-    } else if (typeof data.plantId === "string") {
-      // Transition path: locally scheduled care reminders from before
-      // this feature carry only { plantId }; any still pending on a
-      // device should keep landing on their plant.
-      onNavigate(`/plant/${data.plantId}`);
+    const path = resolvePushResponsePath(response.notification.request.content.data ?? {});
+    if (path) {
+      onNavigate(path);
     }
   });
+}
+
+// The notification response that launched the app, when it was fully
+// killed before the tap (a warm/backgrounded app instead fires
+// addPushResponseListener's live listener, which never receives this
+// same response). expo-notifications keeps this response cached until
+// explicitly cleared, so it's consumed here rather than re-read --
+// without clearing, a later call in the same JS session (e.g. Fast
+// Refresh) would re-resolve the same stale target.
+export function getInitialNotificationTargetPath(): string | null {
+  if (Platform.OS === "web") {
+    return null;
+  }
+  try {
+    const response = Notifications.getLastNotificationResponse();
+    if (!response) {
+      return null;
+    }
+    const path = resolvePushResponsePath(response.notification.request.content.data ?? {});
+    Notifications.clearLastNotificationResponse();
+    return path;
+  } catch {
+    return null;
+  }
 }

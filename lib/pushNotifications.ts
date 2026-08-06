@@ -50,6 +50,32 @@ export function notificationTargetPath(
   }
 }
 
+// Resolves a push response's raw `data` payload to a deep-link path --
+// shared by the warm-app tap listener and the cold-start check (see
+// pushNotificationManager.ts's addPushResponseListener/
+// getInitialNotificationTargetPath) so both agree on the same logic.
+// Untyped since push payload data is untyped over the wire.
+export function resolvePushResponsePath(data: Record<string, unknown>): string | null {
+  const asString = (value: unknown) => (typeof value === "string" ? value : null);
+
+  if (typeof data.type === "string") {
+    return notificationTargetPath(data.type, {
+      progressId: asString(data.progressId),
+      actorId: asString(data.actorId),
+      plantId: asString(data.plantId),
+    });
+  }
+
+  // Transition path: locally scheduled care reminders from before the
+  // real push pipeline existed carry only { plantId }; any still
+  // pending on a device should keep landing on their plant.
+  if (typeof data.plantId === "string") {
+    return `/plant/${data.plantId}`;
+  }
+
+  return null;
+}
+
 export type PresentedNotificationInfo = {
   identifier: string;
   type: unknown;
