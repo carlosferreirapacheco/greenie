@@ -1910,6 +1910,42 @@ sharing them socially with other users.
   `prefers-color-scheme` to light, light mode too (sage/moss tokens
   correctly swap between the two), on both the 28px header avatar and
   a 44px Followers row.
+- PT-PT register: "tu" instead of "você" — done, a tester feedback
+  item (Marta Rodrigues — "você" reads as too formal). Converted the
+  entire `lib/i18n/pt-PT.ts` dictionary (1090 lines) from the formal
+  "você" register to the informal "tu" register: second-person
+  pronouns, possessives (`seu`/`sua`/`seus`/`suas` → `teu`/`tua`/
+  `teus`/`tuas`), and both indicative and imperative verb
+  conjugations (e.g. `pode` → `podes`, `tem` → `tens`, `confirme` →
+  `confirma`, `escreva` → `escreve`) wherever the string addresses
+  the app's own user. Also updated the matching PT-PT store-listing
+  draft copy in `docs/google-play-launch.md` (the feature graphic
+  tagline, "Cuidado de plantas, simplificado.", has no verb or
+  possessive, so it needed no change and no asset regeneration).
+  Every "seu/sua" occurrence was checked individually against the
+  English source (`lib/i18n/en.ts`) rather than blindly replaced,
+  since Portuguese "seu/sua" is genuinely ambiguous between "your"
+  (register-dependent) and "his/her/their" (register-independent) —
+  a handful were deliberately left as `seu`/`sua` because they refer
+  to a third party in context, not the reader: a plant-sitter's own
+  feed (`settings.privacy.plantSitters.hint`), a plant's own growth
+  (`help.sections.progressAndPhotos.body`), a plant's own care
+  schedule (`help.sections.plantsAndCareTasks.body`), and other plant
+  owners' reports (`help.sections.social.body`). **Deliberately out of
+  scope**: `privacyPolicy` and `termsOfUse` (the legal documents) —
+  left in "você" register, matching this project's existing practice
+  of keeping legal text out of routine i18n passes (it went through
+  its own dedicated legal-review sign-off, see the Public launch
+  backlog) rather than folding a register change into that document
+  incidentally. Supabase's own auth emails (signup confirmation,
+  password-reset codes) are configured in the Supabase dashboard, not
+  this repo, so they're also unconverted — a possible follow-up, not
+  attempted here. Verified: `tsc`/`npm test` clean (430/430, no
+  structural changes — content-only); live web with Português
+  selected across Settings (all sections, including the Danger Zone's
+  interpolated "és mesmo tu" confirmation copy), the Help screen (all
+  nine sections), and Add Plant's inline hint, confirming natural,
+  consistent tu-register throughout with no leftover "você" forms.
 - Photo capture — PR 1 of 2 done: capture + display for the three
   backlog-named surfaces (Add Plant, profile avatar, Log Progress) plus
   everywhere those specific photos are immediately visible. One shared

@@ -168,20 +168,20 @@ trocar terra, Cuidar de plantas) so the listing stays consistent with
 the in-app experience:
 
 **Short description** (≤80 characters, 79 used):
-> Acompanhe os cuidados das plantas, registe o crescimento e partilhe com amigos.
+> Acompanha os cuidados das plantas, regista o crescimento e partilha com amigos.
 
 **Full description**:
-> O Greenie ajuda a manter as suas plantas de interior vivas e
-> saudáveis. Adicione uma planta (a identificação por IA a partir de
+> O Greenie ajuda a manter as tuas plantas de interior vivas e
+> saudáveis. Adiciona uma planta (a identificação por IA a partir de
 > fotografia ajuda a obter o nome e o calendário de rega certos),
-> acompanhe tarefas de cuidado como a rega e a adubação, e registe
+> acompanha tarefas de cuidado como a rega e a adubação, e regista
 > relatórios de progresso com fotografias e medições de altura para
 > ver o crescimento ao longo do tempo.
 >
-> Siga outras pessoas apaixonadas por plantas, partilhe o progresso das
-> suas próprias plantas, e dê uma ajuda a cuidar de plantas quando um
+> Segue outras pessoas apaixonadas por plantas, partilha o progresso das
+> tuas próprias plantas, e dá uma ajuda a cuidar de plantas quando um
 > amigo vai de férias — acesso total às tarefas de cuidado e registo de
-> progresso para quem estiver a tratar das suas plantas enquanto está
+> progresso para quem estiver a tratar das tuas plantas enquanto estás
 > fora.
 >
 > Funcionalidades:
@@ -189,7 +189,7 @@ the in-app experience:
 > • Lembretes de tarefas de cuidado (rega, adubação, troca de terra)
 > • Acompanhamento do crescimento com fotografias e gráfico de altura ao longo do tempo
 > • Feed social para seguir outros donos de plantas e partilhar o progresso
-> • Cuidar de plantas: delegue o acesso aos cuidados a um amigo de confiança
+> • Cuidar de plantas: delega o acesso aos cuidados a um amigo de confiança
 > • Exportação completa de dados e eliminação de conta, diretamente nas Definições
 > • Disponível em inglês e em português (Portugal)
 
