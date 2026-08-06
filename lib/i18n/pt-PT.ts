@@ -421,7 +421,10 @@ export const ptPT: typeof en = {
       platinum: "Platina",
     },
     betaTester: {
-      label: "Testador beta",
+      // Deliberately untranslated -- same treatment as "Greenie" itself.
+      // "Testador beta" read as an awkward literal translation per
+      // tester feedback; kept as the English brand term in both languages.
+      label: "Beta tester",
     },
   },
   plantDetail: {
