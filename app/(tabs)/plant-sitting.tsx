@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, Share, StyleSheet, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, useFocusEffect, useNavigation } from "expo-router";
 import {
@@ -200,6 +201,7 @@ export default function PlantSittingScreen() {
   const { colors } = useTheme();
   const { t } = useLanguage();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const [shareBusy, setShareBusy] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -463,6 +465,7 @@ export default function PlantSittingScreen() {
           fonts={fonts}
         />
       ) : null}
+      <View style={{ height: insets.bottom }} />
     </ScrollView>
   );
 }

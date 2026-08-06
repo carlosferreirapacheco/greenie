@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { splitBold } from "../lib/i18n";
@@ -25,6 +26,7 @@ export default function HelpScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
@@ -50,6 +52,7 @@ export default function HelpScreen() {
           </View>
         );
       })}
+      <View style={{ height: insets.bottom }} />
     </ScrollView>
   );
 }

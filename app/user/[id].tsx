@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { getProfile, type Profile } from "../../lib/supabase/profiles";
@@ -54,6 +55,7 @@ export default function UserProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -409,6 +411,7 @@ export default function UserProfileScreen() {
           fonts={fonts}
         />
       ) : null}
+      <View style={{ height: insets.bottom }} />
     </ScrollView>
   );
 }

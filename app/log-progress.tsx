@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { createProgressReport, effectiveCommentPolicy, type CommentPolicy } from "../lib/supabase/plant_progress";
@@ -30,6 +31,7 @@ export default function LogProgressScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [plant, setPlant] = useState<Plant | null>(null);
@@ -256,6 +258,7 @@ export default function LogProgressScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { requestPlantSitting } from "../lib/supabase/plant_sitting";
@@ -26,6 +27,7 @@ export default function RequestSittingScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const [sitter, setSitter] = useState<Profile | null>(null);
 
@@ -142,6 +144,7 @@ export default function RequestSittingScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

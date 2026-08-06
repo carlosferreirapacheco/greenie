@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import {
@@ -70,6 +71,7 @@ export default function AddPlantScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, locale } = useLanguage();
 
   const [name, setName] = useState("");
@@ -524,6 +526,7 @@ export default function AddPlantScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
 
       {/* Conditionally rendered (not just visible={isOpen}) -- Modal's

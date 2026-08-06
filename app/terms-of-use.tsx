@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { t as translate, type SupportedLocale } from "../lib/i18n";
@@ -36,6 +37,7 @@ export default function TermsOfUseScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { locale: appLocale } = useLanguage();
+  const insets = useSafeAreaInsets();
   const [locale, setLocale] = useState<SupportedLocale>(appLocale);
 
   function t(key: string): string {
@@ -81,6 +83,7 @@ export default function TermsOfUseScreen() {
           </Text>
         </View>
       ))}
+      <View style={{ height: insets.bottom }} />
     </ScrollView>
   );
 }

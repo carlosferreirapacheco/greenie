@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { signInWithGoogle, signUpWithEmail, verifySignupCode } from "../lib/supabase/auth";
@@ -24,6 +25,7 @@ export default function SignUpScreen() {
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -311,6 +313,7 @@ export default function SignUpScreen() {
             {t("signUp.form.signInLink")}
           </Text>
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

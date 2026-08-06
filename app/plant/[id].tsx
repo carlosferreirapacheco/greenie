@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
@@ -146,6 +147,7 @@ export default function PlantProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const statusColors = getStatusColors(colors, scheme);
   const { t } = useLanguage();
 
@@ -898,6 +900,7 @@ export default function PlantProfileScreen() {
           </Text>
         </Pressable>
       ) : null}
+      <View style={{ height: insets.bottom }} />
     </ScrollView>
 
     {pendingDeleteTask ? (
