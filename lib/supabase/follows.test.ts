@@ -10,6 +10,7 @@ import {
   getFollowers,
   getMutualFollowers,
   getFollowStatus,
+  getFollowStatusesFor,
   amIFollowedBy,
   followUser,
   unfollowUser,
@@ -185,6 +186,39 @@ describe("getFollowStatus", () => {
     mockSupabase.from.mockReturnValue(createChainableQueryMock({ data: null, error: null }));
 
     await expect(getFollowStatus("u2")).resolves.toBe("none");
+  });
+});
+
+describe("getFollowStatusesFor", () => {
+  it("returns an empty-defaulted map without querying when given no ids", async () => {
+    const result = await getFollowStatusesFor([]);
+
+    expect(result).toEqual({});
+    expect(mockSupabase.from).not.toHaveBeenCalled();
+  });
+
+  it("defaults every id to 'none' then fills in known statuses from the batched query", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: { id: "u1" } } });
+    const chain = createChainableQueryMock({
+      data: [
+        { followee_id: "u2", status: "accepted" },
+        { followee_id: "u3", status: "pending" },
+      ],
+      error: null,
+    });
+    mockSupabase.from.mockReturnValueOnce(chain);
+
+    const result = await getFollowStatusesFor(["u2", "u3", "u4"]);
+
+    expect(chain.eq).toHaveBeenCalledWith("follower_id", "u1");
+    expect(chain.in).toHaveBeenCalledWith("followee_id", ["u2", "u3", "u4"]);
+    expect(result).toEqual({ u2: "accepted", u3: "pending", u4: "none" });
+  });
+
+  it("throws Not signed in when there's no session", async () => {
+    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: null } });
+
+    await expect(getFollowStatusesFor(["u2"])).rejects.toThrow("Not signed in");
   });
 });
 

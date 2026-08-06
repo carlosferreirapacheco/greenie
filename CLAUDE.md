@@ -320,6 +320,30 @@ sharing them socially with other users.
     back to `@username`): the list renders both, tapping a row opens
     the liker's profile, and the heart toggle still likes/unlikes
     without navigating anywhere.
+  - Follow back from Follow Requests — done, from tester feedback. The
+    Accept/Decline actions on `app/follow-requests.tsx` were
+    unchanged; each row gained a third single-tap, no-confirm "Follow
+    back" action, shown only when the signed-in user doesn't already
+    follow that requester. New `getFollowStatusesFor(userIds)` in
+    `lib/supabase/follows.ts` batches the reverse-direction lookup for
+    every pending requester in one query (`follows` filtered by
+    `follower_id = me` and `.in("followee_id", ids)`) rather than N
+    calls to the existing `getFollowStatus()`, defaulting any id with
+    no row to `"none"`. Tapping "Follow back" calls the existing
+    `followUser()` directly — independent of Accept/Decline, so it
+    works in either order — and updates that row's status locally from
+    the returned status; if it lands `"pending"` (the requester's own
+    `follow_policy` is "request"), the row shows a static "Requested"
+    label instead, matching the tri-state pattern already used
+    elsewhere (Search Users' inline follow action, the profile
+    screen's Follow/Requested/Unfollow button); if `"accepted"`, the
+    row shows no follow-back action at all. Verified live end-to-end
+    against two dev-fixture accounts with the target's `follow_policy`
+    temporarily set to "request" (restored after): "Follow back"
+    correctly appeared only for the not-yet-followed requester,
+    tapping it created a real accepted `follows` row and made the
+    button disappear, and Accept still resolved the original request
+    independently — confirmed in Português (`"Seguir de volta"`).
 - Account settings and configuration — scoped and split into slices.
   Slice 1 (change password) is done: `app/settings.tsx` (new screen,
   linked from a "Settings" link in `app/profile.tsx`'s header) lets a

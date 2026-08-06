@@ -632,6 +632,8 @@ export const en = {
     screenTitle: "Follow Requests",
     error: "Error: {error}",
     emptyState: "No pending requests",
+    followBack: "Follow back",
+    requestedLabel: "Requested",
   },
   searchUsers: {
     screenTitle: "Search Users",
