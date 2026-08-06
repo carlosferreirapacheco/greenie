@@ -252,6 +252,43 @@ export async function getPendingFollowRequests(): Promise<Profile[]> {
   return data;
 }
 
+// Batched reverse-lookup for the Follow Requests screen's "Follow back"
+// option: one query instead of N getFollowStatus() calls. IDs with no
+// row default to "none" (never followed them).
+export async function getFollowStatusesFor(userIds: string[]): Promise<Record<string, FollowStatus>> {
+  const statuses: Record<string, FollowStatus> = {};
+  for (const id of userIds) {
+    statuses[id] = "none";
+  }
+  if (userIds.length === 0) {
+    return statuses;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not signed in");
+  }
+
+  const { data, error } = await supabase
+    .from("follows")
+    .select("followee_id, status")
+    .eq("follower_id", user.id)
+    .in("followee_id", userIds);
+
+  if (error) {
+    throw error;
+  }
+
+  for (const row of data) {
+    statuses[row.followee_id] = row.status as FollowStatus;
+  }
+
+  return statuses;
+}
+
 export async function acceptFollowRequest(followerId: string): Promise<void> {
   const {
     data: { user },

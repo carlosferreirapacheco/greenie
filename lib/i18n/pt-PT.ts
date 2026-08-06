@@ -634,6 +634,8 @@ export const ptPT: typeof en = {
     screenTitle: "Pedidos para Seguir",
     error: "Erro: {error}",
     emptyState: "Sem pedidos pendentes",
+    followBack: "Seguir de volta",
+    requestedLabel: "Pedido",
   },
   searchUsers: {
     screenTitle: "Pesquisar Utilizadores",

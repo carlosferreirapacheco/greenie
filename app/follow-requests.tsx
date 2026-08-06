@@ -2,7 +2,14 @@ import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { Stack, useFocusEffect } from "expo-router";
-import { acceptFollowRequest, declineFollowRequest, getPendingFollowRequests } from "../lib/supabase/follows";
+import {
+  acceptFollowRequest,
+  declineFollowRequest,
+  followUser,
+  getFollowStatusesFor,
+  getPendingFollowRequests,
+  type FollowStatus,
+} from "../lib/supabase/follows";
 import { type Profile } from "../lib/supabase/profiles";
 import { PhotoThumb } from "../components/PhotoThumb";
 import { fontAssets, getFonts, radius, spacing } from "../lib/theme";
@@ -16,12 +23,18 @@ function RequestRow({
   busy,
   onAccept,
   onDecline,
+  followBackStatus,
+  followBackBusy,
+  onFollowBack,
 }: {
   profile: Profile;
   fonts: ReturnType<typeof getFonts>;
   busy: boolean;
   onAccept: () => void;
   onDecline: () => void;
+  followBackStatus: FollowStatus;
+  followBackBusy: boolean;
+  onFollowBack: () => void;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -32,6 +45,21 @@ function RequestRow({
         {profile.display_name ?? `@${profile.username}`}
       </Text>
       <View style={styles.actions}>
+        {followBackStatus === "none" ? (
+          <Pressable onPress={onFollowBack} disabled={followBackBusy} hitSlop={8}>
+            {followBackBusy ? (
+              <ActivityIndicator color={colors.moss} />
+            ) : (
+              <Text style={[styles.followBackLink, { fontFamily: fonts.bodyMedium, color: colors.moss }]}>
+                {t("followRequests.followBack")}
+              </Text>
+            )}
+          </Pressable>
+        ) : followBackStatus === "pending" ? (
+          <Text style={[styles.followBackLink, { fontFamily: fonts.bodyMedium, color: colors.inkSoft }]}>
+            {t("followRequests.requestedLabel")}
+          </Text>
+        ) : null}
         <Pressable onPress={onAccept} disabled={busy} hitSlop={8}>
           {busy ? (
             <ActivityIndicator color={colors.moss} />
@@ -55,9 +83,12 @@ export default function FollowRequestsScreen() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState<Profile[]>([]);
+  const [followBackStatuses, setFollowBackStatuses] = useState<Record<string, FollowStatus>>({});
+  const [followBackBusyId, setFollowBackBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const busyRef = useRef<string | null>(null);
+  const followBackBusyRef = useRef<string | null>(null);
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
@@ -65,9 +96,11 @@ export default function FollowRequestsScreen() {
 
   const fetchRequests = useCallback(() => {
     getPendingFollowRequests()
-      .then((data) => {
+      .then(async (data) => {
         setRequests(data);
         setStatus("ready");
+        const statuses = await getFollowStatusesFor(data.map((profile) => profile.id));
+        setFollowBackStatuses(statuses);
       })
       .catch((err) => {
         setError(getErrorMessage(err));
@@ -119,6 +152,25 @@ export default function FollowRequestsScreen() {
     }
   }
 
+  async function handleFollowBack(userId: string) {
+    if (followBackBusyRef.current) {
+      return;
+    }
+    followBackBusyRef.current = userId;
+    setFollowBackBusyId(userId);
+    setActionError(null);
+
+    try {
+      const { status: newStatus } = await followUser(userId);
+      setFollowBackStatuses((prev) => ({ ...prev, [userId]: newStatus }));
+    } catch (err) {
+      setActionError(getErrorMessage(err));
+    } finally {
+      followBackBusyRef.current = null;
+      setFollowBackBusyId(null);
+    }
+  }
+
   const screen = <Stack.Screen options={{ title: t("followRequests.screenTitle") }} />;
 
   if (status === "loading") {
@@ -165,6 +217,9 @@ export default function FollowRequestsScreen() {
             busy={busyId === item.id}
             onAccept={() => handleAccept(item.id)}
             onDecline={() => handleDecline(item.id)}
+            followBackStatus={followBackStatuses[item.id] ?? "none"}
+            followBackBusy={followBackBusyId === item.id}
+            onFollowBack={() => handleFollowBack(item.id)}
           />
         )}
       />
@@ -209,6 +264,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   declineLink: {
+    fontSize: 14,
+  },
+  followBackLink: {
     fontSize: 14,
   },
 });
