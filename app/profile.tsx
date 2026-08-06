@@ -257,6 +257,7 @@ export default function ProfileScreen() {
           size={88}
           photoRadius={radius.lg}
           fonts={fonts}
+          name={displayName.trim().length > 0 ? displayName.trim() : username}
         />
         {avatarSaveError ? (
           <Text style={[styles.errorText, { fontFamily: fonts.body, color: colors.coral }]}>{avatarSaveError}</Text>

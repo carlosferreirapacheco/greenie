@@ -17,7 +17,7 @@ function SitterRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<typ
       style={[styles.row, { borderBottomColor: colors.line }]}
       onPress={() => router.push(`/request-sitting?userId=${profile.id}`)}
     >
-      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} name={profile.display_name ?? profile.username} />
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {profile.display_name ?? `@${profile.username}`}
       </Text>

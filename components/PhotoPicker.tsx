@@ -21,6 +21,7 @@ export function PhotoPicker({
   photoRadius,
   fonts,
   onPhotoPress,
+  name,
 }: {
   value: string | null;
   onChange: (url: string) => void;
@@ -29,6 +30,7 @@ export function PhotoPicker({
   photoRadius?: number;
   fonts: Fonts;
   onPhotoPress?: () => void;
+  name?: string | null;
 }) {
   const { colors } = useTheme();
   const { t } = useLanguage();
@@ -68,7 +70,7 @@ export function PhotoPicker({
         onPress={value && onPhotoPress ? onPhotoPress : undefined}
         disabled={!value || !onPhotoPress}
       >
-        <PhotoThumb uri={value} size={size} radius={resolvedRadius} />
+        <PhotoThumb uri={value} size={size} radius={resolvedRadius} name={name} />
         {busy ? (
           <View style={[styles.overlay, { borderRadius: resolvedRadius }]}>
             <ActivityIndicator color={colors.paperRaised} />

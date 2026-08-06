@@ -25,7 +25,7 @@ function LikerRow({ liker, fonts }: { liker: LikerProfile; fonts: ReturnType<typ
 
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${liker.user_id}`)}>
-      <PhotoThumb uri={liker.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={liker.avatar_url} size={44} radius={radius.sm} name={liker.display_name ?? liker.username} />
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>{name}</Text>
     </Pressable>
   );

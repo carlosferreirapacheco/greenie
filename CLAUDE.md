@@ -1878,6 +1878,38 @@ sharing them socially with other users.
   every former "No display name yet" fallback now shows `@username`
   instead (feed rows, comment previews, progress detail, following
   list, follow requests, user search, user profiles)
+- Default avatars (2-letter initials) — done, a tester feedback item
+  (César). Every person-avatar `PhotoThumb` was a flat empty
+  placeholder box when `avatar_url` was unset; it now falls back to a
+  2-letter initials badge (sage background, moss text, same tokens as
+  the rest of the theme) instead, computed at render time from the
+  profile's `display_name` (or `username` when no display name is
+  set) — so every existing account without a photo picks this up
+  automatically with no backfill needed, since nothing is stored,
+  only derived. New pure, tested `getInitials(name)`
+  (`lib/initials.ts`): two words or more → first letter of the first
+  and last word (e.g. "Carlos Pacheco" → "CP"); one word (a bare
+  username, or a single-word display name) → its first two
+  characters uppercased. `components/PhotoThumb.tsx` gained an
+  optional `name?: string | null` prop — omitted, it's byte-identical
+  to before (a flat placeholder box), which is why every plant/report
+  photo `PhotoThumb` (the plant list, plant profile, progress report
+  photos) was deliberately left untouched; only the ~13 *person*-avatar
+  call sites (`PhotoThumb` directly, or through `PhotoPicker`'s new
+  matching `name` prop) were threaded: the tabs header's own avatar,
+  Following/Followers/Follow Requests/Blocked Users/Search
+  Users/Select Sitter rows, a viewed user's profile screen, Plant
+  Sitting's owner/sitter rows, the Feed row and progress-detail
+  author avatars, the Likes screen's resolved-liker rows (the
+  unresolvable-liker row — block asymmetry — deliberately keeps no
+  `name`, since no identity is known there), and the signed-in user's
+  own avatar on the Profile screen. Verified: `tsc`/`npm test` clean
+  (7 new `getInitials()` cases); live web against real, pre-existing
+  accounts with no avatar set — confirmed initials render correctly
+  in both dark mode (default) and, after forcing the browser's
+  `prefers-color-scheme` to light, light mode too (sage/moss tokens
+  correctly swap between the two), on both the 28px header avatar and
+  a 44px Followers row.
 - Photo capture — PR 1 of 2 done: capture + display for the three
   backlog-named surfaces (Add Plant, profile avatar, Log Progress) plus
   everywhere those specific photos are immediately visible. One shared

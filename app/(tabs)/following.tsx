@@ -16,7 +16,7 @@ function ProfileRow({ profile, fonts }: { profile: Profile; fonts: ReturnType<ty
   const { colors } = useTheme();
   return (
     <Pressable style={[styles.row, { borderBottomColor: colors.line }]} onPress={() => router.push(`/user/${profile.id}`)}>
-      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} name={profile.display_name ?? profile.username} />
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {profile.display_name ?? `@${profile.username}`}
       </Text>

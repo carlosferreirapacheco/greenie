@@ -245,7 +245,7 @@ export default function UserProfileScreen() {
   return (
     <ScrollView style={{ backgroundColor: colors.paper }} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: displayName ?? atUsername }} />
-      <PhotoThumb uri={profile?.avatar_url ?? null} size={88} radius={radius.lg} />
+      <PhotoThumb uri={profile?.avatar_url ?? null} size={88} radius={radius.lg} name={profile?.display_name ?? profile?.username} />
 
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {displayName ?? atUsername}

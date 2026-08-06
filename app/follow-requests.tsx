@@ -40,7 +40,7 @@ function RequestRow({
   const { t } = useLanguage();
   return (
     <View style={[styles.row, { borderBottomColor: colors.line }]}>
-      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} />
+      <PhotoThumb uri={profile.avatar_url} size={44} radius={radius.sm} name={profile.display_name ?? profile.username} />
       <Text style={[styles.name, { fontFamily: fonts.display, color: colors.ink }]}>
         {profile.display_name ?? `@${profile.username}`}
       </Text>
