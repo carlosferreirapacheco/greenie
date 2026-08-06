@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack } from "expo-router";
 import { FEEDBACK_TYPES, FeedbackRateLimitedError, submitFeedback, type FeedbackType } from "../lib/supabase/feedback";
@@ -28,6 +29,7 @@ export default function FeedbackScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [type, setType] = useState<FeedbackType>("suggestion");
@@ -218,6 +220,7 @@ export default function FeedbackScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

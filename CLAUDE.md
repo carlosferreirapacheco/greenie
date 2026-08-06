@@ -1558,6 +1558,48 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Bottom UI hidden behind Android 3-button navigation — done, from
+  tester feedback (Rita Cortes Rosa: a bottom-anchored action, e.g. a
+  Save button, could sit partly behind the on-screen nav bar on a
+  device using classic 3-button navigation instead of gesture nav).
+  Root cause: **`react-native-safe-area-context` was already a direct
+  dependency but was never actually used anywhere** — every screen's
+  scroll content ended flush against its own static bottom padding
+  with no awareness of the OS nav bar's reserved height at all. No
+  `SafeAreaProvider` needed adding — confirmed by reading the
+  installed `expo-router`'s compiled `ExpoRoot.js`, which already
+  wraps the whole app in one internally. The fix is systemic, not a
+  one-screen patch: **all 18 screens in the app that use a `ScrollView`**
+  (confirmed exhaustive via a `ScrollView` grep cross-checked against
+  a `contentContainerStyle` grep, a 1:1 match — so no bottom-anchored
+  action lives outside a scrollable container that would need separate
+  handling) — `add-plant`, `log-progress`, `settings`, `feedback`,
+  `delete-account`, `welcome`, `progress/[id]`, `help`, `profile`,
+  `user/[id]`, `(tabs)/plant-sitting`, `privacy-policy`,
+  `terms-of-use`, `request-sitting`, `report`, `plant/[id]`,
+  `sign-in`, `sign-up` — each gained `useSafeAreaInsets()` and a
+  trailing `<View style={{ height: insets.bottom }} />` as the very
+  last child before `</ScrollView>`, adding the OS's own reserved
+  bottom-inset height on top of whatever static padding the screen
+  already had, rather than trying to hand-recompute 18 different
+  padding sums. **Deliberately uncapped/unthresholded**, confirmed
+  with the user after flagging the tradeoff explicitly: `insets.bottom`
+  is non-zero not just on Android 3-button nav (the actual bug, and
+  the largest inset) but also, in smaller amounts, on iOS gesture nav
+  (home indicator) and Android gesture nav on many OEMs — so this fix
+  also adds a small amount of extra bottom spacing on gesture-nav
+  devices, which is the intended, correct platform convention rather
+  than something to special-case around. Web resolves the inset to 0,
+  so no visual change there. Verified: `tsc --noEmit` + `npm test`
+  clean (430 passing); live web spot-checks on `add-plant` and
+  `settings` confirmed no console errors, no visual regression, and
+  (via a DOM query for the trailing spacer element) the new `<View>`
+  correctly renders as a 0px-height element on web, proving the code
+  path executes correctly even though web has no inset to reserve
+  space for. The actual fix — real clearance above a 3-button Android
+  nav bar — can't be verified in this environment and needs a pass on
+  the real Android test device, same category of gap as this
+  project's other native-only verification items.
 - Notifications: Alerts tab badge staying lit after read — done, from
   tester feedback. The Alerts screen's mark-all-read call
   (`markAllNotificationsRead()` in `app/(tabs)/notifications.tsx`) was

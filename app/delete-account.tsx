@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import type { Session } from "@supabase/supabase-js";
@@ -31,6 +32,7 @@ export default function DeleteAccountScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -194,6 +196,7 @@ export default function DeleteAccountScreen() {
             )}
           </>
         )}
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

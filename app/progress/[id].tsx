@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
 import {
@@ -41,6 +42,7 @@ export default function ProgressDetailScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -521,6 +523,7 @@ export default function ProgressDetailScreen() {
             )}
           </>
         )}
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
 
       {viewerOpen && report.photo_url ? (

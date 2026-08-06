@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { getMyProfile, updateMyAvatar, updateMyProfile, type MyProfile } from "../lib/supabase/profiles";
@@ -37,6 +38,7 @@ export default function ProfileScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -391,6 +393,7 @@ export default function ProfileScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
 
       {confirmingUsername ? (

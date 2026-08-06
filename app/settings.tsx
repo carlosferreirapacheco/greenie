@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { File, Paths } from "expo-file-system";
@@ -71,6 +72,7 @@ export default function SettingsScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors, themePreference, setThemePreference } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, languagePreference, setLanguagePreference } = useLanguage();
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -1167,6 +1169,7 @@ export default function SettingsScreen() {
         </Text>
 
         <AccountDeletionFlow fonts={fonts} />
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
 
       {showSupportHint ? (

@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { REPORT_REASONS, submitReport, type ReportReason, type ReportTargetType } from "../lib/supabase/reports";
@@ -29,6 +30,7 @@ export default function ReportScreen() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const fonts = getFonts(fontsLoaded && !fontError);
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t } = useLanguage();
 
   const [reason, setReason] = useState<ReportReason>("spam");
@@ -168,6 +170,7 @@ export default function ReportScreen() {
             </Text>
           )}
         </Pressable>
+        <View style={{ height: insets.bottom }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
