@@ -136,7 +136,7 @@ export default function LogProgressScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Stack.Screen options={{ title: t("logProgress.headerTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>

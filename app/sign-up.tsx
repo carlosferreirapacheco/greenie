@@ -138,7 +138,7 @@ export default function SignUpScreen() {
     return (
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: colors.paper }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <Stack.Screen options={{ title: t("signUp.checkEmail.screenTitle") }} />
         <View style={styles.center}>
@@ -189,7 +189,7 @@ export default function SignUpScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Stack.Screen options={{ title: t("signUp.form.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>
