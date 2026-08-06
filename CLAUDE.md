@@ -2887,6 +2887,39 @@ unrelated history.
   device) via a DOM bounding-box check confirming the title and the
   header actions no longer share any horizontal extent; `tsc`/
   `npm test` clean.
+  **Second real-device follow-up — done**, from a re-report (Marta
+  Rodrigues) that the header title was *still* overlapping the icons.
+  The three-icon `HeaderIconButton` row above was a mitigation, not a
+  fix for the actual mechanism: `headerTitleAlign: "center"` (forced
+  app-wide in both `app/_layout.tsx`'s root `Stack` and
+  `app/(tabs)/_layout.tsx`'s `Tabs` `screenOptions`) makes native-stack
+  absolutely-position the title across the full header width on
+  Android, without reserving space for `headerRight` — unlike a
+  left-aligned title, which lays out in-flow after `headerLeft` and
+  truncates with an ellipsis before it could ever reach the action
+  icons. So *any* screen with a wide-enough `headerRight` (a longer
+  translated label, a larger accessibility font size) could still
+  collide, regardless of icon count. Rather than switch title
+  alignment per-platform (considered and discussed with the user, who
+  preferred keeping centered titles everywhere for visual consistency),
+  the fix instead enforces a hard app-wide budget: **at most 2 header
+  actions per screen**. The People screen (`app/(tabs)/following.tsx`)
+  was the only screen with 3 (Requests, Followers, Add) — Add moved out
+  of `headerRight` entirely, down into the screen body as a fourth
+  `HeaderIconButton` (same icon+label treatment, unchanged) sitting
+  beside the existing filter/search input in a new horizontal row,
+  navigating to `/search-users` exactly as before. Every other screen
+  using `HeaderIconButton` (Profile: Help + Settings; Plant Sitting:
+  Share + Request) was already at 2 and needed no change. This is a
+  targeted fix for the tester's exact repro, not a guarantee against
+  every possible font-scale/screen-width combination — the underlying
+  centered-title mechanism is unchanged — but it's the surgical fix
+  that matches what was actually reported and asked for. Verified:
+  `tsc`/`npm test` clean; live web (375px mobile width, dark mode,
+  Português) confirmed the header now shows exactly 2 icons
+  ("Pedidos"/"Seguidores"), the relocated "Adicionar" icon+label sits
+  correctly beside the search input with no overlap or viewport
+  overflow, and tapping it still navigates to Search Users.
 - Convert inline prompts to modals — done. Seven inline
   confirm/choice prompts (a text link expanding in place into a
   confirm/cancel or multi-choice row, sometimes boxed) converted to

@@ -61,11 +61,12 @@ export default function FollowingScreen() {
 
   // Header actions live here (not the tabs layout) because Requests
   // carries its own pending-request badge dot -- same reasoning as
-  // plant-sitting.tsx's Share/Request actions. All three use the
-  // icon+label HeaderIconButton treatment (not text links) so the row
-  // stays narrow enough not to collide with the centered header title
-  // on real phone screens -- three full-word text buttons was wide
-  // enough to visually overlap the title on-device.
+  // plant-sitting.tsx's Share/Request actions. Kept to two icon+label
+  // HeaderIconButtons (Requests, Followers) to stay under the app-wide
+  // 2-action header budget -- a third (Add) used to live here too, but
+  // three full-word icon+label buttons was still wide enough to
+  // visually overlap the centered header title on a real phone screen,
+  // so Add moved down next to the filter input instead (below).
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -81,12 +82,6 @@ export default function FollowingScreen() {
             icon="account-multiple-outline"
             label={t("following.headerActions.followers")}
             onPress={() => router.push("/followers")}
-            fonts={fonts}
-          />
-          <HeaderIconButton
-            icon="account-plus-outline"
-            label={t("following.headerActions.add")}
-            onPress={() => router.push("/search-users")}
             fonts={fonts}
           />
         </View>
@@ -146,14 +141,22 @@ export default function FollowingScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.paper }]}>
-      <View style={[styles.filterInputWrap, { borderColor: colors.line }]}>
-        <MaterialCommunityIcons name="magnify" size={18} color={colors.inkSoft} style={styles.filterIcon} />
-        <TextInput
-          style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink }]}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={t("following.searchPlaceholder")}
-          placeholderTextColor={colors.inkSoft}
+      <View style={styles.filterRow}>
+        <View style={[styles.filterInputWrap, { borderColor: colors.line }]}>
+          <MaterialCommunityIcons name="magnify" size={18} color={colors.inkSoft} style={styles.filterIcon} />
+          <TextInput
+            style={[styles.filterInput, { fontFamily: fonts.body, color: colors.ink }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t("following.searchPlaceholder")}
+            placeholderTextColor={colors.inkSoft}
+          />
+        </View>
+        <HeaderIconButton
+          icon="account-plus-outline"
+          label={t("following.headerActions.add")}
+          onPress={() => router.push("/search-users")}
+          fonts={fonts}
         />
       </View>
       {body}
@@ -175,13 +178,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.xs,
   },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.sm,
+  },
   filterInputWrap: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radius.sm,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
   },
   filterIcon: {
