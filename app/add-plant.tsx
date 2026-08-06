@@ -300,7 +300,7 @@ export default function AddPlantScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Stack.Screen options={{ title: t("addPlant.screenTitle") }} />
       <ScrollView contentContainerStyle={styles.content}>

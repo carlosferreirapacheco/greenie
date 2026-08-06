@@ -1601,21 +1601,32 @@ sharing them socially with other users.
   behavior can't be verified in this environment (no way to kill the
   app and tap a real delivered push) and needs a pass on the physical
   Android test device.
-- Keyboard covering the active input while typing — logged from
-  tester feedback (Marta Rodrigues: "when writing a comment or any
-  input, when the keyboard shows, the screen stays the same covering
-  the input"), confirmed as a real, systemic gap across all 12 screens
-  using `KeyboardAvoidingView` (comments, feedback, sign-in/up,
-  settings, add-plant, log-progress, and more) — every one uses
-  `behavior={Platform.OS === "ios" ? "padding" : undefined}`, and
-  `undefined` makes `KeyboardAvoidingView` a complete no-op on
-  Android. The app does default to Android's `adjustResize` window
-  mode (confirmed via `app.json` having no
+- Keyboard covering the active input while typing — done, from tester
+  feedback (Marta Rodrigues: "when writing a comment or any input,
+  when the keyboard shows, the screen stays the same covering the
+  input"), confirmed as a real, systemic gap across all 12 screens
+  using `KeyboardAvoidingView` (`add-plant`, `log-progress`,
+  `settings`, `report`, `request-sitting`, `progress/[id]`, `profile`,
+  `feedback`, `delete-account`, `welcome`, `sign-in`, `sign-up`) —
+  every one used `behavior={Platform.OS === "ios" ? "padding" :
+  undefined}`, and `undefined` makes `KeyboardAvoidingView` a complete
+  no-op on Android. The app does default to Android's `adjustResize`
+  window mode (confirmed via `app.json` having no
   `android.softwareKeyboardLayoutMode` override, and Expo's own
   config-plugin source defaulting to `adjustResize` when unset), but
   that alone doesn't reliably scroll a focused input into view past
   the fold without React Native's own keyboard-avoidance logic
-  actually being enabled. Not yet implemented — next up.
+  actually being enabled. Fixed by changing `undefined` → `"height"`
+  (React Native's standard non-iOS keyboard-avoidance behavior) in all
+  12 files — a one-line change per screen, extending the app's
+  existing iOS convention to Android instead of leaving Android
+  disabled; no other restructuring needed. Verified: `tsc`/`npm test`
+  clean (434 passing, no logic change so this was a regression check);
+  live web spot-checks (Feedback, Plants) rendered cleanly with no
+  console errors — web has no OS keyboard to actually exercise this
+  behavior, so it only confirms nothing broke. Real confirmation that
+  inputs are no longer covered needs a pass on the physical Android
+  test device.
 - Bottom UI hidden behind Android 3-button navigation — done, from
   tester feedback (Rita Cortes Rosa: a bottom-anchored action, e.g. a
   Save button, could sit partly behind the on-screen nav bar on a

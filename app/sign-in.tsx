@@ -81,7 +81,7 @@ export default function SignInScreen() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <Stack.Screen options={{ title: t("signIn.screenTitle"), headerBackVisible: false }} />
       <ScrollView contentContainerStyle={styles.content}>
