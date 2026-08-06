@@ -1558,6 +1558,34 @@ sharing them socially with other users.
   the dark palette's `ink`/`paper` tokens exactly).
 
 ### Technical follow-ups
+- Floating Add Plant button — done, from tester feedback (Marta
+  Rodrigues: a mock showing a circled "+" at the bottom center of the
+  empty Plants screen, with an arrow pointing away from the header's
+  "Adicionar" icon). Per explicit user decision, this **overturns**
+  the "UI/UX revamp" item's earlier call (below) of "`+ Add` as a
+  Plants header icon (no center FAB)" — the header icon read as too
+  easy to miss in practice. `app/(tabs)/_layout.tsx`'s Plants tab
+  `headerRight` now shows only "Archived"; the "+" `HeaderIconButton`
+  was removed entirely, not duplicated. `app/(tabs)/index.tsx` gained
+  a new `AddPlantFab` component: a 56px circular button (moss
+  background, white "+" `MaterialCommunityIcons`, drop shadow),
+  absolute-positioned bottom-center via a full-width wrapper
+  (`alignItems: "center"`) so only the button itself — not the full
+  wrapper strip — captures taps, letting the list still scroll
+  underneath. Navigates to `/add-plant`, same target as the old header
+  icon. Reuses the existing `tabsLayout.plants.addAction` string
+  ("Add"/"Adicionar") as the button's `accessibilityLabel` — no new
+  i18n keys needed. Shown in both the empty-state and populated-list
+  renders, not during loading/error. Verified: `tsc`/`npm test` clean
+  (434 passing, no logic change beyond the new component); live web —
+  confirmed via computed-style checks that the button renders as a
+  true 56px circle exactly horizontally centered in the viewport at
+  both desktop (1280px) and mobile (375px) widths, sits clear of the
+  tab bar with room to spare, tapping it navigates to Add Plant, and
+  dark mode renders the correct moss background — all before and after
+  a fresh-tab console check (this session's earlier stale-console-error
+  false alarm, unrelated to this change, was ruled out by confirming a
+  brand-new tab loaded with zero errors).
 - Push notification cold-start deep linking — done, from tester
   feedback (Marta Rodrigues: a comment notification's tap landed on
   the Plants screen instead of the report, "like the follow

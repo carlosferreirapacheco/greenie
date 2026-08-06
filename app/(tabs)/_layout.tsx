@@ -217,21 +217,16 @@ export default function TabsLayout() {
         options={{
           title: t("tabsLayout.plants.title"),
           tabBarIcon: ({ color, size }) => <MaterialCommunityIcons name="sprout" size={size} color={color} />,
+          // Add moved out of the header onto a floating action button on
+          // the screen itself (app/(tabs)/index.tsx) -- see CLAUDE.md's
+          // "Floating Add Plant button" entry.
           headerRight: () => (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.xs }}>
-              <HeaderIconButton
-                icon="archive-outline"
-                label={t("tabsLayout.plants.archivedAction")}
-                onPress={() => router.push("/archived-plants")}
-                fonts={fonts}
-              />
-              <HeaderIconButton
-                icon="plus"
-                label={t("tabsLayout.plants.addAction")}
-                onPress={() => router.push("/add-plant")}
-                fonts={fonts}
-              />
-            </View>
+            <HeaderIconButton
+              icon="archive-outline"
+              label={t("tabsLayout.plants.archivedAction")}
+              onPress={() => router.push("/archived-plants")}
+              fonts={fonts}
+            />
           ),
         }}
       />

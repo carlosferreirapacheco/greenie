@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import { router, useFocusEffect } from "expo-router";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { getMyPlants, plantCommonNameSubtitle, plantPrimaryName, type Plant } from "../../lib/supabase/plants";
 import {
   getCareTasksForPlants,
@@ -44,6 +45,26 @@ function StatusPill({ label, status, fonts }: { label: string; status: PlantCare
       <Text style={[styles.pillText, { color: palette.fg, fontFamily: fonts.bodyMedium }]}>
         {t("index.pill.labelStatus", { label, status: statusText(status, t) })}
       </Text>
+    </View>
+  );
+}
+
+// Floating "+" button -- moved here from the header per tester
+// feedback (a header icon read as too easy to miss); shown in both the
+// empty and populated states, not during loading/error.
+function AddPlantFab() {
+  const { colors } = useTheme();
+  const { t } = useLanguage();
+  return (
+    <View style={styles.fabContainer} pointerEvents="box-none">
+      <Pressable
+        onPress={() => router.push("/add-plant")}
+        style={[styles.fab, { backgroundColor: colors.moss }]}
+        accessibilityLabel={t("tabsLayout.plants.addAction")}
+        hitSlop={8}
+      >
+        <MaterialCommunityIcons name="plus" size={28} color={colors.paper} />
+      </Pressable>
     </View>
   );
 }
@@ -114,12 +135,13 @@ export default function PlantListScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.paper }]}>
         <Text style={{ fontFamily: fonts.body, color: colors.inkSoft }}>{t("index.emptyState")}</Text>
+        <AddPlantFab />
       </View>
     );
   }
 
   return (
-    <>
+    <View style={styles.screen}>
       <FlatList
         style={[styles.list, { backgroundColor: colors.paper }]}
         data={plants}
@@ -170,15 +192,38 @@ export default function PlantListScreen() {
         );
         }}
       />
-    </>
+      <AddPlantFab />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  fabContainer: {
+    position: "absolute",
+    bottom: spacing.lg,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   list: {
     flex: 1,
