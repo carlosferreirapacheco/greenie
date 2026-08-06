@@ -1,4 +1,9 @@
-import { identifiersForDeletedPlants, notificationTargetPath, parseStoredFlag } from "./pushNotifications";
+import {
+  identifiersForDeletedPlants,
+  notificationTargetPath,
+  parseStoredFlag,
+  resolvePushResponsePath,
+} from "./pushNotifications";
 
 describe("parseStoredFlag", () => {
   it("defaults to on when the key was never set", () => {
@@ -49,6 +54,26 @@ describe("notificationTargetPath", () => {
 
   it("returns null for unknown kinds (untyped push payloads)", () => {
     expect(notificationTargetPath("mystery", { plantId: "pl1" })).toBeNull();
+  });
+});
+
+describe("resolvePushResponsePath", () => {
+  it("resolves a typed kind via notificationTargetPath", () => {
+    expect(resolvePushResponsePath({ type: "comment", progressId: "pr1" })).toBe("/progress/pr1");
+    expect(resolvePushResponsePath({ type: "follow_request" })).toBe("/follow-requests");
+  });
+
+  it("falls back to the transition path for old plantId-only reminders", () => {
+    expect(resolvePushResponsePath({ plantId: "pl1" })).toBe("/plant/pl1");
+  });
+
+  it("prefers the typed kind over a stray plantId field", () => {
+    expect(resolvePushResponsePath({ type: "care_due", plantId: "pl1" })).toBe("/plant/pl1");
+  });
+
+  it("returns null for empty or unresolvable data", () => {
+    expect(resolvePushResponsePath({})).toBeNull();
+    expect(resolvePushResponsePath({ type: "mystery" })).toBeNull();
   });
 });
 

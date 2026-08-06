@@ -7,7 +7,12 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase/client";
 import { getPrivacyPolicyUpdatedAt, isConsentCurrent } from "../lib/supabase/consent";
 import { onConsentAccepted } from "../lib/consentEvents";
-import { addPushResponseListener, configurePushHandling, registerForPush } from "../lib/pushNotificationManager";
+import {
+  addPushResponseListener,
+  configurePushHandling,
+  getInitialNotificationTargetPath,
+  registerForPush,
+} from "../lib/pushNotificationManager";
 import { fontAssets, getFonts } from "../lib/theme";
 import { ThemeProvider, useTheme } from "../lib/ThemeContext";
 import { LanguageProvider, useLanguage } from "../lib/LanguageContext";
@@ -76,9 +81,16 @@ function RootLayoutNav() {
 
   // OS push notifications (native only; all calls no-op on web):
   // foreground presentation + Android channel, and tap deep-linking by
-  // kind via the shared notificationTargetPath.
+  // kind via the shared notificationTargetPath. A cold-start tap (app
+  // was fully killed) never reaches addPushResponseListener's live
+  // listener, since it only receives responses that happen after it's
+  // registered -- getInitialNotificationTargetPath() covers that case
+  // separately, captured once here and consumed by the effect below
+  // once the app has somewhere to navigate to.
+  const [initialPushPath, setInitialPushPath] = useState<string | null>(null);
   useEffect(() => {
     configurePushHandling();
+    setInitialPushPath(getInitialNotificationTargetPath());
     const listener = addPushResponseListener((path) => {
       router.push(path);
     });
@@ -86,6 +98,34 @@ function RootLayoutNav() {
       listener?.remove();
     };
   }, []);
+
+  // Deferred until the app has passed the same loading/auth/consent
+  // gates the render logic below uses -- navigating any earlier would
+  // fire into a Stack that doesn't exist yet (the app is still showing
+  // the loading spinner or about to redirect to sign-in), which is
+  // exactly how a cold-start push tap used to silently land on the
+  // default tab instead of its real target.
+  useEffect(() => {
+    if (!initialPushPath) {
+      return;
+    }
+    if (!sessionLoaded || !themeLoaded || (!fontsLoaded && !fontError)) {
+      return;
+    }
+    if (!session) {
+      // Meaningless without a session; the deep link is dropped rather
+      // than replayed after sign-in.
+      return;
+    }
+    if (consentedAt === undefined || policyUpdatedAt === undefined) {
+      return;
+    }
+    if (!isConsentCurrent(consentedAt, policyUpdatedAt)) {
+      return;
+    }
+    router.push(initialPushPath);
+    setInitialPushPath(null);
+  }, [initialPushPath, sessionLoaded, themeLoaded, fontsLoaded, fontError, session, consentedAt, policyUpdatedAt]);
 
   // Accounts whose consent isn't current -- never accepted (fresh OAuth
   // signups, pre-consent-era accounts) or accepted before the policy's
